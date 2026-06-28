@@ -136,6 +136,24 @@
     transform: translateY(-2px);
     outline: none;
   }
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: center;
+    margin-top: 36px;
+  }
+  .cta-row .hero-cta { margin-top: 0; }
+  .hero-cta.ghost {
+    border-color: var(--line);
+    color: var(--text);
+  }
+  .hero-cta.ghost:hover,
+  .hero-cta.ghost:focus-visible {
+    background: transparent;
+    border-color: var(--gold);
+    color: var(--gold);
+  }
   .scroll-hint {
     position: absolute;
     bottom: 34px; left: 50%;
@@ -238,7 +256,10 @@
       <p class="eyebrow">Mobile App Studio</p>
       <h1 class="wordmark">Wsub<span class="dot">.</span></h1>
       <p class="tagline">하루에 작은 <span class="accent">운(運)</span>을 더하는<br />모바일 앱을 만듭니다.</p>
-      <a class="hero-cta" href="/games/">운세 모아보기 →</a>
+      <div class="cta-row">
+        <a class="hero-cta" href="/games/">번호 뽑기 →</a>
+        <a class="hero-cta ghost" href="/games/palm.html">손금 보기 🖐️</a>
+      </div>
     </div>
     <p class="scroll-hint" aria-hidden="true">SCROLL</p>
   </header>

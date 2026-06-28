@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>운세 모아보기 — Wsub</title>
-<meta name="description" content="사주, 타로, 주역, 바이오리듬 등 Wsub의 운세 콘텐츠를 한곳에서." />
-<meta property="og:title" content="Wsub 운세 모아보기" />
-<meta property="og:description" content="오늘 하루 작은 운(運)을 더하는 콘텐츠 모음" />
+<title>번호 뽑기 — Wsub</title>
+<meta name="description" content="한국 로또와 미국 파워볼, 원하는 방식을 골라 행운 번호를 뽑아보세요." />
+<meta property="og:title" content="Wsub 번호 뽑기" />
+<meta property="og:description" content="한국 로또 · 미국 파워볼 행운 번호 콘텐츠" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet" />
@@ -22,6 +22,7 @@
     --gold: #e6c068;
     --gold-dim: #b8985a;
     --cool: #7884bd;
+    --red: #d96b6b;
     --display: "Fraunces", Georgia, serif;
     --sans: "Pretendard", -apple-system, system-ui, sans-serif;
   }
@@ -37,7 +38,7 @@
   }
   a { color: inherit; text-decoration: none; }
   ::selection { background: var(--gold); color: var(--bg); }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px; }
 
   /* header */
   header.top { padding: 56px 0 0; text-align: center; }
@@ -50,68 +51,84 @@
     letter-spacing: -0.01em;
     margin: 28px 0 10px;
   }
-  .page-sub { color: var(--muted); font-size: 1rem; max-width: 32ch; margin: 0 auto; }
+  .page-sub { color: var(--muted); font-size: 1rem; max-width: 34ch; margin: 0 auto; }
   .page-sub .accent { color: var(--gold); font-family: var(--display); font-style: italic; }
 
-  /* category label */
-  .cat-label {
-    font-size: 0.74rem;
-    letter-spacing: 0.26em;
-    text-transform: uppercase;
-    color: var(--gold);
-    font-weight: 500;
-    margin: 56px 0 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .cat-label::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
-
-  /* grid */
-  .grid {
+  /* choice grid */
+  .choice-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin: 56px 0 24px;
   }
-  .card {
+  @media (min-width: 640px) { .choice-grid { grid-template-columns: 1fr 1fr; } }
+
+  .choice {
     position: relative;
-    display: block;
+    display: flex;
+    flex-direction: column;
+    min-height: 240px;
     background: var(--bg-raised);
     border: 1px solid var(--line-soft);
-    border-radius: 16px;
-    padding: 26px 22px;
-    transition: border-color 0.2s, transform 0.2s, background 0.2s;
+    border-radius: 20px;
+    padding: 32px 28px;
     overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
   }
-  .card::before {
+  .choice::before {
     content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(140% 120% at 100% 0%, rgba(230,192,104,0.07), transparent 55%);
-    opacity: 0;
+    position: absolute; inset: 0;
+    opacity: 0.5;
     transition: opacity 0.25s;
   }
-  .card:hover,
-  .card:focus-visible {
+  .choice.kr::before { background: radial-gradient(150% 120% at 0% 0%, rgba(230,192,104,0.10), transparent 55%); }
+  .choice.us::before { background: radial-gradient(150% 120% at 100% 0%, rgba(217,107,107,0.10), transparent 55%); }
+  .choice:hover, .choice:focus-visible {
     border-color: var(--line);
-    transform: translateY(-3px);
+    transform: translateY(-4px);
     outline: none;
   }
-  .card:hover::before,
-  .card:focus-visible::before { opacity: 1; }
-  .card .ico { font-size: 1.9rem; line-height: 1; display: block; margin-bottom: 16px; }
-  .card .name { font-size: 1.12rem; font-weight: 600; margin-bottom: 6px; position: relative; }
-  .card .desc { color: var(--muted); font-size: 0.88rem; line-height: 1.55; position: relative; }
-  .card .arrow {
-    position: absolute; top: 22px; right: 22px;
-    color: var(--gold); font-size: 1rem; opacity: 0;
-    transform: translateX(-4px); transition: opacity 0.2s, transform 0.2s;
+  .choice:hover::before, .choice:focus-visible::before { opacity: 1; }
+
+  .choice .flag { font-size: 2.4rem; line-height: 1; position: relative; }
+  .choice .ko-name {
+    font-family: var(--display);
+    font-size: 1.7rem;
+    font-weight: 500;
+    margin: 18px 0 4px;
+    position: relative;
   }
-  .card:hover .arrow,
-  .card:focus-visible .arrow { opacity: 1; transform: translateX(0); }
+  .choice .en-name {
+    font-size: 0.78rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--gold-dim);
+    position: relative;
+  }
+  .choice.us .en-name { color: var(--red); }
+  .choice .rule {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 14px;
+    position: relative;
+  }
+  .choice .go {
+    margin-top: auto;
+    padding-top: 20px;
+    color: var(--gold);
+    font-size: 0.95rem;
+    font-weight: 500;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .choice.us .go { color: var(--red); }
+  .choice .go .ar { transition: transform 0.2s; }
+  .choice:hover .go .ar, .choice:focus-visible .go .ar { transform: translateX(4px); }
 
   /* footer */
-  footer { border-top: 1px solid var(--line-soft); padding: 44px 0 60px; margin-top: 72px; }
+  footer { border-top: 1px solid var(--line-soft); padding: 44px 0 60px; margin-top: 56px; }
   .foot-row { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: baseline; justify-content: space-between; }
   .foot-brand { font-family: var(--display); font-size: 1.2rem; }
   .foot-brand .dot { color: var(--gold); }
@@ -123,7 +140,7 @@
   a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
 
   @media (prefers-reduced-motion: reduce) {
-    .card { transition: none; }
+    .choice { transition: none; }
     html { scroll-behavior: auto; }
   }
 </style>
@@ -132,84 +149,27 @@
   <header class="top">
     <div class="wrap">
       <a class="brand" href="/">Wsub<span class="dot">.</span></a>
-      <h1 class="page-title">운세 모아보기</h1>
-      <p class="page-sub">오늘 하루 작은 <span class="accent">운(運)</span>을 더하는 콘텐츠를 골라보세요.</p>
+      <h1 class="page-title">번호 뽑기</h1>
+      <p class="page-sub">한국 로또와 미국 파워볼, 원하는 <span class="accent">방식</span>을 골라보세요.</p>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- 운세 / 점술 -->
-    <div class="cat-label">운세 · 점술</div>
-    <div class="grid">
-      <a class="card" href="/games/saju.html">
-        <span class="arrow">→</span>
-        <span class="ico">🔮</span>
-        <div class="name">사주 로또</div>
-        <div class="desc">생년월일로 풀어보는 사주와 추천 번호</div>
+    <div class="choice-grid">
+      <a class="choice kr" href="/games/lotto.html">
+        <span class="flag">🇰🇷</span>
+        <div class="ko-name">한국 로또</div>
+        <div class="en-name">Korea Lotto</div>
+        <p class="rule">1부터 45 중 여섯 개. 사주·타로 같은 운세로 풀어보는 번호.</p>
+        <span class="go">번호 뽑으러 가기 <span class="ar">→</span></span>
       </a>
-      <a class="card" href="/games/tarot.html">
-        <span class="arrow">→</span>
-        <span class="ico">🃏</span>
-        <div class="name">타로 로또</div>
-        <div class="desc">카드 한 장에 담긴 오늘의 메시지</div>
-      </a>
-      <a class="card" href="/games/iching.html">
-        <span class="arrow">→</span>
-        <span class="ico">🀄</span>
-        <div class="name">주역 64괘 로또</div>
-        <div class="desc">동전을 던져 괘를 뽑는 주역 점</div>
-      </a>
-      <a class="card" href="/games/dangsaju.html">
-        <span class="arrow">→</span>
-        <span class="ico">🎴</span>
-        <div class="name">당사주 로또</div>
-        <div class="desc">열두 별자리로 보는 나의 운</div>
-      </a>
-      <a class="card" href="/games/tojeong.html">
-        <span class="arrow">→</span>
-        <span class="ico">🌙</span>
-        <div class="name">토정비결 로또</div>
-        <div class="desc">한 해의 길흉을 살펴보는 토정비결</div>
-      </a>
-      <a class="card" href="/games/ohaeng.html">
-        <span class="arrow">→</span>
-        <span class="ico">💑</span>
-        <div class="name">오행 궁합 로또</div>
-        <div class="desc">두 사람의 오행으로 보는 궁합과 번호</div>
-      </a>
-      <a class="card" href="/games/biorhythm.html">
-        <span class="arrow">→</span>
-        <span class="ico">📈</span>
-        <div class="name">바이오리듬 로또</div>
-        <div class="desc">신체·감성·지성 주기로 오늘을 진단</div>
-      </a>
-    </div>
 
-    <!-- 뽑기 / 도구 -->
-    <div class="cat-label">뽑기 · 도구</div>
-    <div class="grid">
-      <a class="card" href="/games/spin.html">
-        <span class="arrow">→</span>
-        <span class="ico">🎡</span>
-        <div class="name">원판 돌리기</div>
-        <div class="desc">돌림판을 돌려 번호를 뽑아요</div>
-      </a>
-      <a class="card" href="/games/montecarlo.html">
-        <span class="arrow">→</span>
-        <span class="ico">🎲</span>
-        <div class="name">몬테카를로 파워볼</div>
-        <div class="desc">수많은 시뮬레이션으로 뽑는 번호</div>
-      </a>
-    </div>
-
-    <!-- 손금 -->
-    <div class="cat-label">손금</div>
-    <div class="grid">
-      <a class="card" href="/games/palm.html">
-        <span class="arrow">→</span>
-        <span class="ico">🖐️</span>
-        <div class="name">스스로 찾는 내 손금</div>
-        <div class="desc">손금 선을 따라가며 풀어보는 해석</div>
+      <a class="choice us" href="/games/powerball.html">
+        <span class="flag">🇺🇸</span>
+        <div class="ko-name">미국 파워볼</div>
+        <div class="en-name">US Powerball</div>
+        <p class="rule">화이트볼 5개(1~69)와 파워볼 1개(1~26). 시뮬레이션으로 뽑는 번호.</p>
+        <span class="go">번호 뽑으러 가기 <span class="ar">→</span></span>
       </a>
     </div>
   </main>

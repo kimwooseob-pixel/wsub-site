@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>한국 로또 — Wsub</title>
+<meta name="description" content="사주, 타로, 손금 등 운세로 풀어보는 한국 로또 번호." />
+<meta property="og:title" content="Wsub 한국 로또" />
+<meta property="og:description" content="1~45 여섯 개, 운세로 뽑는 행운 번호" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  :root {
+    --bg: #0d0f1c;
+    --bg-raised: #14172a;
+    --line: rgba(230, 192, 104, 0.18);
+    --line-soft: rgba(255, 255, 255, 0.07);
+    --text: #f1eee4;
+    --muted: #969cb6;
+    --gold: #e6c068;
+    --gold-dim: #b8985a;
+    --cool: #7884bd;
+    --display: "Fraunces", Georgia, serif;
+    --sans: "Pretendard", -apple-system, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  a { color: inherit; text-decoration: none; }
+  ::selection { background: var(--gold); color: var(--bg); }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* back link */
+  .back {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 32px;
+    color: var(--muted); font-size: 0.86rem;
+    transition: color 0.2s;
+  }
+  .back:hover { color: var(--gold); }
+
+  /* header */
+  header.top { padding: 18px 0 0; text-align: center; }
+  .flag-big { font-size: 2.2rem; }
+  .page-title {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(1.9rem, 5.5vw, 2.7rem);
+    letter-spacing: -0.01em;
+    margin: 14px 0 8px;
+  }
+  .page-sub { color: var(--muted); font-size: 0.96rem; max-width: 32ch; margin: 0 auto; }
+  .page-sub .accent { color: var(--gold); font-family: var(--display); font-style: italic; }
+
+  /* grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 48px;
+  }
+  .card {
+    position: relative;
+    display: block;
+    background: var(--bg-raised);
+    border: 1px solid var(--line-soft);
+    border-radius: 16px;
+    padding: 26px 22px;
+    transition: border-color 0.2s, transform 0.2s, background 0.2s;
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(140% 120% at 100% 0%, rgba(230,192,104,0.07), transparent 55%);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .card:hover, .card:focus-visible {
+    border-color: var(--line);
+    transform: translateY(-3px);
+    outline: none;
+  }
+  .card:hover::before, .card:focus-visible::before { opacity: 1; }
+  .card .ico { font-size: 1.9rem; line-height: 1; display: block; margin-bottom: 16px; }
+  .card .name { font-size: 1.12rem; font-weight: 600; margin-bottom: 6px; position: relative; }
+  .card .desc { color: var(--muted); font-size: 0.88rem; line-height: 1.55; position: relative; }
+  .card .arrow {
+    position: absolute; top: 22px; right: 22px;
+    color: var(--gold); font-size: 1rem; opacity: 0;
+    transform: translateX(-4px); transition: opacity 0.2s, transform 0.2s;
+  }
+  .card:hover .arrow, .card:focus-visible .arrow { opacity: 1; transform: translateX(0); }
+
+  /* 준비 중 카드 */
+  .card.soon {
+    cursor: default;
+    opacity: 0.62;
+  }
+  .card.soon:hover { border-color: var(--line-soft); transform: none; }
+  .card.soon:hover::before { opacity: 0; }
+  .card .badge {
+    position: absolute; top: 20px; right: 20px;
+    font-size: 0.68rem; letter-spacing: 0.08em;
+    color: var(--bg); background: var(--gold-dim);
+    padding: 3px 9px; border-radius: 999px; font-weight: 600;
+  }
+
+  /* footer */
+  footer { border-top: 1px solid var(--line-soft); padding: 44px 0 60px; margin-top: 72px; }
+  .foot-row { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: baseline; justify-content: space-between; }
+  .foot-brand { font-family: var(--display); font-size: 1.2rem; }
+  .foot-brand .dot { color: var(--gold); }
+  .foot-meta { color: var(--muted); font-size: 0.82rem; line-height: 1.8; }
+  .foot-links { display: flex; gap: 20px; font-size: 0.85rem; }
+  .foot-links a { color: var(--muted); transition: color 0.2s; }
+  .foot-links a:hover { color: var(--gold); }
+  .copyright { margin-top: 26px; color: var(--muted); font-size: 0.78rem; }
+  a:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 6px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card { transition: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="/games/">← 번호 뽑기</a>
+  </div>
+
+  <header class="top">
+    <div class="wrap">
+      <div class="flag-big">🇰🇷</div>
+      <h1 class="page-title">한국 로또</h1>
+      <p class="page-sub">1부터 45 중 여섯 개. <span class="accent">운(運)</span>으로 풀어보는 번호.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="grid">
+      <a class="card" href="/games/saju.html">
+        <span class="arrow">→</span>
+        <span class="ico">🔮</span>
+        <div class="name">사주 로또</div>
+        <div class="desc">생년월일로 풀어보는 사주와 추천 번호</div>
+      </a>
+      <a class="card" href="/games/tarot.html">
+        <span class="arrow">→</span>
+        <span class="ico">🃏</span>
+        <div class="name">타로 로또</div>
+        <div class="desc">카드 한 장에 담긴 오늘의 메시지</div>
+      </a>
+      <a class="card" href="/games/spin.html">
+        <span class="arrow">→</span>
+        <span class="ico">🎡</span>
+        <div class="name">원판 돌리기</div>
+        <div class="desc">돌림판을 돌려 번호를 뽑아요</div>
+      </a>
+      <div class="card soon" aria-disabled="true">
+        <span class="badge">준비 중</span>
+        <span class="ico">🧱</span>
+        <div class="name">벽돌깨기 로또</div>
+        <div class="desc">벽돌을 깨며 번호를 모으는 게임</div>
+      </div>
+      <div class="card soon" aria-disabled="true">
+        <span class="badge">준비 중</span>
+        <span class="ico">🌊</span>
+        <div class="name">흐름 예측 로또</div>
+        <div class="desc">흐름을 읽어 번호를 예측해요</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-row">
+        <div>
+          <div class="foot-brand">Wsub<span class="dot">.</span></div>
+          <div class="foot-meta">
+            모바일 앱 스튜디오<br />
+            문의 · contact@wsub.app
+          </div>
+        </div>
+        <nav class="foot-links" aria-label="푸터">
+          <a href="/games/">번호 뽑기</a>
+          <a href="/privacy.html">개인정보처리방침</a>
+        </nav>
+      </div>
+      <p class="copyright">© <span id="year">2026</span> Wsub. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
