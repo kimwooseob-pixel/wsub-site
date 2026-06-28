@@ -153,10 +153,63 @@
   .num-ball.sm{width:34px; height:34px; border-radius:17px; font-size:13px;}
 
   .hidden{display:none !important;}
+
+  /* ===== 로그인 바 (상단) ===== */
+  .auth-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:8px 12px; border-radius:10px; margin-bottom:4px;
+    border:1px solid rgba(212,175,55,.3); background:rgba(20,15,40,.6);
+    font-size:12px;
+  }
+  .auth-bar .auth-status{color:var(--muted); font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .auth-bar .auth-status b{color:var(--gold);}
+  .auth-bar button{
+    flex:0 0 auto; padding:7px 12px; border-radius:8px; cursor:pointer;
+    border:1px solid rgba(212,175,55,.5); background:rgba(212,175,55,.1);
+    color:var(--txt); font-weight:800; font-size:12px;
+  }
+  .auth-bar button:active{opacity:.85;}
+
+  /* ===== 로그인 모달 ===== */
+  .modal-overlay{
+    position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.7); padding:20px;
+  }
+  .modal-box{
+    width:100%; max-width:360px; border-radius:16px; padding:22px;
+    border:1px solid rgba(212,175,55,.4); background:var(--panel2);
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .modal-title{font-size:18px; font-weight:900; color:var(--gold); text-align:center; margin:0;}
+  .modal-sub{font-size:12px; color:var(--muted); text-align:center; margin:0 0 4px; line-height:18px;}
+  .modal-input{
+    width:100%; padding:12px; border-radius:10px; font-size:15px;
+    border:1px solid rgba(212,175,55,.35); background:rgba(10,10,30,.8); color:var(--txt);
+  }
+  .modal-input::placeholder{color:#64748b;}
+  .modal-btn{
+    width:100%; padding:13px 0; border-radius:10px; border:2px solid rgba(212,175,55,.7);
+    background:rgba(80,60,20,.5); color:#fff8e7; font-weight:900; font-size:15px; cursor:pointer;
+  }
+  .modal-btn:active{opacity:.88;}
+  .modal-btn:disabled{opacity:.5;}
+  .modal-toggle{text-align:center; font-size:12px; color:var(--violet); cursor:pointer; padding:4px;}
+  .modal-msg{font-size:12px; text-align:center; min-height:16px; color:#f87171;}
+  .modal-close{background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; padding:4px; text-align:center;}
 </style>
+<!-- Firebase SDK (CDN, 이 파일 자체완결 유지) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="wrap">
+  <!-- 로그인 바 -->
+  <div class="auth-bar" id="authBar">
+    <span class="auth-status" id="authStatus">로그인하면 번호를 저장할 수 있어요</span>
+    <button id="btnAuth">로그인</button>
+  </div>
+
   <!-- hero -->
   <div class="hero">
     <h1 class="title">🔮 사주 로또</h1>
@@ -242,6 +295,20 @@
       <div class="number-reason" id="numberReason"></div>
       <button class="save-btn" id="btnSave">💾 저장하기</button>
     </div>
+  </div>
+</div>
+
+<!-- 로그인/회원가입 모달 -->
+<div class="modal-overlay hidden" id="authModal">
+  <div class="modal-box">
+    <h2 class="modal-title" id="modalTitle">로그인</h2>
+    <p class="modal-sub" id="modalSub">저장한 번호를 어디서든 다시 볼 수 있어요.</p>
+    <input class="modal-input" id="inEmail" type="email" placeholder="이메일" autocomplete="email">
+    <input class="modal-input" id="inPass" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password">
+    <div class="modal-msg" id="modalMsg"></div>
+    <button class="modal-btn" id="btnDoAuth">로그인</button>
+    <div class="modal-toggle" id="modalToggle">계정이 없으신가요? 회원가입</div>
+    <button class="modal-close" id="modalClose">닫기</button>
   </div>
 </div>
 
@@ -441,30 +508,57 @@ function buildNumberReason(picked){
   return {intro, lines};
 }
 
-/* ===== 저장 (localStorage) ===== */
-const SAVE_KEY = '@devbrick/saved_lotto_numbers_v1';
-function saveSaju(numbers, summary, fortune, reason){
-  let list = [];
-  try{
-    const raw = localStorage.getItem(SAVE_KEY);
-    if(raw){const p = JSON.parse(raw); if(Array.isArray(p)) list = p;}
-  }catch(e){}
-  list.unshift({
-    id:`saju_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,
-    numbers:[...numbers].sort((a,b)=>a-b),
-    round:0, date:Date.now(), source:'saju', summary, fortune, reason,
+/* ===== Firebase 초기화 (이 파일 자체완결 — 다른 파일 참조 안 함) ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyAwh55rLOQkY8ZVCzaC4ZF3iaUVU5Vu0GM",
+  authDomain: "ai-lottosolutions.firebaseapp.com",
+  databaseURL: "https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ai-lottosolutions",
+  storageBucket: "ai-lottosolutions.firebasestorage.app",
+  messagingSenderId: "616782090306",
+  appId: "1:616782090306:web:688c710998dfce8e4d5ddb"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDB = firebase.database();
+const THIS_GAME = 'saju'; // 이 게임 식별자
+
+/* ===== 저장 (Firebase) ===== */
+// 로그인한 사용자의 wsub_saved/{uid}/ 아래에 저장
+async function saveSaju(numbers, summary, fortune, reason){
+  const user = fbAuth.currentUser;
+  if(!user) throw new Error('not-logged-in');
+  const ref = fbDB.ref('wsub_saved/' + user.uid).push();
+  await ref.set({
+    numbers: [...numbers].sort((a,b)=>a-b).join(','), // "3,11,22,..." 형태
+    game: THIS_GAME,
+    savedAt: Date.now(),
+    summary: summary || '',
+    fortune: fortune || '',
+    reason: reason || null,
   });
-  localStorage.setItem(SAVE_KEY, JSON.stringify(list));
 }
-// 저장된 사주 기록 불러오기
-function loadSajuSaves(){
-  try{
-    const raw = localStorage.getItem(SAVE_KEY);
-    if(!raw) return [];
-    const p = JSON.parse(raw);
-    if(!Array.isArray(p)) return [];
-    return p.filter(x=>x && x.source==='saju');
-  }catch(e){return [];}
+// 저장된 사주 기록 불러오기 (이 게임 것만, 최신순)
+async function loadSajuSaves(){
+  const user = fbAuth.currentUser;
+  if(!user) return [];
+  const snap = await fbDB.ref('wsub_saved/' + user.uid).once('value');
+  const val = snap.val();
+  if(!val) return [];
+  const list = Object.keys(val).map(k=>{
+    const x = val[k];
+    return {
+      id: k,
+      numbers: typeof x.numbers === 'string' ? x.numbers.split(',').map(Number) : (x.numbers||[]),
+      date: x.savedAt,
+      source: x.game,
+      summary: x.summary,
+      fortune: x.fortune,
+      reason: x.reason,
+    };
+  }).filter(x => x.source === THIS_GAME);
+  list.sort((a,b)=>(b.date||0)-(a.date||0)); // 최신순
+  return list;
 }
 
 /* ===== 상태 ===== */
@@ -622,11 +716,19 @@ function bindEvents(){
   document.getElementById('btnBack').addEventListener('click', showInput);
 
   // 저장
-  document.getElementById('btnSave').addEventListener('click', ()=>{
+  document.getElementById('btnSave').addEventListener('click', async ()=>{
     if(!state.result || state.saving) return;
+    // 로그인 안 됐으면 로그인 모달 띄우고 중단
+    if(!fbAuth.currentUser){
+      pendingSave = true;          // 로그인 성공 후 자동 저장하도록 표시
+      openAuthModal();
+      return;
+    }
     state.saving = true;
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true; btn.textContent = '저장 중...';
     try{
-      saveSaju(
+      await saveSaju(
         state.result.numbers,
         state.result.summary,
         state.result.fortune.main,
@@ -634,10 +736,12 @@ function bindEvents(){
       );
       alert('저장되었습니다!');
       showInput();          // 메인(입력)화면으로 복귀
-      refreshSavedButton(); // 저장기록 버튼 갱신
+      await refreshSavedButton(); // 저장기록 버튼 갱신
       window.scrollTo(0,0);
     }catch(e){
-      alert('저장에 실패했습니다.');
+      console.error(e);
+      alert('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      btn.disabled = false; btn.textContent = '💾 저장하기';
     }finally{
       state.saving = false;
     }
@@ -653,9 +757,11 @@ function bindEvents(){
 }
 
 // 저장 개수에 따라 "저장한 내용 보기" 버튼 표시/갱신
-function refreshSavedButton(){
-  const saves = loadSajuSaves();
+async function refreshSavedButton(){
   const btn = document.getElementById('btnViewSaves');
+  if(!fbAuth.currentUser){ btn.classList.add('hidden'); return; }
+  let saves = [];
+  try{ saves = await loadSajuSaves(); }catch(e){ console.error(e); }
   if(saves.length>0){
     btn.classList.remove('hidden');
     btn.textContent = `📁 저장한 사주 보기 (${saves.length})`;
@@ -665,9 +771,15 @@ function refreshSavedButton(){
 }
 
 // 저장 기록 화면 렌더
-function renderSavesView(){
-  const saves = loadSajuSaves();
+async function renderSavesView(){
   const list = document.getElementById('savesList');
+  document.getElementById('inputView').classList.add('hidden');
+  document.getElementById('resultView').classList.add('hidden');
+  document.getElementById('savesView').classList.remove('hidden');
+  window.scrollTo(0,0);
+  list.innerHTML = `<div class="saves-empty">불러오는 중...</div>`;
+  let saves = [];
+  try{ saves = await loadSajuSaves(); }catch(e){ console.error(e); }
   if(saves.length===0){
     list.innerHTML = `<div class="saves-empty">아직 저장한 사주가 없어요.</div>`;
   }else{
@@ -686,17 +798,125 @@ function renderSavesView(){
       </div>`;
     }).join('');
   }
-  document.getElementById('inputView').classList.add('hidden');
-  document.getElementById('resultView').classList.add('hidden');
-  document.getElementById('savesView').classList.remove('hidden');
-  window.scrollTo(0,0);
+}
+
+/* ===== 로그인 시스템 (이메일/비번) ===== */
+let pendingSave = false;      // 로그인 직후 자동 저장할지
+let authMode = 'login';        // 'login' | 'signup'
+
+function openAuthModal(){
+  authMode = 'login';
+  updateAuthModalUI();
+  document.getElementById('inEmail').value = '';
+  document.getElementById('inPass').value = '';
+  document.getElementById('modalMsg').textContent = '';
+  document.getElementById('authModal').classList.remove('hidden');
+}
+function closeAuthModal(){
+  document.getElementById('authModal').classList.add('hidden');
+  pendingSave = false;
+}
+function updateAuthModalUI(){
+  const isLogin = authMode === 'login';
+  document.getElementById('modalTitle').textContent = isLogin ? '로그인' : '회원가입';
+  document.getElementById('modalSub').textContent = isLogin
+    ? '저장한 번호를 어디서든 다시 볼 수 있어요.'
+    : '이메일과 비밀번호만 있으면 가입돼요.';
+  document.getElementById('btnDoAuth').textContent = isLogin ? '로그인' : '회원가입';
+  document.getElementById('modalToggle').textContent = isLogin
+    ? '계정이 없으신가요? 회원가입'
+    : '이미 계정이 있으신가요? 로그인';
+  document.getElementById('inPass').setAttribute('autocomplete', isLogin ? 'current-password' : 'new-password');
+}
+
+// 로그인/회원가입 실행
+async function doAuth(){
+  const email = document.getElementById('inEmail').value.trim();
+  const pass = document.getElementById('inPass').value;
+  const msg = document.getElementById('modalMsg');
+  const btn = document.getElementById('btnDoAuth');
+  msg.style.color = '#f87171';
+  if(!email || !pass){ msg.textContent = '이메일과 비밀번호를 입력해 주세요.'; return; }
+  if(pass.length < 6){ msg.textContent = '비밀번호는 6자 이상이어야 해요.'; return; }
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = '처리 중...';
+  try{
+    if(authMode === 'signup'){
+      await fbAuth.createUserWithEmailAndPassword(email, pass);
+    }else{
+      await fbAuth.signInWithEmailAndPassword(email, pass);
+    }
+    // 성공 → onAuthStateChanged가 뒤처리
+    document.getElementById('authModal').classList.add('hidden');
+  }catch(e){
+    msg.textContent = authErrorMsg(e.code);
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+// Firebase 에러코드를 한국어로
+function authErrorMsg(code){
+  switch(code){
+    case 'auth/invalid-email': return '이메일 형식이 올바르지 않아요.';
+    case 'auth/email-already-in-use': return '이미 가입된 이메일이에요. 로그인해 주세요.';
+    case 'auth/weak-password': return '비밀번호가 너무 약해요 (6자 이상).';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential': return '이메일 또는 비밀번호가 맞지 않아요.';
+    case 'auth/too-many-requests': return '시도가 많아요. 잠시 후 다시 해주세요.';
+    case 'auth/network-request-failed': return '네트워크 연결을 확인해 주세요.';
+    default: return '오류가 발생했어요. 다시 시도해 주세요.';
+  }
+}
+
+// 로그인 상태 변화 감지 → UI 갱신
+fbAuth.onAuthStateChanged(async (user)=>{
+  const status = document.getElementById('authStatus');
+  const btnAuth = document.getElementById('btnAuth');
+  if(user){
+    const name = user.email ? user.email.split('@')[0] : '회원';
+    status.innerHTML = `<b>${name}</b>님 로그인됨`;
+    btnAuth.textContent = '로그아웃';
+    await refreshSavedButton();
+    // 로그인하려고 저장 눌렀던 경우 → 자동으로 저장 진행
+    if(pendingSave){
+      pendingSave = false;
+      if(state.result){ document.getElementById('btnSave').click(); }
+    }
+  }else{
+    status.textContent = '로그인하면 번호를 저장할 수 있어요';
+    btnAuth.textContent = '로그인';
+    document.getElementById('btnViewSaves').classList.add('hidden');
+  }
+});
+
+// 로그인 바 버튼 / 모달 이벤트
+function bindAuthEvents(){
+  document.getElementById('btnAuth').addEventListener('click', ()=>{
+    if(fbAuth.currentUser){
+      if(confirm('로그아웃 하시겠어요?')) fbAuth.signOut();
+    }else{
+      openAuthModal();
+    }
+  });
+  document.getElementById('btnDoAuth').addEventListener('click', doAuth);
+  document.getElementById('modalToggle').addEventListener('click', ()=>{
+    authMode = (authMode === 'login') ? 'signup' : 'login';
+    document.getElementById('modalMsg').textContent = '';
+    updateAuthModalUI();
+  });
+  document.getElementById('modalClose').addEventListener('click', closeAuthModal);
+  // 엔터키로 제출
+  document.getElementById('inPass').addEventListener('keydown', (e)=>{ if(e.key==='Enter') doAuth(); });
 }
 
 /* ===== 시작 ===== */
 initCarousel();
 renderSpinners();
 bindEvents();
-refreshSavedButton();
+bindAuthEvents();
+// refreshSavedButton는 onAuthStateChanged에서 자동 호출됨
 </script>
 </body>
 </html>
