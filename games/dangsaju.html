@@ -85,8 +85,57 @@
   .plus{color:#ff2d55;font-size:22px;font-weight:bold;align-self:center;text-shadow:0 0 8px #ff2d55;}
   .balls{align-items:center;}
   </style>
+<!-- Firebase SDK (CDN, 이 파일 자체완결 유지) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  /* ===== 로그인 바 + 모달 (Wsub 공통) ===== */
+  .wsub-auth-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:8px 12px;border-radius:10px;margin:10px auto 0;max-width:520px;
+    border:1px solid rgba(212,175,55,.3);background:rgba(20,15,40,.55);font-size:12px;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;}
+  .wsub-auth-bar .s{color:#94a3b8;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .wsub-auth-bar .s b{color:#d4af37;}
+  .wsub-auth-bar button{flex:0 0 auto;padding:7px 12px;border-radius:8px;cursor:pointer;
+    border:1px solid rgba(212,175,55,.5);background:rgba(212,175,55,.1);color:#f5e6c8;font-weight:800;font-size:12px;}
+  .wsub-modal{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.7);padding:20px;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;}
+  .wsub-modal.hide{display:none;}
+  .wsub-modal .box{width:100%;max-width:360px;border-radius:16px;padding:22px;
+    border:1px solid rgba(212,175,55,.4);background:#0f0c23;display:flex;flex-direction:column;gap:12px;}
+  .wsub-modal .t{font-size:18px;font-weight:900;color:#d4af37;text-align:center;margin:0;}
+  .wsub-modal .sub{font-size:12px;color:#94a3b8;text-align:center;margin:0 0 4px;line-height:18px;}
+  .wsub-modal input{width:100%;padding:12px;border-radius:10px;font-size:15px;
+    border:1px solid rgba(212,175,55,.35);background:rgba(10,10,30,.8);color:#f5e6c8;box-sizing:border-box;}
+  .wsub-modal .mbtn{width:100%;padding:13px 0;border-radius:10px;border:2px solid rgba(212,175,55,.7);
+    background:rgba(80,60,20,.5);color:#fff8e7;font-weight:900;font-size:15px;cursor:pointer;}
+  .wsub-modal .mbtn:disabled{opacity:.5;}
+  .wsub-modal .tog{text-align:center;font-size:12px;color:#a78bfa;cursor:pointer;padding:4px;}
+  .wsub-modal .msg{font-size:12px;text-align:center;min-height:16px;color:#f87171;}
+  .wsub-modal .cls{background:none;border:none;color:#94a3b8;font-size:12px;cursor:pointer;padding:4px;text-align:center;}
+</style>
 </head>
+
 <body>
+  <div class="wsub-auth-bar" id="wsubAuthBar">
+    <span class="s" id="wsubAuthStatus">로그인하면 번호를 저장할 수 있어요</span>
+    <button id="wsubAuthBtn">로그인</button>
+  </div>
+  <div class="wsub-modal hide" id="wsubModal">
+    <div class="box">
+      <h2 class="t" id="wsubModalTitle">로그인</h2>
+      <p class="sub" id="wsubModalSub">저장한 번호를 어디서든 다시 볼 수 있어요.</p>
+      <input id="wsubEmail" type="email" placeholder="이메일" autocomplete="email">
+      <input id="wsubPass" type="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password">
+      <div class="msg" id="wsubMsg"></div>
+      <button class="mbtn" id="wsubDoAuth">로그인</button>
+      <div class="tog" id="wsubTog">계정이 없으신가요? 회원가입</div>
+      <button class="cls" id="wsubClose">닫기</button>
+    </div>
+  </div>
+
   <div class="wrap">
     <header>
       <div class="eyebrow">Dangsaju · 12 Stars</div>
@@ -233,14 +282,26 @@
 
   function loadSaved(){ try{var raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):[];}catch(e){return [];} }
   function saveResult() {
-    if(!state.finished)return;
-    var saved=loadSaved();
-    if(isDuplicate(saved, state.numbers, 0, GAME_KEY)){showToast('이미 저장된 번호예요');return;}
-    var entry=makeSavedEntry(state.numbers, 0, state.nextRound,Date.now(),genId(GAME_KEY));
-    saved.push(entry);
-    try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(trimSavedByType(saved,MAX_PER_TYPE)));
-      el.saveBtn.textContent='✓ 저장 완료'; el.saveBtn.className='save-btn done'; el.saveBtn.disabled=true; showToast('나의 번호에 저장했어요');
-    }catch(e){showToast('저장 공간이 부족해요');}
+    if (!state.finished) return;
+    var nums = state.numbers;
+    if (!window.wsubIsLoggedIn()) {
+      // 로그인 후 자동 저장
+      window.wsubPendingSaveAction = function(){ doFirebaseSave(nums); };
+      window.wsubSaveNumbers(nums); // 모달 띄움
+      return;
+    }
+    doFirebaseSave(nums);
+  }
+  function doFirebaseSave(nums) {
+    el.saveBtn.disabled = true; el.saveBtn.textContent = '저장 중...';
+    window.wsubSaveNumbers(nums).then(function(){
+      el.saveBtn.textContent = '✓ 저장 완료'; el.saveBtn.className = 'save-btn done'; el.saveBtn.disabled = true;
+      showToast('나의 번호에 저장했어요');
+    }).catch(function(err){
+      if (err === 'not-logged-in') { el.saveBtn.disabled = false; el.saveBtn.textContent = '나의 번호에 저장'; return; }
+      el.saveBtn.disabled = false; el.saveBtn.textContent = '나의 번호에 저장';
+      showToast('저장에 실패했어요');
+    });
   }
 
   function startDangsajuApp() {
@@ -255,5 +316,93 @@
   else startDangsajuApp();
 })();
 </script>
+<script>
+/* ===== Wsub Firebase 로그인+저장 (자체완결) ===== */
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyAwh55rLOQkY8ZVCzaC4ZF3iaUVU5Vu0GM",
+    authDomain: "ai-lottosolutions.firebaseapp.com",
+    databaseURL: "https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ai-lottosolutions",
+    storageBucket: "ai-lottosolutions.firebasestorage.app",
+    messagingSenderId: "616782090306",
+    appId: "1:616782090306:web:688c710998dfce8e4d5ddb"
+  };
+  firebase.initializeApp(firebaseConfig);
+  var auth = firebase.auth();
+  var db = firebase.database();
+  var THIS_GAME = 'dangsaju';
+
+  var pendingSave = false, mode = 'login';
+  function $(id){ return document.getElementById(id); }
+
+  function openModal(){ mode='login'; updateUI(); $('wsubEmail').value=''; $('wsubPass').value=''; $('wsubMsg').textContent=''; $('wsubModal').classList.remove('hide'); }
+  function closeModal(){ $('wsubModal').classList.add('hide'); pendingSave=false; }
+  function updateUI(){
+    var L = mode==='login';
+    $('wsubModalTitle').textContent = L?'로그인':'회원가입';
+    $('wsubModalSub').textContent = L?'저장한 번호를 어디서든 다시 볼 수 있어요.':'이메일과 비밀번호만 있으면 가입돼요.';
+    $('wsubDoAuth').textContent = L?'로그인':'회원가입';
+    $('wsubTog').textContent = L?'계정이 없으신가요? 회원가입':'이미 계정이 있으신가요? 로그인';
+  }
+  function errMsg(c){
+    switch(c){
+      case 'auth/invalid-email': return '이메일 형식이 올바르지 않아요.';
+      case 'auth/email-already-in-use': return '이미 가입된 이메일이에요. 로그인해 주세요.';
+      case 'auth/weak-password': return '비밀번호가 너무 약해요 (6자 이상).';
+      case 'auth/user-not-found': case 'auth/wrong-password': case 'auth/invalid-credential': return '이메일 또는 비밀번호가 맞지 않아요.';
+      case 'auth/too-many-requests': return '시도가 많아요. 잠시 후 다시 해주세요.';
+      case 'auth/network-request-failed': return '네트워크 연결을 확인해 주세요.';
+      default: return '오류가 발생했어요. 다시 시도해 주세요.';
+    }
+  }
+  function doAuth(){
+    var email = $('wsubEmail').value.trim(), pass = $('wsubPass').value, msg = $('wsubMsg'), btn = $('wsubDoAuth');
+    if(!email||!pass){ msg.textContent='이메일과 비밀번호를 입력해 주세요.'; return; }
+    if(pass.length<6){ msg.textContent='비밀번호는 6자 이상이어야 해요.'; return; }
+    btn.disabled=true; var o=btn.textContent; btn.textContent='처리 중...';
+    var p = mode==='signup' ? auth.createUserWithEmailAndPassword(email,pass) : auth.signInWithEmailAndPassword(email,pass);
+    p.then(function(){ $('wsubModal').classList.add('hide'); }).catch(function(e){ msg.textContent=errMsg(e.code); btn.disabled=false; btn.textContent=o; });
+  }
+
+  // Firebase 저장 (전역 노출: 게임의 saveResult가 호출)
+  window.wsubSaveNumbers = function(numbers){
+    var user = auth.currentUser;
+    if(!user){ pendingSave = true; openModal(); return Promise.reject('not-logged-in'); }
+    var ref = db.ref('wsub_saved/' + user.uid).push();
+    return ref.set({
+      numbers: numbers.slice().sort(function(a,b){return a-b;}).join(','),
+      game: THIS_GAME,
+      savedAt: Date.now()
+    });
+  };
+  window.wsubIsLoggedIn = function(){ return !!auth.currentUser; };
+
+  auth.onAuthStateChanged(function(user){
+    var st = $('wsubAuthStatus'), btn = $('wsubAuthBtn');
+    if(user){
+      var name = user.email ? user.email.split('@')[0] : '회원';
+      st.innerHTML = '<b>'+name+'</b>님 로그인됨';
+      btn.textContent = '로그아웃';
+      if(pendingSave){ pendingSave=false; if(window.wsubPendingSaveAction) window.wsubPendingSaveAction(); }
+    }else{
+      st.textContent = '로그인하면 번호를 저장할 수 있어요';
+      btn.textContent = '로그인';
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function(){
+    $('wsubAuthBtn').addEventListener('click', function(){
+      if(auth.currentUser){ if(confirm('로그아웃 하시겠어요?')) auth.signOut(); }
+      else openModal();
+    });
+    $('wsubDoAuth').addEventListener('click', doAuth);
+    $('wsubTog').addEventListener('click', function(){ mode = mode==='login'?'signup':'login'; $('wsubMsg').textContent=''; updateUI(); });
+    $('wsubClose').addEventListener('click', closeModal);
+    $('wsubPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doAuth(); });
+  });
+})();
+</script>
+
 </body>
 </html>
