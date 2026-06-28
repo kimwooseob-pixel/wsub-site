@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>주역 64괘 로또</title>
+<title>I Ching 64 Hexagrams Powerball</title>
 <style>
   :root { --cyan:#00ffff; --purple:#cc00ff; --gold:#ffd700; --green:#00ff00; --bg:#0a0a1a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -87,30 +87,186 @@
   .plus{color:#ff2d55;font-size:22px;font-weight:bold;align-self:center;text-shadow:0 0 8px #ff2d55;}
   .balls{align-items:center;}
   </style>
+
+<!-- ===== Wsub Powerball Firebase 저장 (자체완결형) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 14px;background:rgba(8,8,16,.92);border-bottom:1px solid rgba(255,255,255,.08);
+    position:sticky;top:0;z-index:9000;font-family:inherit;}
+  #wsubAuthBar .wsub-who{font-size:12.5px;color:#9aa0b4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #wsubAuthBar .wsub-who b{color:#e8a0a0;font-weight:600;}
+  .wsub-authbtn{flex:none;border:1px solid rgba(255,255,255,.18);background:transparent;color:#eef0f7;
+    font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;cursor:pointer;}
+  .wsub-authbtn.primary{background:#d96b6b;color:#1a0505;border-color:#d96b6b;}
+  .wsub-authbtn:active{transform:scale(.97);}
+  #wsubModal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;
+    padding:20px;background:rgba(5,5,10,.76);}
+  #wsubModal.open{display:flex;}
+  .wsub-box{width:100%;max-width:340px;background:#16131a;border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;padding:24px 22px;position:relative;font-family:inherit;color:#eef0f7;}
+  .wsub-box h2{font-size:20px;font-weight:700;margin:0 0 4px;color:#f6dede;}
+  .wsub-box .wsub-sub{font-size:13px;color:#9aa0b4;margin:0 0 18px;}
+  .wsub-field{margin-bottom:12px;}
+  .wsub-field input{width:100%;box-sizing:border-box;background:#0d0b12;border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:12px 13px;color:#eef0f7;font:inherit;font-size:15px;}
+  .wsub-field input:focus{outline:none;border-color:#c66;}
+  .wsub-err{color:#ff9a9a;font-size:12.5px;min-height:17px;margin:2px 2px 10px;}
+  .wsub-submit{width:100%;background:#d96b6b;color:#1a0505;border:none;font:inherit;font-weight:700;
+    font-size:15px;padding:13px;border-radius:11px;cursor:pointer;}
+  .wsub-submit:active{transform:scale(.99);}
+  .wsub-toggle{text-align:center;margin-top:14px;font-size:13px;color:#9aa0b4;}
+  .wsub-toggle button{background:none;border:none;color:#e8a0a0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 2px;}
+  .wsub-close{position:absolute;top:16px;right:18px;background:none;border:none;color:#9aa0b4;font-size:24px;cursor:pointer;line-height:1;}
+  #wsubToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:#1d1622;color:#f6dede;border:1px solid rgba(217,107,107,.4);padding:11px 20px;border-radius:999px;
+    font-family:inherit;font-size:13.5px;font-weight:600;z-index:9600;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;}
+  #wsubToast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
 </head>
 <body>
+<div id="wsubAuthBar">
+  <div class="wsub-who" id="wsubWho">Log in to save numbers to your account</div>
+  <button class="wsub-authbtn primary" id="wsubAuthBtn" onclick="wsubOpenModal()">Log in</button>
+</div>
+<div id="wsubModal">
+  <div class="wsub-box">
+    <button class="wsub-close" onclick="wsubCloseModal()">&times;</button>
+    <h2 id="wsubModalTitle">Log in</h2>
+    <p class="wsub-sub" id="wsubModalSub">Sign in with your email and password</p>
+    <div class="wsub-field"><input type="email" id="wsubEmail" placeholder="Email" autocomplete="email" /></div>
+    <div class="wsub-field"><input type="password" id="wsubPw" placeholder="Password (6+ characters)" autocomplete="current-password" /></div>
+    <div class="wsub-err" id="wsubErr"></div>
+    <button class="wsub-submit" id="wsubSubmit" onclick="wsubSubmit()">Log in</button>
+    <div class="wsub-toggle" id="wsubToggle">No account yet? <button onclick="wsubToggleMode()">Sign up</button></div>
+  </div>
+</div>
+<div id="wsubToast"></div>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBme5XW9mHy87Y-dwjQzY0DCuC7k2478aw",
+    authDomain: "powerball-prediction-3a2ab.firebaseapp.com",
+    databaseURL: "https://powerball-prediction-3a2ab-default-rtdb.firebaseio.com",
+    projectId: "powerball-prediction-3a2ab",
+    storageBucket: "powerball-prediction-3a2ab.firebasestorage.app",
+    messagingSenderId: "35475647063",
+    appId: "1:35475647063:web:e3c185b495da1175a25112"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var wsubAuth = firebase.auth();
+  var wsubDb = firebase.database();
+  var wsubMode = "login";
+  var wsubPendingSaveAction = null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];}); }
+
+  var toastTimer = null;
+  function wsubToast(msg){
+    var t = $("wsubToast"); if(!t) return;
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  window.wsubOpenModal = function(){ $("wsubErr").textContent=""; $("wsubModal").classList.add("open"); };
+  window.wsubCloseModal = function(){ $("wsubModal").classList.remove("open"); };
+  window.wsubToggleMode = function(){
+    wsubMode = (wsubMode==="login") ? "signup" : "login";
+    var s = wsubMode==="signup";
+    $("wsubModalTitle").textContent = s ? "Sign up" : "Log in";
+    $("wsubModalSub").textContent = s ? "Create an account with email and password" : "Sign in with your email and password";
+    $("wsubSubmit").textContent = s ? "Sign up" : "Log in";
+    $("wsubToggle").innerHTML = s
+      ? 'Already have an account? <button onclick="wsubToggleMode()">Log in</button>'
+      : 'No account yet? <button onclick="wsubToggleMode()">Sign up</button>';
+    $("wsubErr").textContent = "";
+  };
+  function authErr(e){
+    var c = (e && e.code) || "";
+    if (c==="auth/invalid-email") return "That email address is invalid.";
+    if (c==="auth/missing-password" || c==="auth/weak-password") return "Password must be at least 6 characters.";
+    if (c==="auth/email-already-in-use") return "This email is already registered. Please log in.";
+    if (c==="auth/invalid-credential" || c==="auth/wrong-password" || c==="auth/user-not-found") return "Email or password is incorrect.";
+    if (c==="auth/too-many-requests") return "Too many attempts. Please try again later.";
+    return "Something went wrong. Please try again.";
+  }
+  window.wsubSubmit = function(){
+    var email = $("wsubEmail").value.trim(), pw = $("wsubPw").value, err = $("wsubErr");
+    err.textContent = "";
+    if (!email || !pw){ err.textContent = "Please enter your email and password."; return; }
+    var p = (wsubMode==="signup")
+      ? wsubAuth.createUserWithEmailAndPassword(email, pw)
+      : wsubAuth.signInWithEmailAndPassword(email, pw);
+    p.catch(function(e){ err.textContent = authErr(e); });
+  };
+  window.wsubLogout = function(){ wsubAuth.signOut(); };
+
+  wsubAuth.onAuthStateChanged(function(user){
+    var who = $("wsubWho"), btn = $("wsubAuthBtn");
+    if (user){
+      who.innerHTML = '<b>' + esc(user.email || "Logged in") + '</b>';
+      btn.textContent = "Log out"; btn.classList.remove("primary"); btn.onclick = window.wsubLogout;
+      wsubCloseModal();
+      if (typeof wsubPendingSaveAction === "function"){ var a = wsubPendingSaveAction; wsubPendingSaveAction = null; a(); }
+    } else {
+      who.textContent = "Log in to save numbers to your account";
+      btn.textContent = "Log in"; btn.classList.add("primary"); btn.onclick = window.wsubOpenModal;
+    }
+  });
+
+  // 저장: white = 화이트볼 배열(5개), powerball = 파워볼 숫자, game = 게임키.
+  // 미로그인 시 모달 → 로그인 후 자동 저장.
+  window.wsubSavePowerball = function(white, powerball, game){
+    if (!wsubAuth.currentUser){
+      wsubPendingSaveAction = function(){ window.wsubSavePowerball(white, powerball, game); };
+      wsubOpenModal();
+      return;
+    }
+    var uid = wsubAuth.currentUser.uid;
+    var ref = wsubDb.ref("wsub_saved/" + uid).push();
+    ref.set({
+      white: (white || []).slice().map(String).join(","),
+      powerball: powerball,
+      game: game,
+      savedAt: Date.now()
+    })
+      .then(function(){ wsubToast("Saved to your account"); })
+      .catch(function(e){ console.error(e); wsubToast("Save failed. Try again."); });
+  };
+  window.wsubIsLoggedIn = function(){ return !!wsubAuth.currentUser; };
+
+  var modalEl = $("wsubModal");
+  if (modalEl) modalEl.addEventListener("click", function(e){ if (e.target === this) wsubCloseModal(); });
+})();
+</script>
+
   <div class="wrap">
     <header>
       <div class="eyebrow">I Ching · 64 Hexagrams</div>
-      <h1>🀄 주역 64괘 로또</h1>
-      <div class="sub">동전을 여섯 번 던져 괘를 세우고 번호를 얻습니다</div>
+      <h1>🀄 I Ching 64 Hexagrams Powerball</h1>
+      <div class="sub">Toss the coins six times to build a hexagram and draw your numbers</div>
     </header>
 
     <div class="card">
-      <div class="label">동전점</div>
+      <div class="label">Coin Oracle</div>
       <div class="coins" id="ichCoins"></div>
       <div class="hexagram" id="ichHex"></div>
-      <button class="throw-btn" id="ichThrowBtn">동전 던지기</button>
+      <button class="throw-btn" id="ichThrowBtn">Toss Coins</button>
     </div>
 
     <div class="card hidden" id="ichResultCard">
       <div class="hex-name" id="ichName">-</div>
       <div class="hex-hanja" id="ichHanja">-</div>
       <div class="hex-fortune" id="ichFortune">-</div>
-      <div class="label">추천 번호</div>
+      <div class="label">Your Numbers</div>
       <div class="balls" id="ichBalls"></div>
-      <div class="meta"><b id="ichRoundTxt">-</b> · 괘 기반 추출</div>
-      <button class="save-btn" id="ichSaveBtn">나의 번호에 저장</button>
+      <div class="meta"><b id="ichRoundTxt">-</b> · Drawn from the hexagram</div>
+      <button class="save-btn" id="ichSaveBtn">Save my numbers</button>
     </div>
   </div>
   <div class="toast" id="ichToast"></div>
@@ -132,70 +288,70 @@
 
   // 괘 데이터: "한글|한자|운세" (King Wen 1~64 순서)
   var HEX = [
-    "중천건|重天乾|하늘의 기운이 가득하다. 강건하게 나아가면 크게 형통하리라.",
-    "중지곤|重地坤|땅처럼 너그럽게 품으면 만사가 순조롭다. 유순함이 곧 힘이다.",
-    "수뢰둔|水雷屯|시작의 어려움이 있으나 인내하면 싹이 튼다. 서두르지 말라.",
-    "산수몽|山水蒙|아직 어리고 미혹되니 배움을 청하라. 겸손이 길을 연다.",
-    "수천수|水天需|때를 기다리면 길하다. 조급함을 버리고 준비하라.",
-    "천수송|天水訟|다툼이 일어날 조짐이니 한 발 물러서라. 화해가 이롭다.",
-    "지수사|地水師|무리를 이끌 때다. 명분과 질서를 지키면 승리한다.",
-    "수지비|水地比|사람과 가까이하면 복이 온다. 좋은 인연을 맺어라.",
-    "풍천소축|風天小畜|작게 쌓이는 때다. 큰 욕심보다 꾸준함이 결실을 맺는다.",
-    "천택리|天澤履|범의 꼬리를 밟듯 조심히 행하면 위험도 비껴간다.",
-    "지천태|地天泰|하늘과 땅이 통하니 태평하다. 만사가 형통하는 길운이다.",
-    "천지비|天地否|기운이 막혀 답답한 때다. 무리하지 말고 때를 보라.",
-    "천화동인|天火同人|뜻 맞는 사람과 함께하면 큰일을 이룬다. 협력이 길하다.",
-    "화천대유|火天大有|크게 가지는 풍요의 때다. 베풀수록 더욱 빛난다.",
-    "지산겸|地山謙|겸손하면 끝이 좋다. 낮출수록 높아지는 군자의 길.",
-    "뇌지예|雷地豫|기쁨과 즐거움이 따른다. 준비된 자에게 흥이 온다.",
-    "택뢰수|澤雷隨|흐름을 따르면 순조롭다. 고집을 내려놓을 때다.",
-    "산풍고|山風蠱|묵은 일을 바로잡을 때다. 정성껏 고치면 새로워진다.",
-    "지택림|地澤臨|기운이 차오르며 다가오는 길운. 적극적으로 임하라.",
-    "풍지관|風地觀|넓게 살피고 관찰하라. 본보기가 되면 따르는 이가 많다.",
-    "화뢰서합|火雷噬嗑|장애를 깨물어 끊어내야 통한다. 결단이 필요하다.",
-    "산화비|山火賁|꾸미고 빛내는 때다. 내실과 겉모습의 조화가 길하다.",
-    "산지박|山地剝|깎이고 떨어지는 때다. 지키며 봄을 기다려라.",
-    "지뢰복|地雷復|돌아오는 봄, 다시 시작이다. 회복의 기운이 돈다.",
-    "천뢰무망|天雷无妄|꾸밈없이 정직하면 길하다. 헛된 욕심은 화를 부른다.",
-    "산천대축|山天大畜|크게 쌓아 기르는 때다. 실력을 비축하면 크게 쓰인다.",
-    "산뢰이|山雷頤|기르고 먹이는 때다. 말과 음식을 절제하면 복이 온다.",
-    "택풍대과|澤風大過|지나치게 무거우니 균형이 필요하다. 과욕을 경계하라.",
-    "중수감|重水坎|거듭된 험난함이나 진실하면 통한다. 마음을 굳게 가져라.",
-    "중화리|重火離|밝게 빛나는 때다. 바른 데 의지하면 형통하리라.",
-    "택산함|澤山咸|마음이 통하고 감응한다. 진실한 인연이 맺어진다.",
-    "뇌풍항|雷風恒|한결같이 지키면 길하다. 변치 않는 마음이 복을 부른다.",
-    "천산둔|天山遯|물러날 때를 아는 것이 지혜다. 잠시 피하면 이롭다.",
-    "뇌천대장|雷天大壯|기운이 크게 성하다. 바르게 쓰면 거칠 것이 없다.",
-    "화지진|火地晉|해가 떠오르듯 나아간다. 승진과 발전의 길운이다.",
-    "지화명이|地火明夷|밝음이 가려진 때다. 빛을 감추고 안을 다져라.",
-    "풍화가인|風火家人|집안이 화목하면 만사가 풀린다. 가까운 곳부터 살펴라.",
-    "화택규|火澤睽|어긋나고 등지는 때다. 작은 일부터 화합을 도모하라.",
-    "수산건|水山蹇|앞이 막혀 어려우나 도움을 구하면 길하다. 멈춰 살펴라.",
-    "뇌수해|雷水解|얽힌 것이 풀린다. 묵은 근심이 사라지는 해방의 때.",
-    "산택손|山澤損|덜어내면 도리어 채워진다. 비울 줄 아는 지혜가 길하다.",
-    "풍뢰익|風雷益|더하고 보태는 때다. 베풀면 크게 이로워진다.",
-    "택천쾌|澤天夬|결단으로 끊어낼 때다. 미루지 말고 바르게 처리하라.",
-    "천풍구|天風姤|뜻밖의 만남이 있다. 작은 기미를 살펴 대비하라.",
-    "택지췌|澤地萃|사람과 재물이 모인다. 정성으로 모으면 크게 형통한다.",
-    "지풍승|地風升|차근차근 오르는 때다. 꾸준히 나아가면 높이 이른다.",
-    "택수곤|澤水困|곤궁한 때이나 뜻을 지키면 통한다. 말보다 행동으로.",
-    "수풍정|水風井|우물처럼 변함없이 베풀라. 근원을 지키면 마르지 않는다.",
-    "택화혁|澤火革|바꾸고 혁신할 때다. 때에 맞는 변화가 크게 길하다.",
-    "화풍정|火風鼎|새것을 이루는 솥의 때다. 안정 속에 큰일을 이룬다.",
-    "중뢰진|重雷震|우레가 거듭 울린다. 놀라되 정신을 지키면 길하다.",
-    "중산간|重山艮|멈출 때 멈추면 허물이 없다. 고요함 속에 답이 있다.",
-    "풍산점|風山漸|점차 나아가는 때다. 순서를 지키면 끝이 아름답다.",
-    "뇌택귀매|雷澤歸妹|서두른 인연은 탈이 난다. 분수를 지켜 신중하라.",
-    "뇌화풍|雷火豐|풍성하게 가득 찬 때다. 밝을 때 그늘을 대비하라.",
-    "화산려|火山旅|나그네처럼 떠도는 때다. 처신을 바르게 하면 무탈하다.",
-    "중풍손|重風巽|부드럽게 따르고 스며든다. 겸손히 청하면 통한다.",
-    "중택태|重澤兌|기쁨이 거듭되는 때다. 진실한 즐거움이 복을 부른다.",
-    "풍수환|風水渙|흩어진 것을 다시 모은다. 마음을 합치면 위기를 넘는다.",
-    "수택절|水澤節|절제하면 형통한다. 마디를 지켜 지나치지 말라.",
-    "풍택중부|風澤中孚|마음의 믿음이 통한다. 진실하면 멀리까지 미친다.",
-    "뇌산소과|雷山小過|작은 일은 되나 큰일은 무리다. 분수껏 처신하라.",
-    "수화기제|水火既濟|이미 이룬 때다. 방심 말고 끝까지 마무리하라.",
-    "화수미제|火水未濟|아직 이루지 못했으나 가능성은 크다. 신중히 건너라."
+    "The Creative|重天乾|Heaven's energy is full. Advance boldly and great fortune follows.",
+    "The Receptive|重地坤|Embrace all like the earth and things go smoothly. Yielding is itself strength.",
+    "Difficulty at the Beginning|水雷屯|Beginnings are hard, but patience lets the sprout grow. Do not rush.",
+    "Youthful Folly|山水蒙|Still young and unsure—seek to learn. Humility opens the way.",
+    "Waiting|水天需|Wait for the right time and it is fortunate. Drop impatience and prepare.",
+    "Conflict|天水訟|Signs of a dispute—step back. Reconciliation brings benefit.",
+    "The Army|地水師|A time to lead. Hold to order and a just cause, and you prevail.",
+    "Holding Together|水地比|Draw close to others and blessings come. Form good bonds.",
+    "Small Taming|風天小畜|A time of small gains. Steadiness, not greed, bears fruit.",
+    "Treading|天澤履|Step as if on a tiger's tail—careful conduct lets danger pass you by.",
+    "Peace|地天泰|Heaven and earth commune—all is at peace. A fortunate time when everything flows.",
+    "Standstill|天地否|Energy is blocked and stifled. Don't force it; watch for the right moment.",
+    "Fellowship|天火同人|Join with like-minded people to achieve great things. Cooperation is fortunate.",
+    "Great Possession|火天大有|A time of great abundance. The more you give, the more you shine.",
+    "Modesty|地山謙|Humility ends well. The wise know: the lower you bow, the higher you rise.",
+    "Enthusiasm|雷地豫|Joy and delight follow. Excitement comes to those who are prepared.",
+    "Following|澤雷隨|Follow the flow and things go smoothly. A time to let go of stubbornness.",
+    "Work on the Decayed|山風蠱|A time to set right what has decayed. Mend with care and it renews.",
+    "Approach|地澤臨|Rising energy brings fortune near. Engage actively.",
+    "Contemplation|風地觀|Observe widely. Become an example and many will follow.",
+    "Biting Through|火雷噬嗑|Bite through the obstacle to clear the way. Decisiveness is needed.",
+    "Grace|山火賁|A time to adorn and shine. Harmony of substance and form is fortunate.",
+    "Splitting Apart|山地剝|A time of wearing away. Hold fast and wait for spring.",
+    "Return|地雷復|Spring returns, a fresh start. The energy of recovery stirs.",
+    "Innocence|天雷无妄|Honest and unpretending brings fortune. Vain desire invites trouble.",
+    "Great Taming|山天大畜|A time to store and cultivate greatly. Build your skill and it will be greatly used.",
+    "Nourishment|山雷頤|A time of nourishing. Temper your words and appetite, and blessings come.",
+    "Great Excess|澤風大過|The load is too heavy—balance is needed. Beware of overreaching.",
+    "The Abysmal Water|重水坎|Repeated danger, yet sincerity carries you through. Keep your heart firm.",
+    "The Clinging Fire|重火離|A time of bright radiance. Lean on what is right and you prosper.",
+    "Influence|澤山咸|Hearts connect and respond. A true bond is formed.",
+    "Duration|雷風恒|Hold steady and it is fortunate. A constant heart draws blessings.",
+    "Retreat|天山遯|Knowing when to withdraw is wisdom. A brief retreat benefits you.",
+    "Great Power|雷天大壯|Energy is at its height. Used rightly, nothing can stop you.",
+    "Progress|火地晉|You advance like the rising sun. A fortune of promotion and growth.",
+    "Darkening of the Light|地火明夷|A time when light is hidden. Veil your brightness and strengthen within.",
+    "The Family|風火家人|A harmonious home unties every knot. Tend first to those closest to you.",
+    "Opposition|火澤睽|A time of discord and division. Build harmony starting with small things.",
+    "Obstruction|水山蹇|The path is blocked, but seeking help brings fortune. Pause and assess.",
+    "Deliverance|雷水解|What was tangled comes undone. A time of release as old worries vanish.",
+    "Decrease|山澤損|Reduce, and you are filled in return. The wisdom of emptying is fortunate.",
+    "Increase|風雷益|A time of adding and gaining. Give, and great benefit returns.",
+    "Breakthrough|澤天夬|A time to cut through with resolve. Don't delay; handle it rightly.",
+    "Coming to Meet|天風姤|An unexpected encounter arises. Watch the small signs and prepare.",
+    "Gathering Together|澤地萃|People and wealth gather. Gather with sincerity and great success follows.",
+    "Pushing Upward|地風升|A time of steady climbing. Keep going and you reach great heights.",
+    "Oppression|澤水困|A time of hardship, but holding your purpose carries you through. Act, don't just talk.",
+    "The Well|水風井|Give steadily like a well. Guard the source and it never runs dry.",
+    "Revolution|澤火革|A time to change and renew. Timely change is greatly fortunate.",
+    "The Cauldron|火風鼎|The cauldron's time of creating anew. Great works arise from stability.",
+    "The Arousing Thunder|重雷震|Thunder peals again and again. Be startled but keep your wits, and it is fortunate.",
+    "Keeping Still|重山艮|Stop when it is time to stop and you stay blameless. The answer lies in stillness.",
+    "Development|風山漸|A time of gradual progress. Keep the right order and the end is beautiful.",
+    "The Marrying Maiden|雷澤歸妹|A rushed union goes wrong. Know your measure and be careful.",
+    "Abundance|雷火豐|A time of fullness and plenty. While it's bright, prepare for the shade.",
+    "The Wanderer|火山旅|A time of wandering like a traveler. Conduct yourself well and stay unharmed.",
+    "The Gentle Wind|重風巽|Softly follow and seep in. Ask with humility and it gets through.",
+    "The Joyous Lake|重澤兌|A time of joy upon joy. Genuine delight draws blessings.",
+    "Dispersion|風水渙|Regather what has scattered. Unite hearts and you pass the crisis.",
+    "Limitation|水澤節|Restraint brings success. Keep within bounds and do not go too far.",
+    "Inner Truth|風澤中孚|Heartfelt trust gets through. Be sincere and your reach extends far.",
+    "Small Excess|雷山小過|Small matters succeed, but big ones overreach. Act within your measure.",
+    "After Completion|水火既濟|A time when it is already done. Don't relax; finish all the way through.",
+    "Before Completion|火水未濟|Not yet done, but the potential is great. Cross over with care."
   ];
 
   // 동전 3개(앞=1) → 효 (양=1, 음=0). 앞면 수가 홀수면 양.
@@ -339,18 +495,18 @@
     el.fortune.textContent = info.fortune;
     el.balls.innerHTML = '';
     numbers.forEach(function (n) { var d = document.createElement('div'); d.className = 'ball'; d.textContent = n; el.balls.appendChild(d); });var __pl=document.createElement('div');__pl.className='plus';__pl.textContent='+';el.balls.appendChild(__pl);var __pbb=document.createElement('div');__pbb.className='ball power';__pbb.textContent=state.power;el.balls.appendChild(__pbb);
-    el.saveBtn.textContent = '나의 번호에 저장'; el.saveBtn.className = 'save-btn'; el.saveBtn.disabled = false;
+    el.saveBtn.textContent = 'Save my numbers'; el.saveBtn.className = 'save-btn'; el.saveBtn.disabled = false;
     el.resultCard.classList.remove('hidden');
-    el.throwBtn.disabled = false; el.throwBtn.textContent = '다시 던지기';
+    el.throwBtn.disabled = false; el.throwBtn.textContent = 'Toss again';
 
-    el.roundTxt.textContent = '미국 파워볼 방식';
+    el.roundTxt.textContent = 'US Powerball method';
   }
 
   function startThrow() {
     if (state.busy) return;
     state.busy = true; state.lines = []; state.finished = false;
     el.resultCard.classList.add('hidden');
-    el.throwBtn.disabled = true; el.throwBtn.textContent = '점치는 중...';
+    el.throwBtn.disabled = true; el.throwBtn.textContent = 'Casting…';
     buildCoins(); buildHexSlots();
 
     var i = 0;
@@ -365,14 +521,15 @@
   function saveResult() {
     if (!state.finished) return;
     var saved = loadSaved();
-    if (isDuplicate(saved, state.numbers, state.power, GAME_KEY)) { showToast('이미 저장된 번호예요'); return; }
+    if (isDuplicate(saved, state.numbers, state.power, GAME_KEY)) { showToast('Already saved'); return; }
     var entry = makeSavedEntry(state.numbers, state.power, state.nextRound, Date.now(), genId(GAME_KEY));
     saved.push(entry);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(trimSavedByType(saved, MAX_PER_TYPE)));
-      el.saveBtn.textContent = '✓ 저장 완료'; el.saveBtn.className = 'save-btn done'; el.saveBtn.disabled = true;
-      showToast('나의 번호에 저장했어요');
-    } catch (e) { showToast('저장 공간이 부족해요'); }
+      if(window.wsubSavePowerball) window.wsubSavePowerball(state.numbers, state.power, GAME_KEY);
+      el.saveBtn.textContent = '✓ Saved'; el.saveBtn.className = 'save-btn done'; el.saveBtn.disabled = true;
+      showToast('Saved to your account');
+    } catch (e) { showToast('Storage is full'); }
   }
 
   function startIchingApp() {

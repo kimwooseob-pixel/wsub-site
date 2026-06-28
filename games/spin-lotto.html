@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>원판 돌리기</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { background: #060612; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+    color: #fff;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  #spin-root { max-width: 480px; margin: 0 auto; padding: 12px 20px 28px; }
+
+  .header { padding: 12px 0 16px; text-align: center; }
+  .title {
+    font-size: 22px; font-weight: 900; color: #ffd93d;
+    text-shadow: 0 0 12px rgba(255, 185, 40, 0.55);
+  }
+  .sub { margin-top: 8px; font-size: 13px; font-weight: 600; color: rgba(255,220,160,0.55); }
+  .roundHint { margin-top: 6px; font-size: 12px; font-weight: 700; color: rgba(255,200,100,0.45); }
+
+  .wheelWrap { position: relative; margin: 0 auto 20px; }
+  .pointerBox {
+    position: absolute; top: 0; left: 50%; margin-left: -9px; z-index: 4;
+    filter: drop-shadow(0 0 8px rgba(255,176,32,0.9));
+    pointer-events: none;
+  }
+  .wheelDisk {
+    margin-top: 22px; border-radius: 999px; border: 2px solid rgba(255,217,60,0.55);
+    overflow: hidden;
+    box-shadow: 0 0 16px rgba(255,217,60,0.35);
+    will-change: transform;
+  }
+  .wheelDisk svg { display: block; }
+
+  .spinBtn {
+    display: block; margin: 0 auto; padding: 14px 36px; border-radius: 12px;
+    border: 1px solid rgba(255,210,80,0.5); background: rgba(255,200,60,0.12);
+    color: #ffd93d; font-size: 16px; font-weight: 800; text-align: center; cursor: pointer;
+    transition: opacity .1s;
+  }
+  .spinBtn:active { opacity: .88; }
+  .is-disabled { opacity: .45; pointer-events: none; }
+
+  .pickedSection {
+    margin-top: 24px; padding: 7px 10px; border-radius: 12px;
+    border: 1px solid rgba(255,200,100,0.25); background: rgba(30,20,50,0.35);
+    min-height: 56px; display: flex; flex-direction: column; justify-content: center;
+  }
+  .pickedLabel { font-size: 12px; font-weight: 800; color: rgba(255,215,140,0.85); margin-bottom: 5px; }
+  .ballRow { display: flex; flex-wrap: nowrap; justify-content: center; gap: 4px; align-items: center; }
+  .pickedEmpty { font-size: 11px; color: rgba(255,255,255,0.35); font-weight: 600; }
+  .ball {
+    width: 28px; height: 28px; border-radius: 14px;
+    background: rgba(255,200,60,0.15); border: 1px solid rgba(255,217,60,0.55);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 900; color: #ffd93d;
+  }
+
+  .biasRow { display: flex; gap: 8px; margin-top: 16px; justify-content: center; }
+  .biasBtn {
+    flex: 1; padding: 10px 4px; border-radius: 10px; min-height: 48px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 10px; font-weight: 800; line-height: 1.3; transition: opacity .1s;
+  }
+  .biasBtn:active { opacity: .88; }
+  .biasHot   { border: 1px solid rgba(57,255,159,0.45); background: rgba(57,255,159,0.1); color: #39ff9f; text-shadow: 0 0 6px rgba(57,255,159,0.45); }
+  .biasCold  { border: 1px solid rgba(56,189,248,0.5);  background: rgba(56,189,248,0.1); color: #38b8ff; text-shadow: 0 0 6px rgba(56,184,255,0.45); }
+  .biasNorm  { border: 1px solid rgba(148,163,184,0.45); background: rgba(100,116,139,0.12); color: #94a3b8; text-shadow: 0 0 6px rgba(148,163,184,0.35); }
+  .biasHot.is-active  { border-width: 2px; border-color: rgba(57,255,159,0.75); box-shadow: 0 0 10px rgba(57,255,159,0.55); }
+  .biasCold.is-active { border-width: 2px; border-color: rgba(56,189,248,0.8);  box-shadow: 0 0 10px rgba(56,184,255,0.55); }
+  .biasNorm.is-active { border-width: 2px; border-color: rgba(148,163,184,0.65); box-shadow: 0 0 10px rgba(148,163,184,0.45); }
+
+  .rowBtns { display: flex; gap: 12px; margin-top: 20px; justify-content: center; }
+  .secBtn, .saveBtn { flex: 1; max-width: 160px; padding: 12px 0; border-radius: 10px; text-align: center; font-size: 15px; font-weight: 800; cursor: pointer; transition: opacity .1s; }
+  .secBtn { border: 1px solid rgba(180,160,255,0.35); background: rgba(100,80,180,0.12); color: #c4b5fd; }
+  .saveBtn { border: 1px solid rgba(255,217,60,0.45); background: rgba(255,180,40,0.18); color: #ffd93d; }
+  .secBtn:active, .saveBtn:active { opacity: .88; }
+
+  .savedViewBtn {
+    display: none; margin: 14px auto 0; padding: 11px 22px; border-radius: 10px;
+    border: 1px solid rgba(196,181,253,0.4); background: rgba(100,80,180,0.14);
+    color: #d7ccff; font-size: 13px; font-weight: 800; cursor: pointer;
+  }
+  .savedViewBtn.is-shown { display: block; }
+
+  .toast {
+    margin: 16px auto 0; width: fit-content; padding: 8px 14px; border-radius: 8px;
+    background: rgba(255,200,80,0.15); border: 1px solid rgba(255,217,60,0.35);
+    color: rgba(255,235,200,0.95); font-size: 13px; font-weight: 600;
+    opacity: 0; transition: opacity .2s; pointer-events: none;
+  }
+  .toast.is-shown { opacity: 1; }
+
+  /* 저장 번호 모달 */
+  .modalMask {
+    position: fixed; inset: 0; background: rgba(4,4,12,0.78); z-index: 50;
+    display: none; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modalMask.is-shown { display: flex; }
+  .modalBox {
+    width: 100%; max-width: 360px; max-height: 76vh; overflow-y: auto;
+    background: #11102a; border: 1px solid rgba(255,217,60,0.3); border-radius: 16px; padding: 18px;
+  }
+  .modalTitle { font-size: 16px; font-weight: 900; color: #ffd93d; margin-bottom: 12px; }
+  .savedItem { padding: 10px 12px; border-radius: 10px; background: rgba(30,20,50,0.5); border: 1px solid rgba(255,200,100,0.18); margin-bottom: 8px; }
+  .savedRound { font-size: 11px; font-weight: 700; color: rgba(255,200,100,0.6); margin-bottom: 6px; }
+  .savedNums { display: flex; gap: 5px; flex-wrap: wrap; }
+  .savedNum { width: 26px; height: 26px; border-radius: 13px; background: rgba(255,200,60,0.15); border: 1px solid rgba(255,217,60,0.5); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #ffd93d; }
+  .savedEmpty { font-size: 13px; color: rgba(255,255,255,0.4); text-align: center; padding: 18px 0; }
+  .modalClose { margin-top: 8px; width: 100%; padding: 11px 0; border-radius: 10px; border: 1px solid rgba(180,160,255,0.35); background: rgba(100,80,180,0.14); color: #c4b5fd; font-size: 14px; font-weight: 800; cursor: pointer; }
+</style>
+
+<!-- ===== Wsub Firebase 저장 (자체완결형) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 14px;background:rgba(10,12,24,.92);border-bottom:1px solid rgba(255,255,255,.08);
+    position:sticky;top:0;z-index:9000;font-family:inherit;}
+  #wsubAuthBar .wsub-who{font-size:12.5px;color:#969cb6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #wsubAuthBar .wsub-who b{color:#e6c068;font-weight:600;}
+  .wsub-authbtn{flex:none;border:1px solid rgba(255,255,255,.18);background:transparent;color:#eef0f7;
+    font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;cursor:pointer;}
+  .wsub-authbtn.primary{background:#e6c068;color:#1a1405;border-color:#e6c068;}
+  .wsub-authbtn:active{transform:scale(.97);}
+  #wsubModal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;
+    padding:20px;background:rgba(5,6,14,.74);}
+  #wsubModal.open{display:flex;}
+  .wsub-box{width:100%;max-width:340px;background:#14172a;border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;padding:24px 22px;position:relative;font-family:inherit;color:#eef0f7;}
+  .wsub-box h2{font-size:20px;font-weight:700;margin:0 0 4px;color:#f4eccf;}
+  .wsub-box .wsub-sub{font-size:13px;color:#969cb6;margin:0 0 18px;}
+  .wsub-field{margin-bottom:12px;}
+  .wsub-field input{width:100%;box-sizing:border-box;background:#0d0f1c;border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:12px 13px;color:#eef0f7;font:inherit;font-size:15px;}
+  .wsub-field input:focus{outline:none;border-color:#b89b54;}
+  .wsub-err{color:#ff9a9a;font-size:12.5px;min-height:17px;margin:2px 2px 10px;}
+  .wsub-submit{width:100%;background:#e6c068;color:#1a1405;border:none;font:inherit;font-weight:700;
+    font-size:15px;padding:13px;border-radius:11px;cursor:pointer;}
+  .wsub-submit:active{transform:scale(.99);}
+  .wsub-toggle{text-align:center;margin-top:14px;font-size:13px;color:#969cb6;}
+  .wsub-toggle button{background:none;border:none;color:#e6c068;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 2px;}
+  .wsub-close{position:absolute;top:16px;right:18px;background:none;border:none;color:#969cb6;font-size:24px;cursor:pointer;line-height:1;}
+  #wsubToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:#1a1d33;color:#f4eccf;border:1px solid rgba(230,192,104,.4);padding:11px 20px;border-radius:999px;
+    font-family:inherit;font-size:13.5px;font-weight:600;z-index:9600;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;}
+  #wsubToast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div id="wsubAuthBar">
+  <div class="wsub-who" id="wsubWho">로그인하면 번호를 내 계정에 저장할 수 있어요</div>
+  <button class="wsub-authbtn primary" id="wsubAuthBtn" onclick="wsubOpenModal()">로그인</button>
+</div>
+<div id="wsubModal">
+  <div class="wsub-box">
+    <button class="wsub-close" onclick="wsubCloseModal()">&times;</button>
+    <h2 id="wsubModalTitle">로그인</h2>
+    <p class="wsub-sub" id="wsubModalSub">이메일과 비밀번호로 로그인하세요</p>
+    <div class="wsub-field"><input type="email" id="wsubEmail" placeholder="이메일" autocomplete="email" /></div>
+    <div class="wsub-field"><input type="password" id="wsubPw" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" /></div>
+    <div class="wsub-err" id="wsubErr"></div>
+    <button class="wsub-submit" id="wsubSubmit" onclick="wsubSubmit()">로그인</button>
+    <div class="wsub-toggle" id="wsubToggle">계정이 없으신가요? <button onclick="wsubToggleMode()">회원가입</button></div>
+  </div>
+</div>
+<div id="wsubToast"></div>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyAwh55rLOQkY8ZVCzaC4ZF3iaUVU5Vu0GM",
+    authDomain: "ai-lottosolutions.firebaseapp.com",
+    databaseURL: "https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ai-lottosolutions",
+    storageBucket: "ai-lottosolutions.firebasestorage.app",
+    messagingSenderId: "616782090306",
+    appId: "1:616782090306:web:688c710998dfce8e4d5ddb"
+  };
+  var WSUB_GAME = "spin";
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var wsubAuth = firebase.auth();
+  var wsubDb = firebase.database();
+  var wsubMode = "login";
+  var wsubPendingSaveAction = null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];}); }
+
+  var toastTimer = null;
+  function wsubToast(msg){
+    var t = $("wsubToast"); if(!t) return;
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  window.wsubOpenModal = function(){ $("wsubErr").textContent=""; $("wsubModal").classList.add("open"); };
+  window.wsubCloseModal = function(){ $("wsubModal").classList.remove("open"); };
+  window.wsubToggleMode = function(){
+    wsubMode = (wsubMode==="login") ? "signup" : "login";
+    var s = wsubMode==="signup";
+    $("wsubModalTitle").textContent = s ? "회원가입" : "로그인";
+    $("wsubModalSub").textContent = s ? "이메일과 비밀번호로 계정을 만드세요" : "이메일과 비밀번호로 로그인하세요";
+    $("wsubSubmit").textContent = s ? "회원가입" : "로그인";
+    $("wsubToggle").innerHTML = s
+      ? '이미 계정이 있으신가요? <button onclick="wsubToggleMode()">로그인</button>'
+      : '계정이 없으신가요? <button onclick="wsubToggleMode()">회원가입</button>';
+    $("wsubErr").textContent = "";
+  };
+  function authErr(e){
+    var c = (e && e.code) || "";
+    if (c==="auth/invalid-email") return "이메일 형식이 올바르지 않아요.";
+    if (c==="auth/missing-password" || c==="auth/weak-password") return "비밀번호는 6자 이상이어야 해요.";
+    if (c==="auth/email-already-in-use") return "이미 가입된 이메일이에요. 로그인해 주세요.";
+    if (c==="auth/invalid-credential" || c==="auth/wrong-password" || c==="auth/user-not-found") return "이메일 또는 비밀번호가 올바르지 않아요.";
+    if (c==="auth/too-many-requests") return "잠시 후 다시 시도해 주세요.";
+    return "문제가 발생했어요. 다시 시도해 주세요.";
+  }
+  window.wsubSubmit = function(){
+    var email = $("wsubEmail").value.trim(), pw = $("wsubPw").value, err = $("wsubErr");
+    err.textContent = "";
+    if (!email || !pw){ err.textContent = "이메일과 비밀번호를 입력해 주세요."; return; }
+    var p = (wsubMode==="signup")
+      ? wsubAuth.createUserWithEmailAndPassword(email, pw)
+      : wsubAuth.signInWithEmailAndPassword(email, pw);
+    p.catch(function(e){ err.textContent = authErr(e); });
+  };
+  window.wsubLogout = function(){ wsubAuth.signOut(); };
+
+  wsubAuth.onAuthStateChanged(function(user){
+    var who = $("wsubWho"), btn = $("wsubAuthBtn");
+    if (user){
+      who.innerHTML = '<b>' + esc(user.email || "로그인됨") + '</b>';
+      btn.textContent = "로그아웃"; btn.classList.remove("primary"); btn.onclick = window.wsubLogout;
+      wsubCloseModal();
+      if (typeof wsubPendingSaveAction === "function"){ var a = wsubPendingSaveAction; wsubPendingSaveAction = null; a(); }
+    } else {
+      who.textContent = "로그인하면 번호를 내 계정에 저장할 수 있어요";
+      btn.textContent = "로그인"; btn.classList.add("primary"); btn.onclick = window.wsubOpenModal;
+    }
+  });
+
+  // 저장: nums = 6개 숫자 배열. 미로그인 시 모달 → 로그인 후 자동 저장.
+  window.wsubSaveNumbers = function(nums){
+    var numbers = Array.isArray(nums) ? nums.slice().map(String).join(",") : String(nums);
+    if (!wsubAuth.currentUser){
+      wsubPendingSaveAction = function(){ window.wsubSaveNumbers(nums); };
+      wsubOpenModal();
+      return;
+    }
+    var uid = wsubAuth.currentUser.uid;
+    var ref = wsubDb.ref("wsub_saved/" + uid).push();
+    ref.set({ numbers: numbers, game: WSUB_GAME, savedAt: Date.now() })
+      .then(function(){ wsubToast("내 번호에 저장됐어요"); })
+      .catch(function(e){ console.error(e); wsubToast("저장에 실패했어요"); });
+  };
+  window.wsubIsLoggedIn = function(){ return !!wsubAuth.currentUser; };
+
+  var modalEl = $("wsubModal");
+  if (modalEl) modalEl.addEventListener("click", function(e){ if (e.target === this) wsubCloseModal(); });
+})();
+</script>
+
+  <div id="spin-root">
+    <div class="header">
+      <div class="title">🎡 원판 돌리기</div>
+      <div class="sub">사이버 네온 원판으로 6개 번호를 모아보세요</div>
+      <div class="roundHint" id="roundHint" style="display:none;"></div>
+    </div>
+
+    <div class="wheelWrap" id="wheelWrap">
+      <div class="pointerBox">
+        <svg width="18" height="16" viewBox="0 0 18 16"><polygon points="0,0 18,0 9,16" fill="#ffd93d" stroke="#ffb020" stroke-width="0.8"/></svg>
+      </div>
+      <div class="wheelDisk" id="wheelDisk"><svg id="wheelSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    </div>
+
+    <div class="spinBtn" id="spinBtn">원판 돌리기</div>
+
+    <div class="pickedSection">
+      <div class="pickedLabel" id="pickedLabel">선택된 번호 (0/6)</div>
+      <div class="ballRow" id="ballRow"><span class="pickedEmpty">아직 없음 — 원판을 돌려 주세요</span></div>
+    </div>
+
+    <div class="biasRow">
+      <div class="biasBtn biasHot is-active" id="biasHot" data-mode="hot">많이나온번호<br>위주</div>
+      <div class="biasBtn biasCold" id="biasCold" data-mode="cold">안나온번호<br>위주</div>
+      <div class="biasBtn biasNorm is-active" id="biasNorm" data-mode="normal">보통</div>
+    </div>
+
+    <div class="rowBtns">
+      <div class="secBtn" id="resetBtn">처음부터</div>
+      <div class="saveBtn is-disabled" id="saveBtn">저장하기</div>
+    </div>
+
+    <div class="savedViewBtn" id="savedViewBtn">저장한 원판 번호 보기</div>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="modalMask" id="savedModal">
+    <div class="modalBox">
+      <div class="modalTitle">저장한 원판 번호</div>
+      <div id="savedList"></div>
+      <div class="modalClose" id="savedModalClose">닫기</div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===== 상수 (spin.tsx 그대로) =====
+  var FB_URL = 'https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app';
+  var SAVE_KEY = '@devbrick/saved_lotto_numbers_v1';
+  var NEON_GOLD = '#ffd93d';
+  var EDGE = 'rgba(255, 217, 60, 0.55)';
+  var SLICES = 45;
+  var EQUAL_SPAN = 360 / SLICES;
+  var LAYOUT_MS = 600;
+  var SPIN_MS = 4200;
+
+  // ===== 상태 =====
+  var picked = [];
+  var spinning = false;
+  var layoutBusy = false;
+  var biasMode = 'normal';
+  var sliceAngles = new Array(SLICES).fill(EQUAL_SPAN);
+  var drawCounts = null;
+  var nextRound = null;
+  var currentRot = 0;
+  var toastTimer = null;
+  var layoutRaf = null;
+
+  // 지오메트리 (레이아웃 시 계산)
+  var wheelSize = 320, cx = 160, cy = 160, rOuter = 152, rInner = 57.76, rText = 104.88;
+
+  // DOM 참조 (bindElements에서 채움 — 모듈 최상위에서 잡지 않음)
+  var el = {};
+
+  // ===== 순수 헬퍼 (spin.tsx 이식) =====
+  function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+  function polar(ccx, ccy, r, deg) {
+    var rad = (deg * Math.PI) / 180;
+    return { x: ccx + r * Math.cos(rad), y: ccy + r * Math.sin(rad) };
+  }
+
+  function computeAnglesForMode(mode, counts) {
+    if (mode === 'normal' || !counts) return new Array(SLICES).fill(EQUAL_SPAN);
+    var vals = [];
+    for (var i = 0; i < SLICES; i++) vals.push(counts[i + 1] != null ? counts[i + 1] : 0);
+    var maxC = Math.max.apply(null, vals);
+    var minC = Math.min.apply(null, vals);
+    var den = (maxC - minC) || 1;
+    var w = mode === 'hot'
+      ? vals.map(function (c) { return 1 + 4 * ((c - minC) / den); })
+      : vals.map(function (c) { return 1 + 4 * ((maxC - c) / den); });
+    var sum = w.reduce(function (a, b) { return a + b; }, 0);
+    return w.map(function (x) { return (360 * x) / sum; });
+  }
+
+  function centersFromAngles(angles) {
+    var centers = [];
+    var acc = -90;
+    for (var i = 0; i < angles.length; i++) {
+      centers.push(acc + angles[i] / 2);
+      acc += angles[i];
+    }
+    return centers;
+  }
+
+  function centerDegForNumber(n, angles) { return centersFromAngles(angles)[n - 1]; }
+
+  function wedgePath(ccx, ccy, r, a0, a1) {
+    var p0 = polar(ccx, ccy, r, a0);
+    var p1 = polar(ccx, ccy, r, a1);
+    var sweep = a1 - a0;
+    var large = Math.abs(sweep) > 180 ? 1 : 0;
+    return 'M ' + ccx + ' ' + ccy + ' L ' + p0.x + ' ' + p0.y +
+      ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + p1.x + ' ' + p1.y + ' Z';
+  }
+
+  function sliceEdgesFromAngles(angles) {
+    var edges = [-90];
+    var acc = -90;
+    for (var i = 0; i < angles.length; i++) { acc += angles[i]; edges.push(acc); }
+    return edges;
+  }
+
+  function blendAngles(from, to, t) {
+    return from.map(function (a, i) { return a + (to[i] - a) * t; });
+  }
+
+  function pickWeighted(remaining, angles) {
+    var total = 0, i;
+    for (i = 0; i < remaining.length; i++) total += angles[remaining[i] - 1];
+    var r = Math.random() * total;
+    for (i = 0; i < remaining.length; i++) {
+      r -= angles[remaining[i] - 1];
+      if (r <= 0) return remaining[i];
+    }
+    return remaining[remaining.length - 1];
+  }
+
+  function remainingPool() {
+    var set = {};
+    for (var i = 0; i < picked.length; i++) set[picked[i]] = true;
+    var out = [];
+    for (var n = 1; n <= 45; n++) if (!set[n]) out.push(n);
+    return out;
+  }
+
+  function vibrate() { if (navigator.vibrate) { try { navigator.vibrate(28); } catch (e) {} } }
+
+  // ===== localStorage (savedLotteryNumbers 이식) =====
+  function getSaved() {
+    try { return JSON.parse(localStorage.getItem(SAVE_KEY) || '[]') || []; }
+    catch (e) { return []; }
+  }
+  function setSaved(arr) {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(arr)); } catch (e) {}
+  }
+
+  // ===== Firebase 읽기 전용 (getCurrentDraw / getWinningNumberDrawCountsLastRounds) =====
+  function loadDrawData() {
+    return fetch(FB_URL + '/winningNumbers.json')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data) throw new Error('empty');
+        var rounds = Object.keys(data).map(function (k) {
+          var v = data[k] || {};
+          return { round: parseInt(k, 10), numbers: Array.isArray(v.numbers) ? v.numbers : null };
+        }).filter(function (r) { return isFinite(r.round) && r.numbers; })
+          .sort(function (a, b) { return b.round - a.round; });
+        if (!rounds.length) throw new Error('no rounds');
+        var maxRound = rounds[0].round;
+        var last20 = rounds.slice(0, 20);
+        var counts = {};
+        for (var n = 1; n <= 45; n++) counts[n] = 0;
+        for (var i = 0; i < last20.length; i++) {
+          var nums = last20[i].numbers;
+          for (var j = 0; j < nums.length; j++) { if (counts[nums[j]] != null) counts[nums[j]]++; }
+        }
+        return { counts: counts, nextRound: maxRound + 1 };
+      })
+      .catch(function () { return { counts: null, nextRound: null }; });
+  }
+
+  // ===== 지오메트리 =====
+  function setupGeometry() {
+    var hostW = el.root ? el.root.clientWidth : window.innerWidth;
+    if (!hostW) hostW = window.innerWidth;
+    wheelSize = Math.min(hostW - 40, 320);
+    if (wheelSize < 240) wheelSize = Math.max(wheelSize, 220);
+    cx = wheelSize / 2;
+    cy = wheelSize / 2;
+    rOuter = wheelSize / 2 - 8;
+    rInner = rOuter * 0.38;
+    rText = (rOuter + rInner) / 2;
+    el.wheelWrap.style.width = wheelSize + 'px';
+    el.wheelWrap.style.height = (wheelSize + 36) + 'px';
+    el.disk.style.width = wheelSize + 'px';
+    el.disk.style.height = wheelSize + 'px';
+    el.svg.setAttribute('width', wheelSize);
+    el.svg.setAttribute('height', wheelSize);
+    el.svg.setAttribute('viewBox', '0 0 ' + wheelSize + ' ' + wheelSize);
+  }
+
+  // ===== 렌더 =====
+  function renderWheel() {
+    var edges = sliceEdgesFromAngles(sliceAngles);
+    var fs = rOuter > 120 ? 11 : 9;
+    var s = '';
+    for (var i = 0; i < SLICES; i++) {
+      var a0 = edges[i], a1 = edges[i + 1];
+      var alt = i % 2 === 0;
+      var fill = alt ? 'rgba(255,200,60,0.14)' : 'rgba(120,80,200,0.12)';
+      s += '<path d="' + wedgePath(cx, cy, rOuter, a0, a1) + '" fill="' + fill + '" stroke="rgba(255,217,60,0.22)" stroke-width="0.35"/>';
+    }
+    for (var n = 1; n <= SLICES; n++) {
+      var ang = centerDegForNumber(n, sliceAngles);
+      var p = polar(cx, cy, rText, ang);
+      s += '<text x="' + p.x + '" y="' + p.y + '" fill="' + NEON_GOLD + '" font-size="' + fs +
+        '" font-weight="700" text-anchor="middle" dominant-baseline="central">' + n + '</text>';
+    }
+    s += '<circle cx="' + cx + '" cy="' + cy + '" r="' + rInner + '" fill="rgba(8,10,28,0.92)" stroke="' + EDGE + '" stroke-width="1.2"/>';
+    el.svg.innerHTML = s;
+  }
+
+  function updatePicked() {
+    el.pickedLabel.textContent = '선택된 번호 (' + picked.length + '/6)';
+    if (picked.length === 0) {
+      el.ballRow.innerHTML = '<span class="pickedEmpty">아직 없음 — 원판을 돌려 주세요</span>';
+    } else {
+      var s = '';
+      for (var i = 0; i < picked.length; i++) s += '<div class="ball">' + picked[i] + '</div>';
+      el.ballRow.innerHTML = s;
+    }
+  }
+
+  function updateSpinBtn() {
+    el.spinBtn.textContent = picked.length >= 6 ? '6개 완료' : (spinning ? '돌아가는 중…' : '원판 돌리기');
+  }
+
+  function setDisabled(node, off) {
+    if (off) node.classList.add('is-disabled'); else node.classList.remove('is-disabled');
+  }
+
+  function updateButtons() {
+    setDisabled(el.spinBtn, spinning || picked.length >= 6 || layoutBusy);
+    setDisabled(el.biasHot, spinning || layoutBusy);
+    setDisabled(el.biasCold, spinning || layoutBusy);
+    setDisabled(el.biasNorm, spinning || layoutBusy);
+    setDisabled(el.resetBtn, spinning);
+    setDisabled(el.saveBtn, !(picked.length === 6 && !spinning));
+    el.biasHot.classList.toggle('is-active', biasMode === 'hot');
+    el.biasCold.classList.toggle('is-active', biasMode === 'cold');
+    el.biasNorm.classList.toggle('is-active', biasMode === 'normal');
+  }
+
+  function showToast(msg) {
+    if (toastTimer) clearTimeout(toastTimer);
+    el.toast.textContent = msg;
+    el.toast.classList.add('is-shown');
+    toastTimer = setTimeout(function () { el.toast.classList.remove('is-shown'); toastTimer = null; }, 2200);
+  }
+
+  // ===== 동작 =====
+  function runAngleTransition(target) {
+    if (layoutRaf != null) { cancelAnimationFrame(layoutRaf); layoutRaf = null; }
+    var from = sliceAngles.slice();
+    if (from.length !== target.length) return;
+    var same = from.every(function (a, i) { return Math.abs(a - target[i]) < 1e-6; });
+    if (same) return;
+    layoutBusy = true;
+    updateButtons();
+    var t0 = performance.now();
+    function tick(now) {
+      var raw = Math.min(1, (now - t0) / LAYOUT_MS);
+      var t = easeOutCubic(raw);
+      sliceAngles = blendAngles(from, target, t);
+      renderWheel();
+      if (raw < 1) { layoutRaf = requestAnimationFrame(tick); }
+      else { layoutRaf = null; sliceAngles = target; renderWheel(); layoutBusy = false; updateButtons(); }
+    }
+    layoutRaf = requestAnimationFrame(tick);
+  }
+
+  function applyBiasMode(mode) {
+    if (spinning || layoutBusy) return;
+    biasMode = mode;
+    updateButtons();
+    runAngleTransition(computeAnglesForMode(mode, drawCounts));
+  }
+
+  function spinWheel() {
+    if (spinning || picked.length >= 6 || layoutBusy) return;
+    var remaining = remainingPool();
+    if (remaining.length === 0) return;
+    var angles = sliceAngles;
+    var targetN = pickWeighted(remaining, angles);
+    var curNorm = ((currentRot % 360) + 360) % 360;
+    var center = centerDegForNumber(targetN, angles);
+    var targetMod = (((-90 - center) % 360) + 360) % 360;
+    var fullTurns = 5 + Math.floor(Math.random() * 3);
+    var delta = fullTurns * 360 + ((targetMod - curNorm + 360) % 360);
+    var start = currentRot;
+    var end = currentRot + delta;
+
+    spinning = true;
+    updateSpinBtn();
+    updateButtons();
+
+    var t0 = performance.now();
+    function frame(now) {
+      var raw = Math.min(1, (now - t0) / SPIN_MS);
+      var t = easeOutCubic(raw);
+      var cur = start + (end - start) * t;
+      el.disk.style.transform = 'rotate(' + cur + 'deg)';
+      if (raw < 1) { requestAnimationFrame(frame); }
+      else {
+        currentRot = end;
+        spinning = false;
+        vibrate();
+        picked = picked.concat([targetN]).sort(function (a, b) { return a - b; });
+        updatePicked();
+        updateSpinBtn();
+        updateButtons();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function resetAll() {
+    if (spinning) return;
+    picked = [];
+    currentRot = 0;
+    el.disk.style.transform = 'rotate(0deg)';
+    updatePicked();
+    updateSpinBtn();
+    updateButtons();
+    showToast('처음부터 다시 시작합니다.');
+  }
+
+  function saveEntry() {
+    if (picked.length !== 6) { showToast('번호 6개를 모두 뽑은 뒤 저장할 수 있습니다.'); return; }
+    var existing = getSaved();
+    var sorted = picked.slice().sort(function (a, b) { return a - b; });
+    var sig = sorted.join(',');
+    var dup = existing.some(function (e) {
+      return e.numbers && e.numbers.length === 6 &&
+        e.numbers.slice().sort(function (a, b) { return a - b; }).join(',') === sig;
+    });
+    if (dup) { showToast('동일한 조합이 이미 있습니다.'); return; }
+    var id = 'spin-' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    var roundLabel = nextRound != null ? (nextRound + '회차') : '원판 돌리기';
+    var entry = {
+      id: id,
+      savedAt: new Date().toISOString(),
+      roundLabel: roundLabel,
+      numbers: sorted,
+      matchCount: 0,
+      type: 'spin',
+      source: 'spin'
+    };
+    existing.push(entry);
+    setSaved(existing);
+    if(window.wsubSaveNumbers) window.wsubSaveNumbers(sorted);
+    showToast('나의번호에 저장했습니다.');
+    refreshSavedButton();
+  }
+
+  function refreshSavedButton() {
+    var count = getSaved().filter(function (e) { return e.source === 'spin'; }).length;
+    if (count > 0) {
+      el.savedViewBtn.classList.add('is-shown');
+      el.savedViewBtn.textContent = '저장한 원판 번호 보기 (' + count + ')';
+    } else {
+      el.savedViewBtn.classList.remove('is-shown');
+    }
+  }
+
+  function openSavedModal() {
+    var items = getSaved().filter(function (e) { return e.source === 'spin'; })
+      .sort(function (a, b) { return (b.savedAt || '').localeCompare(a.savedAt || ''); });
+    if (!items.length) {
+      el.savedList.innerHTML = '<div class="savedEmpty">아직 저장한 번호가 없습니다.</div>';
+    } else {
+      var s = '';
+      for (var i = 0; i < items.length; i++) {
+        var e = items[i];
+        var nums = '';
+        for (var j = 0; j < e.numbers.length; j++) nums += '<div class="savedNum">' + e.numbers[j] + '</div>';
+        s += '<div class="savedItem"><div class="savedRound">' + (e.roundLabel || '원판 돌리기') +
+          '</div><div class="savedNums">' + nums + '</div></div>';
+      }
+      el.savedList.innerHTML = s;
+    }
+    el.savedModal.classList.add('is-shown');
+  }
+  function closeSavedModal() { el.savedModal.classList.remove('is-shown'); }
+
+  // ===== DOM 바인딩 (마크업 주입 후 호출) =====
+  function bindElements() {
+    el.root = document.getElementById('spin-root');
+    el.wheelWrap = document.getElementById('wheelWrap');
+    el.disk = document.getElementById('wheelDisk');
+    el.svg = document.getElementById('wheelSvg');
+    el.spinBtn = document.getElementById('spinBtn');
+    el.pickedLabel = document.getElementById('pickedLabel');
+    el.ballRow = document.getElementById('ballRow');
+    el.biasHot = document.getElementById('biasHot');
+    el.biasCold = document.getElementById('biasCold');
+    el.biasNorm = document.getElementById('biasNorm');
+    el.resetBtn = document.getElementById('resetBtn');
+    el.saveBtn = document.getElementById('saveBtn');
+    el.savedViewBtn = document.getElementById('savedViewBtn');
+    el.toast = document.getElementById('toast');
+    el.roundHint = document.getElementById('roundHint');
+    el.savedModal = document.getElementById('savedModal');
+    el.savedList = document.getElementById('savedList');
+    el.savedModalClose = document.getElementById('savedModalClose');
+  }
+
+  function bindEvents() {
+    el.spinBtn.addEventListener('click', spinWheel);
+    el.biasHot.addEventListener('click', function () { applyBiasMode('hot'); });
+    el.biasCold.addEventListener('click', function () { applyBiasMode('cold'); });
+    el.biasNorm.addEventListener('click', function () { applyBiasMode('normal'); });
+    el.resetBtn.addEventListener('click', resetAll);
+    el.saveBtn.addEventListener('click', saveEntry);
+    el.savedViewBtn.addEventListener('click', openSavedModal);
+    el.savedModalClose.addEventListener('click', closeSavedModal);
+    el.savedModal.addEventListener('click', function (ev) { if (ev.target === el.savedModal) closeSavedModal(); });
+    var resizeT = null;
+    window.addEventListener('resize', function () {
+      if (resizeT) clearTimeout(resizeT);
+      resizeT = setTimeout(function () { setupGeometry(); renderWheel(); }, 150);
+    });
+  }
+
+  // ===== 시작 (React 이식 시: export function startSpinApp) =====
+  function startSpinApp() {
+    bindElements();
+    if (!el.root) return;
+    setupGeometry();
+    renderWheel();
+    bindEvents();
+    biasMode = 'normal';
+    updatePicked();
+    updateSpinBtn();
+    updateButtons();
+    refreshSavedButton();
+    // Firebase 읽기 (실패해도 normal 균등 원판으로 동작)
+    loadDrawData().then(function (res) {
+      drawCounts = res.counts;
+      nextRound = res.nextRound;
+      if (nextRound != null) {
+        el.roundHint.style.display = '';
+        el.roundHint.textContent = '다음 추첨 · 제 ' + nextRound + '회';
+      }
+    });
+  }
+
+  // 단일 HTML 실행
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startSpinApp);
+  } else {
+    startSpinApp();
+  }
+
+  // React 이식용 노출
+  if (typeof window !== 'undefined') window.startSpinApp = startSpinApp;
+})();
+</script>
+</body>
+</html>

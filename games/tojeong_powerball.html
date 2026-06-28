@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>토정비결 로또</title>
+<title>Tojeong Secret Powerball</title>
 <style>
   :root { --cyan:#00ffff; --purple:#cc00ff; --gold:#ffd700; --green:#00ff00; --bg:#0a0a1a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -90,50 +90,206 @@
   .plus{color:#ff2d55;font-size:22px;font-weight:bold;align-self:center;text-shadow:0 0 8px #ff2d55;}
   .balls{align-items:center;}
   </style>
+
+<!-- ===== Wsub Powerball Firebase 저장 (자체완결형) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 14px;background:rgba(8,8,16,.92);border-bottom:1px solid rgba(255,255,255,.08);
+    position:sticky;top:0;z-index:9000;font-family:inherit;}
+  #wsubAuthBar .wsub-who{font-size:12.5px;color:#9aa0b4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #wsubAuthBar .wsub-who b{color:#e8a0a0;font-weight:600;}
+  .wsub-authbtn{flex:none;border:1px solid rgba(255,255,255,.18);background:transparent;color:#eef0f7;
+    font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;cursor:pointer;}
+  .wsub-authbtn.primary{background:#d96b6b;color:#1a0505;border-color:#d96b6b;}
+  .wsub-authbtn:active{transform:scale(.97);}
+  #wsubModal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;
+    padding:20px;background:rgba(5,5,10,.76);}
+  #wsubModal.open{display:flex;}
+  .wsub-box{width:100%;max-width:340px;background:#16131a;border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;padding:24px 22px;position:relative;font-family:inherit;color:#eef0f7;}
+  .wsub-box h2{font-size:20px;font-weight:700;margin:0 0 4px;color:#f6dede;}
+  .wsub-box .wsub-sub{font-size:13px;color:#9aa0b4;margin:0 0 18px;}
+  .wsub-field{margin-bottom:12px;}
+  .wsub-field input{width:100%;box-sizing:border-box;background:#0d0b12;border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:12px 13px;color:#eef0f7;font:inherit;font-size:15px;}
+  .wsub-field input:focus{outline:none;border-color:#c66;}
+  .wsub-err{color:#ff9a9a;font-size:12.5px;min-height:17px;margin:2px 2px 10px;}
+  .wsub-submit{width:100%;background:#d96b6b;color:#1a0505;border:none;font:inherit;font-weight:700;
+    font-size:15px;padding:13px;border-radius:11px;cursor:pointer;}
+  .wsub-submit:active{transform:scale(.99);}
+  .wsub-toggle{text-align:center;margin-top:14px;font-size:13px;color:#9aa0b4;}
+  .wsub-toggle button{background:none;border:none;color:#e8a0a0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 2px;}
+  .wsub-close{position:absolute;top:16px;right:18px;background:none;border:none;color:#9aa0b4;font-size:24px;cursor:pointer;line-height:1;}
+  #wsubToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:#1d1622;color:#f6dede;border:1px solid rgba(217,107,107,.4);padding:11px 20px;border-radius:999px;
+    font-family:inherit;font-size:13.5px;font-weight:600;z-index:9600;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;}
+  #wsubToast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
 </head>
 <body>
+<div id="wsubAuthBar">
+  <div class="wsub-who" id="wsubWho">Log in to save numbers to your account</div>
+  <button class="wsub-authbtn primary" id="wsubAuthBtn" onclick="wsubOpenModal()">Log in</button>
+</div>
+<div id="wsubModal">
+  <div class="wsub-box">
+    <button class="wsub-close" onclick="wsubCloseModal()">&times;</button>
+    <h2 id="wsubModalTitle">Log in</h2>
+    <p class="wsub-sub" id="wsubModalSub">Sign in with your email and password</p>
+    <div class="wsub-field"><input type="email" id="wsubEmail" placeholder="Email" autocomplete="email" /></div>
+    <div class="wsub-field"><input type="password" id="wsubPw" placeholder="Password (6+ characters)" autocomplete="current-password" /></div>
+    <div class="wsub-err" id="wsubErr"></div>
+    <button class="wsub-submit" id="wsubSubmit" onclick="wsubSubmit()">Log in</button>
+    <div class="wsub-toggle" id="wsubToggle">No account yet? <button onclick="wsubToggleMode()">Sign up</button></div>
+  </div>
+</div>
+<div id="wsubToast"></div>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBme5XW9mHy87Y-dwjQzY0DCuC7k2478aw",
+    authDomain: "powerball-prediction-3a2ab.firebaseapp.com",
+    databaseURL: "https://powerball-prediction-3a2ab-default-rtdb.firebaseio.com",
+    projectId: "powerball-prediction-3a2ab",
+    storageBucket: "powerball-prediction-3a2ab.firebasestorage.app",
+    messagingSenderId: "35475647063",
+    appId: "1:35475647063:web:e3c185b495da1175a25112"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var wsubAuth = firebase.auth();
+  var wsubDb = firebase.database();
+  var wsubMode = "login";
+  var wsubPendingSaveAction = null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];}); }
+
+  var toastTimer = null;
+  function wsubToast(msg){
+    var t = $("wsubToast"); if(!t) return;
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  window.wsubOpenModal = function(){ $("wsubErr").textContent=""; $("wsubModal").classList.add("open"); };
+  window.wsubCloseModal = function(){ $("wsubModal").classList.remove("open"); };
+  window.wsubToggleMode = function(){
+    wsubMode = (wsubMode==="login") ? "signup" : "login";
+    var s = wsubMode==="signup";
+    $("wsubModalTitle").textContent = s ? "Sign up" : "Log in";
+    $("wsubModalSub").textContent = s ? "Create an account with email and password" : "Sign in with your email and password";
+    $("wsubSubmit").textContent = s ? "Sign up" : "Log in";
+    $("wsubToggle").innerHTML = s
+      ? 'Already have an account? <button onclick="wsubToggleMode()">Log in</button>'
+      : 'No account yet? <button onclick="wsubToggleMode()">Sign up</button>';
+    $("wsubErr").textContent = "";
+  };
+  function authErr(e){
+    var c = (e && e.code) || "";
+    if (c==="auth/invalid-email") return "That email address is invalid.";
+    if (c==="auth/missing-password" || c==="auth/weak-password") return "Password must be at least 6 characters.";
+    if (c==="auth/email-already-in-use") return "This email is already registered. Please log in.";
+    if (c==="auth/invalid-credential" || c==="auth/wrong-password" || c==="auth/user-not-found") return "Email or password is incorrect.";
+    if (c==="auth/too-many-requests") return "Too many attempts. Please try again later.";
+    return "Something went wrong. Please try again.";
+  }
+  window.wsubSubmit = function(){
+    var email = $("wsubEmail").value.trim(), pw = $("wsubPw").value, err = $("wsubErr");
+    err.textContent = "";
+    if (!email || !pw){ err.textContent = "Please enter your email and password."; return; }
+    var p = (wsubMode==="signup")
+      ? wsubAuth.createUserWithEmailAndPassword(email, pw)
+      : wsubAuth.signInWithEmailAndPassword(email, pw);
+    p.catch(function(e){ err.textContent = authErr(e); });
+  };
+  window.wsubLogout = function(){ wsubAuth.signOut(); };
+
+  wsubAuth.onAuthStateChanged(function(user){
+    var who = $("wsubWho"), btn = $("wsubAuthBtn");
+    if (user){
+      who.innerHTML = '<b>' + esc(user.email || "Logged in") + '</b>';
+      btn.textContent = "Log out"; btn.classList.remove("primary"); btn.onclick = window.wsubLogout;
+      wsubCloseModal();
+      if (typeof wsubPendingSaveAction === "function"){ var a = wsubPendingSaveAction; wsubPendingSaveAction = null; a(); }
+    } else {
+      who.textContent = "Log in to save numbers to your account";
+      btn.textContent = "Log in"; btn.classList.add("primary"); btn.onclick = window.wsubOpenModal;
+    }
+  });
+
+  // 저장: white = 화이트볼 배열(5개), powerball = 파워볼 숫자, game = 게임키.
+  // 미로그인 시 모달 → 로그인 후 자동 저장.
+  window.wsubSavePowerball = function(white, powerball, game){
+    if (!wsubAuth.currentUser){
+      wsubPendingSaveAction = function(){ window.wsubSavePowerball(white, powerball, game); };
+      wsubOpenModal();
+      return;
+    }
+    var uid = wsubAuth.currentUser.uid;
+    var ref = wsubDb.ref("wsub_saved/" + uid).push();
+    ref.set({
+      white: (white || []).slice().map(String).join(","),
+      powerball: powerball,
+      game: game,
+      savedAt: Date.now()
+    })
+      .then(function(){ wsubToast("Saved to your account"); })
+      .catch(function(e){ console.error(e); wsubToast("Save failed. Try again."); });
+  };
+  window.wsubIsLoggedIn = function(){ return !!wsubAuth.currentUser; };
+
+  var modalEl = $("wsubModal");
+  if (modalEl) modalEl.addEventListener("click", function(e){ if (e.target === this) wsubCloseModal(); });
+})();
+</script>
+
   <div class="wrap">
     <header>
       <div class="eyebrow">Tojeong Bigyeol</div>
-      <h1>🌙 토정비결 로또</h1>
-      <div class="sub">상·중·하 세 괘로 올해 운세와 번호를 봅니다</div>
+      <h1>🌙 Tojeong Secret Powerball</h1>
+      <div class="sub">Read this year's fortune and numbers from three trigrams</div>
     </header>
 
     <div class="card">
-      <div class="label">생년월일 입력</div>
+      <div class="label">Enter your birth date</div>
       <div class="date-row">
-        <div class="fld"><small>년</small><select id="tjYear"></select></div>
-        <div class="fld"><small>월</small><select id="tjMonth"></select></div>
-        <div class="fld d3"><small>일</small><select id="tjDay"></select></div>
+        <div class="fld"><small>Year</small><select id="tjYear"></select></div>
+        <div class="fld"><small>Month</small><select id="tjMonth"></select></div>
+        <div class="fld d3"><small>Day</small><select id="tjDay"></select></div>
       </div>
-      <button class="run-btn" id="tjRunBtn">토정비결 보기</button>
+      <button class="run-btn" id="tjRunBtn">See My Fortune</button>
     </div>
 
     <div class="card hidden" id="tjResultCard">
       <div class="gua-code" id="tjCode">- - -</div>
-      <div class="gua-tag">상괘 · 중괘 · 하괘</div>
+      <div class="gua-tag">Upper · Middle · Lower trigram</div>
 
       <div class="fortune-block year">
-        <div class="ft">올해의 운세</div>
+        <div class="ft">This Year</div>
         <div class="fb" id="tjYearFortune">-</div>
       </div>
       <div class="fortune-block month">
-        <div class="ft">이번 달 운세</div>
+        <div class="ft">This Month</div>
         <div class="fb" id="tjMonthFortune">-</div>
       </div>
       <div class="fortune-block">
-        <div class="ft">처세의 지혜</div>
+        <div class="ft">Wisdom</div>
         <div class="fb" id="tjAdvice">-</div>
       </div>
       <div class="luck">
-        <div class="chip"><div class="t">행운의 방향</div><div class="v" id="tjDir">-</div></div>
-        <div class="chip"><div class="t">행운의 색</div><div class="v" id="tjColor">-</div></div>
+        <div class="chip"><div class="t">Lucky Direction</div><div class="v" id="tjDir">-</div></div>
+        <div class="chip"><div class="t">Lucky Color</div><div class="v" id="tjColor">-</div></div>
       </div>
 
-      <div class="label" style="margin-top:16px;">행운 번호</div>
+      <div class="label" style="margin-top:16px;">Lucky Numbers</div>
       <div class="balls" id="tjBalls"></div>
-      <div class="meta"><b id="tjRoundTxt">-</b> · 괘 기반 추출</div>
-      <button class="save-btn" id="tjSaveBtn">나의 번호에 저장</button>
+      <div class="meta"><b id="tjRoundTxt">-</b> · Drawn from the trigrams</div>
+      <button class="save-btn" id="tjSaveBtn">Save my numbers</button>
     </div>
   </div>
   <div class="toast" id="tjToast"></div>
@@ -151,31 +307,31 @@
   var STORAGE_KEY = '@devbrick/saved_lotto_numbers_v1';
   var MAX_PER_TYPE = 100;
 
-  // 상괘 8 — 올해의 운세
+  // 상괘 8 — This Year
   var SANG = [
-    "봄을 맞은 나무처럼 기운이 솟습니다. 새로 시작하는 일에 크게 길한 해입니다.",
-    "잔잔히 흐르는 물처럼 안정 속에 결실을 맺는 해입니다. 꾸준함이 복이 됩니다.",
-    "구름이 걷히고 해가 드니, 막혔던 일들이 하나둘 풀리는 해입니다.",
-    "단단한 산처럼 기반을 다지는 해입니다. 서두르지 않으면 크게 이룹니다.",
-    "바람을 탄 돛처럼 멀리 나아갑니다. 이동과 확장이 이로운 해입니다.",
-    "불씨가 번지듯 명예와 인기가 오릅니다. 사람이 따르는 해입니다.",
-    "곳간이 차오르듯 재물이 모입니다. 베풀수록 더 늘어나는 해입니다.",
-    "옥을 다듬듯 갈고닦는 해입니다. 인내한 끝에 빛을 보게 됩니다."
+    "Energy rises like a tree in spring. A greatly fortunate year for new beginnings.",
+    "Like calm flowing water, a year that bears fruit through stability. Steadiness becomes your blessing.",
+    "The clouds part and the sun breaks through; a year when blocked matters unravel one by one.",
+    "A year of laying firm foundations like a solid mountain. Don't rush, and you achieve greatly.",
+    "You sail far like a windblown sail. A year when movement and expansion benefit you.",
+    "Like a spreading flame, your honor and popularity rise. A year when people follow you.",
+    "Wealth gathers like a filling storehouse. A year that grows the more you give.",
+    "A year of polishing yourself like fine jade. After patience, you come into the light."
   ];
-  // 중괘 6 — 이번 달 운세
+  // 중괘 6 — This Month
   var JUNG = [
-    "이달은 귀인을 만나 뜻밖의 도움을 받습니다.",
-    "이달은 작은 다툼만 조심하면 평안하게 흘러갑니다.",
-    "이달은 기다리던 기쁜 소식이 들려옵니다.",
-    "이달은 재물의 흐름이 트이고 기회가 옵니다.",
-    "이달은 건강을 살피고 무리하지 않는 것이 좋습니다.",
-    "이달은 새로운 인연과 기회가 함께 찾아옵니다."
+    "This month you meet a helpful person and receive unexpected aid.",
+    "This month flows peacefully if you avoid small quarrels.",
+    "This month brings the happy news you've been waiting for.",
+    "This month the flow of wealth opens and opportunity arrives.",
+    "This month, mind your health and avoid overexertion.",
+    "This month, new connections and opportunities arrive together."
   ];
   // 하괘 3 — 지혜 + 행운 방향/색
   var HA = [
-    { advice:"먼저 움직이는 사람에게 복이 따릅니다. 망설이지 마세요.", dir:"동(東)쪽", color:"청색(靑)" },
-    { advice:"기다리며 준비하면 반드시 때가 옵니다. 조급함을 버리세요.", dir:"남(南)쪽", color:"적색(赤)" },
-    { advice:"마음을 비우면 비로소 길이 보입니다. 욕심을 내려놓으세요.", dir:"중앙(中)", color:"황색(黃)" }
+    { advice:"Fortune favors those who move first. Do not hesitate.", dir:"East (東)", color:"Blue (靑)" },
+    { advice:"If you wait and prepare, your time will surely come. Let go of impatience.", dir:"South (南)", color:"Red (赤)" },
+    { advice:"Empty your mind and the path appears. Set aside greed.", dir:"Center (中)", color:"Yellow (黃)" }
   ];
 
   // 나이(한국식)+월/일 → 상·중·하 괘
@@ -266,22 +422,23 @@
     el.dir.textContent=f.dir; el.color.textContent=f.color;
     el.balls.innerHTML='';
     numbers.forEach(function(n){var b=document.createElement('div');b.className='ball';b.textContent=n;el.balls.appendChild(b);});var __pl=document.createElement('div');__pl.className='plus';__pl.textContent='+';el.balls.appendChild(__pl);var __pbb=document.createElement('div');__pbb.className='ball power';__pbb.textContent=state.power;el.balls.appendChild(__pbb);
-    el.saveBtn.textContent='나의 번호에 저장'; el.saveBtn.className='save-btn'; el.saveBtn.disabled=false;
+    el.saveBtn.textContent='Save my numbers'; el.saveBtn.className='save-btn'; el.saveBtn.disabled=false;
     el.resultCard.classList.remove('hidden');
 
-    el.roundTxt.textContent = '미국 파워볼 방식';
+    el.roundTxt.textContent = 'US Powerball method';
   }
 
   function loadSaved(){ try{var raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):[];}catch(e){return [];} }
   function saveResult() {
     if(!state.finished)return;
     var saved=loadSaved();
-    if(isDuplicate(saved, state.numbers, state.power, GAME_KEY)){showToast('이미 저장된 번호예요');return;}
+    if(isDuplicate(saved, state.numbers, state.power, GAME_KEY)){showToast('Already saved');return;}
     var entry=makeSavedEntry(state.numbers, state.power, state.nextRound,Date.now(),genId(GAME_KEY));
     saved.push(entry);
     try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(trimSavedByType(saved,MAX_PER_TYPE)));
-      el.saveBtn.textContent='✓ 저장 완료'; el.saveBtn.className='save-btn done'; el.saveBtn.disabled=true; showToast('나의 번호에 저장했어요');
-    }catch(e){showToast('저장 공간이 부족해요');}
+      if(window.wsubSavePowerball) window.wsubSavePowerball(state.numbers, state.power, GAME_KEY);
+      el.saveBtn.textContent='✓ Saved'; el.saveBtn.className='save-btn done'; el.saveBtn.disabled=true; showToast('Saved to your account');
+    }catch(e){showToast('Storage is full');}
   }
 
   function startTojeongApp() {

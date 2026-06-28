@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>바이오리듬 로또</title>
+<title>Biorhythm Powerball</title>
 <style>
   :root { --cyan:#00ffff; --purple:#cc00ff; --gold:#ffd700; --green:#00ff00; --bg:#0a0a1a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -90,47 +90,203 @@
   .plus{color:#ff2d55;font-size:22px;font-weight:bold;align-self:center;text-shadow:0 0 8px #ff2d55;}
   .balls{align-items:center;}
   </style>
+
+<!-- ===== Wsub Powerball Firebase 저장 (자체완결형) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 14px;background:rgba(8,8,16,.92);border-bottom:1px solid rgba(255,255,255,.08);
+    position:sticky;top:0;z-index:9000;font-family:inherit;}
+  #wsubAuthBar .wsub-who{font-size:12.5px;color:#9aa0b4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #wsubAuthBar .wsub-who b{color:#e8a0a0;font-weight:600;}
+  .wsub-authbtn{flex:none;border:1px solid rgba(255,255,255,.18);background:transparent;color:#eef0f7;
+    font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;cursor:pointer;}
+  .wsub-authbtn.primary{background:#d96b6b;color:#1a0505;border-color:#d96b6b;}
+  .wsub-authbtn:active{transform:scale(.97);}
+  #wsubModal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;
+    padding:20px;background:rgba(5,5,10,.76);}
+  #wsubModal.open{display:flex;}
+  .wsub-box{width:100%;max-width:340px;background:#16131a;border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;padding:24px 22px;position:relative;font-family:inherit;color:#eef0f7;}
+  .wsub-box h2{font-size:20px;font-weight:700;margin:0 0 4px;color:#f6dede;}
+  .wsub-box .wsub-sub{font-size:13px;color:#9aa0b4;margin:0 0 18px;}
+  .wsub-field{margin-bottom:12px;}
+  .wsub-field input{width:100%;box-sizing:border-box;background:#0d0b12;border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:12px 13px;color:#eef0f7;font:inherit;font-size:15px;}
+  .wsub-field input:focus{outline:none;border-color:#c66;}
+  .wsub-err{color:#ff9a9a;font-size:12.5px;min-height:17px;margin:2px 2px 10px;}
+  .wsub-submit{width:100%;background:#d96b6b;color:#1a0505;border:none;font:inherit;font-weight:700;
+    font-size:15px;padding:13px;border-radius:11px;cursor:pointer;}
+  .wsub-submit:active{transform:scale(.99);}
+  .wsub-toggle{text-align:center;margin-top:14px;font-size:13px;color:#9aa0b4;}
+  .wsub-toggle button{background:none;border:none;color:#e8a0a0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 2px;}
+  .wsub-close{position:absolute;top:16px;right:18px;background:none;border:none;color:#9aa0b4;font-size:24px;cursor:pointer;line-height:1;}
+  #wsubToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:#1d1622;color:#f6dede;border:1px solid rgba(217,107,107,.4);padding:11px 20px;border-radius:999px;
+    font-family:inherit;font-size:13.5px;font-weight:600;z-index:9600;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;}
+  #wsubToast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
 </head>
 <body>
+<div id="wsubAuthBar">
+  <div class="wsub-who" id="wsubWho">Log in to save numbers to your account</div>
+  <button class="wsub-authbtn primary" id="wsubAuthBtn" onclick="wsubOpenModal()">Log in</button>
+</div>
+<div id="wsubModal">
+  <div class="wsub-box">
+    <button class="wsub-close" onclick="wsubCloseModal()">&times;</button>
+    <h2 id="wsubModalTitle">Log in</h2>
+    <p class="wsub-sub" id="wsubModalSub">Sign in with your email and password</p>
+    <div class="wsub-field"><input type="email" id="wsubEmail" placeholder="Email" autocomplete="email" /></div>
+    <div class="wsub-field"><input type="password" id="wsubPw" placeholder="Password (6+ characters)" autocomplete="current-password" /></div>
+    <div class="wsub-err" id="wsubErr"></div>
+    <button class="wsub-submit" id="wsubSubmit" onclick="wsubSubmit()">Log in</button>
+    <div class="wsub-toggle" id="wsubToggle">No account yet? <button onclick="wsubToggleMode()">Sign up</button></div>
+  </div>
+</div>
+<div id="wsubToast"></div>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBme5XW9mHy87Y-dwjQzY0DCuC7k2478aw",
+    authDomain: "powerball-prediction-3a2ab.firebaseapp.com",
+    databaseURL: "https://powerball-prediction-3a2ab-default-rtdb.firebaseio.com",
+    projectId: "powerball-prediction-3a2ab",
+    storageBucket: "powerball-prediction-3a2ab.firebasestorage.app",
+    messagingSenderId: "35475647063",
+    appId: "1:35475647063:web:e3c185b495da1175a25112"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var wsubAuth = firebase.auth();
+  var wsubDb = firebase.database();
+  var wsubMode = "login";
+  var wsubPendingSaveAction = null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];}); }
+
+  var toastTimer = null;
+  function wsubToast(msg){
+    var t = $("wsubToast"); if(!t) return;
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  window.wsubOpenModal = function(){ $("wsubErr").textContent=""; $("wsubModal").classList.add("open"); };
+  window.wsubCloseModal = function(){ $("wsubModal").classList.remove("open"); };
+  window.wsubToggleMode = function(){
+    wsubMode = (wsubMode==="login") ? "signup" : "login";
+    var s = wsubMode==="signup";
+    $("wsubModalTitle").textContent = s ? "Sign up" : "Log in";
+    $("wsubModalSub").textContent = s ? "Create an account with email and password" : "Sign in with your email and password";
+    $("wsubSubmit").textContent = s ? "Sign up" : "Log in";
+    $("wsubToggle").innerHTML = s
+      ? 'Already have an account? <button onclick="wsubToggleMode()">Log in</button>'
+      : 'No account yet? <button onclick="wsubToggleMode()">Sign up</button>';
+    $("wsubErr").textContent = "";
+  };
+  function authErr(e){
+    var c = (e && e.code) || "";
+    if (c==="auth/invalid-email") return "That email address is invalid.";
+    if (c==="auth/missing-password" || c==="auth/weak-password") return "Password must be at least 6 characters.";
+    if (c==="auth/email-already-in-use") return "This email is already registered. Please log in.";
+    if (c==="auth/invalid-credential" || c==="auth/wrong-password" || c==="auth/user-not-found") return "Email or password is incorrect.";
+    if (c==="auth/too-many-requests") return "Too many attempts. Please try again later.";
+    return "Something went wrong. Please try again.";
+  }
+  window.wsubSubmit = function(){
+    var email = $("wsubEmail").value.trim(), pw = $("wsubPw").value, err = $("wsubErr");
+    err.textContent = "";
+    if (!email || !pw){ err.textContent = "Please enter your email and password."; return; }
+    var p = (wsubMode==="signup")
+      ? wsubAuth.createUserWithEmailAndPassword(email, pw)
+      : wsubAuth.signInWithEmailAndPassword(email, pw);
+    p.catch(function(e){ err.textContent = authErr(e); });
+  };
+  window.wsubLogout = function(){ wsubAuth.signOut(); };
+
+  wsubAuth.onAuthStateChanged(function(user){
+    var who = $("wsubWho"), btn = $("wsubAuthBtn");
+    if (user){
+      who.innerHTML = '<b>' + esc(user.email || "Logged in") + '</b>';
+      btn.textContent = "Log out"; btn.classList.remove("primary"); btn.onclick = window.wsubLogout;
+      wsubCloseModal();
+      if (typeof wsubPendingSaveAction === "function"){ var a = wsubPendingSaveAction; wsubPendingSaveAction = null; a(); }
+    } else {
+      who.textContent = "Log in to save numbers to your account";
+      btn.textContent = "Log in"; btn.classList.add("primary"); btn.onclick = window.wsubOpenModal;
+    }
+  });
+
+  // 저장: white = 화이트볼 배열(5개), powerball = 파워볼 숫자, game = 게임키.
+  // 미로그인 시 모달 → 로그인 후 자동 저장.
+  window.wsubSavePowerball = function(white, powerball, game){
+    if (!wsubAuth.currentUser){
+      wsubPendingSaveAction = function(){ window.wsubSavePowerball(white, powerball, game); };
+      wsubOpenModal();
+      return;
+    }
+    var uid = wsubAuth.currentUser.uid;
+    var ref = wsubDb.ref("wsub_saved/" + uid).push();
+    ref.set({
+      white: (white || []).slice().map(String).join(","),
+      powerball: powerball,
+      game: game,
+      savedAt: Date.now()
+    })
+      .then(function(){ wsubToast("Saved to your account"); })
+      .catch(function(e){ console.error(e); wsubToast("Save failed. Try again."); });
+  };
+  window.wsubIsLoggedIn = function(){ return !!wsubAuth.currentUser; };
+
+  var modalEl = $("wsubModal");
+  if (modalEl) modalEl.addEventListener("click", function(e){ if (e.target === this) wsubCloseModal(); });
+})();
+</script>
+
   <div class="wrap">
     <header>
       <div class="eyebrow">Biorhythm Cycle</div>
-      <h1>📈 바이오리듬 로또</h1>
-      <div class="sub">오늘의 신체·감성·지성 주기로 번호를 추출합니다</div>
+      <h1>📈 Biorhythm Powerball</h1>
+      <div class="sub">Draw numbers from today's physical, emotional & intellectual cycles</div>
     </header>
 
     <div class="card">
-      <div class="label">생년월일 입력</div>
+      <div class="label">Enter your birth date</div>
       <div class="date-row">
-        <div class="fld"><small>년</small><select id="bioYear"></select></div>
-        <div class="fld"><small>월</small><select id="bioMonth"></select></div>
-        <div class="fld d3"><small>일</small><select id="bioDay"></select></div>
+        <div class="fld"><small>Year</small><select id="bioYear"></select></div>
+        <div class="fld"><small>Month</small><select id="bioMonth"></select></div>
+        <div class="fld d3"><small>Day</small><select id="bioDay"></select></div>
       </div>
-      <button class="run-btn" id="bioRunBtn">바이오리듬 계산</button>
+      <button class="run-btn" id="bioRunBtn">Calculate Biorhythm</button>
     </div>
 
     <div class="card hidden" id="bioResultCard">
-      <div class="label">오늘의 바이오리듬</div>
+      <div class="label">Today's Biorhythm</div>
       <div class="scores">
-        <div class="score phys"><div class="nm">신체 (23일)</div><div class="vl" id="bioPhys">-</div></div>
-        <div class="score emo"><div class="nm">감성 (28일)</div><div class="vl" id="bioEmo">-</div></div>
-        <div class="score intel"><div class="nm">지성 (33일)</div><div class="vl" id="bioIntel">-</div></div>
+        <div class="score phys"><div class="nm">Physical (23d)</div><div class="vl" id="bioPhys">-</div></div>
+        <div class="score emo"><div class="nm">Emotional (28d)</div><div class="vl" id="bioEmo">-</div></div>
+        <div class="score intel"><div class="nm">Intellectual (33d)</div><div class="vl" id="bioIntel">-</div></div>
       </div>
-      <div class="cond">오늘 종합 컨디션 <b id="bioCond">-</b>점</div>
+      <div class="cond">Overall condition <b id="bioCond">-</b></div>
 
       <div class="graph-wrap">
         <svg id="bioGraph" viewBox="0 0 320 140" width="100%" height="140" preserveAspectRatio="none"></svg>
         <div class="legend">
-          <span><i class="dot" style="background:#00ffff"></i>신체</span>
-          <span><i class="dot" style="background:#cc00ff"></i>감성</span>
-          <span><i class="dot" style="background:#ffd700"></i>지성</span>
+          <span><i class="dot" style="background:#00ffff"></i>Physical</span>
+          <span><i class="dot" style="background:#cc00ff"></i>Emotional</span>
+          <span><i class="dot" style="background:#ffd700"></i>Intellectual</span>
         </div>
       </div>
 
-      <div class="label" style="margin-top:18px;">추천 번호</div>
+      <div class="label" style="margin-top:18px;">Your Numbers</div>
       <div class="balls" id="bioBalls"></div>
-      <div class="meta"><b id="bioRoundTxt">-</b> · 컨디션 기반 추출</div>
-      <button class="save-btn" id="bioSaveBtn">나의 번호에 저장</button>
+      <div class="meta"><b id="bioRoundTxt">-</b> · Drawn from your condition</div>
+      <button class="save-btn" id="bioSaveBtn">Save my numbers</button>
     </div>
   </div>
   <div class="toast" id="bioToast"></div>
@@ -321,10 +477,10 @@
     el.cond.textContent = bio.cond;
     drawGraph(days);
     renderBalls(numbers, bio.cond);
-    el.saveBtn.textContent = '나의 번호에 저장'; el.saveBtn.className = 'save-btn'; el.saveBtn.disabled = false;
+    el.saveBtn.textContent = 'Save my numbers'; el.saveBtn.className = 'save-btn'; el.saveBtn.disabled = false;
     el.resultCard.classList.remove('hidden');
 
-    el.roundTxt.textContent = '미국 파워볼 방식';
+    el.roundTxt.textContent = 'US Powerball method';
   }
 
   function loadSaved() {
@@ -333,14 +489,15 @@
   function saveResult() {
     if (!state.finished) return;
     var saved = loadSaved();
-    if (isDuplicate(saved, state.numbers, state.power, GAME_KEY)) { showToast('이미 저장된 번호예요'); return; }
+    if (isDuplicate(saved, state.numbers, state.power, GAME_KEY)) { showToast('Already saved'); return; }
     var entry = makeSavedEntry(state.numbers, state.power, state.nextRound, Date.now(), genId(GAME_KEY));
     saved.push(entry);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(trimSavedByType(saved, MAX_PER_TYPE)));
-      el.saveBtn.textContent = '✓ 저장 완료'; el.saveBtn.className = 'save-btn done'; el.saveBtn.disabled = true;
-      showToast('나의 번호에 저장했어요');
-    } catch (e) { showToast('저장 공간이 부족해요'); }
+      if(window.wsubSavePowerball) window.wsubSavePowerball(state.numbers, state.power, GAME_KEY);
+      el.saveBtn.textContent = '✓ Saved'; el.saveBtn.className = 'save-btn done'; el.saveBtn.disabled = true;
+      showToast('Saved to your account');
+    } catch (e) { showToast('Storage is full'); }
   }
 
   function startBiorhythmApp() {

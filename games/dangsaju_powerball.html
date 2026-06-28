@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>당사주 로또</title>
+<title>Dangsaju Star Powerball</title>
 <style>
   :root { --cyan:#00ffff; --purple:#cc00ff; --gold:#ffd700; --green:#00ff00; --bg:#0a0a1a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -85,23 +85,179 @@
   .plus{color:#ff2d55;font-size:22px;font-weight:bold;align-self:center;text-shadow:0 0 8px #ff2d55;}
   .balls{align-items:center;}
   </style>
+
+<!-- ===== Wsub Powerball Firebase 저장 (자체완결형) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 14px;background:rgba(8,8,16,.92);border-bottom:1px solid rgba(255,255,255,.08);
+    position:sticky;top:0;z-index:9000;font-family:inherit;}
+  #wsubAuthBar .wsub-who{font-size:12.5px;color:#9aa0b4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #wsubAuthBar .wsub-who b{color:#e8a0a0;font-weight:600;}
+  .wsub-authbtn{flex:none;border:1px solid rgba(255,255,255,.18);background:transparent;color:#eef0f7;
+    font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;cursor:pointer;}
+  .wsub-authbtn.primary{background:#d96b6b;color:#1a0505;border-color:#d96b6b;}
+  .wsub-authbtn:active{transform:scale(.97);}
+  #wsubModal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;
+    padding:20px;background:rgba(5,5,10,.76);}
+  #wsubModal.open{display:flex;}
+  .wsub-box{width:100%;max-width:340px;background:#16131a;border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;padding:24px 22px;position:relative;font-family:inherit;color:#eef0f7;}
+  .wsub-box h2{font-size:20px;font-weight:700;margin:0 0 4px;color:#f6dede;}
+  .wsub-box .wsub-sub{font-size:13px;color:#9aa0b4;margin:0 0 18px;}
+  .wsub-field{margin-bottom:12px;}
+  .wsub-field input{width:100%;box-sizing:border-box;background:#0d0b12;border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:12px 13px;color:#eef0f7;font:inherit;font-size:15px;}
+  .wsub-field input:focus{outline:none;border-color:#c66;}
+  .wsub-err{color:#ff9a9a;font-size:12.5px;min-height:17px;margin:2px 2px 10px;}
+  .wsub-submit{width:100%;background:#d96b6b;color:#1a0505;border:none;font:inherit;font-weight:700;
+    font-size:15px;padding:13px;border-radius:11px;cursor:pointer;}
+  .wsub-submit:active{transform:scale(.99);}
+  .wsub-toggle{text-align:center;margin-top:14px;font-size:13px;color:#9aa0b4;}
+  .wsub-toggle button{background:none;border:none;color:#e8a0a0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 2px;}
+  .wsub-close{position:absolute;top:16px;right:18px;background:none;border:none;color:#9aa0b4;font-size:24px;cursor:pointer;line-height:1;}
+  #wsubToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:#1d1622;color:#f6dede;border:1px solid rgba(217,107,107,.4);padding:11px 20px;border-radius:999px;
+    font-family:inherit;font-size:13.5px;font-weight:600;z-index:9600;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;}
+  #wsubToast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
 </head>
 <body>
+<div id="wsubAuthBar">
+  <div class="wsub-who" id="wsubWho">Log in to save numbers to your account</div>
+  <button class="wsub-authbtn primary" id="wsubAuthBtn" onclick="wsubOpenModal()">Log in</button>
+</div>
+<div id="wsubModal">
+  <div class="wsub-box">
+    <button class="wsub-close" onclick="wsubCloseModal()">&times;</button>
+    <h2 id="wsubModalTitle">Log in</h2>
+    <p class="wsub-sub" id="wsubModalSub">Sign in with your email and password</p>
+    <div class="wsub-field"><input type="email" id="wsubEmail" placeholder="Email" autocomplete="email" /></div>
+    <div class="wsub-field"><input type="password" id="wsubPw" placeholder="Password (6+ characters)" autocomplete="current-password" /></div>
+    <div class="wsub-err" id="wsubErr"></div>
+    <button class="wsub-submit" id="wsubSubmit" onclick="wsubSubmit()">Log in</button>
+    <div class="wsub-toggle" id="wsubToggle">No account yet? <button onclick="wsubToggleMode()">Sign up</button></div>
+  </div>
+</div>
+<div id="wsubToast"></div>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBme5XW9mHy87Y-dwjQzY0DCuC7k2478aw",
+    authDomain: "powerball-prediction-3a2ab.firebaseapp.com",
+    databaseURL: "https://powerball-prediction-3a2ab-default-rtdb.firebaseio.com",
+    projectId: "powerball-prediction-3a2ab",
+    storageBucket: "powerball-prediction-3a2ab.firebasestorage.app",
+    messagingSenderId: "35475647063",
+    appId: "1:35475647063:web:e3c185b495da1175a25112"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var wsubAuth = firebase.auth();
+  var wsubDb = firebase.database();
+  var wsubMode = "login";
+  var wsubPendingSaveAction = null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];}); }
+
+  var toastTimer = null;
+  function wsubToast(msg){
+    var t = $("wsubToast"); if(!t) return;
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  window.wsubOpenModal = function(){ $("wsubErr").textContent=""; $("wsubModal").classList.add("open"); };
+  window.wsubCloseModal = function(){ $("wsubModal").classList.remove("open"); };
+  window.wsubToggleMode = function(){
+    wsubMode = (wsubMode==="login") ? "signup" : "login";
+    var s = wsubMode==="signup";
+    $("wsubModalTitle").textContent = s ? "Sign up" : "Log in";
+    $("wsubModalSub").textContent = s ? "Create an account with email and password" : "Sign in with your email and password";
+    $("wsubSubmit").textContent = s ? "Sign up" : "Log in";
+    $("wsubToggle").innerHTML = s
+      ? 'Already have an account? <button onclick="wsubToggleMode()">Log in</button>'
+      : 'No account yet? <button onclick="wsubToggleMode()">Sign up</button>';
+    $("wsubErr").textContent = "";
+  };
+  function authErr(e){
+    var c = (e && e.code) || "";
+    if (c==="auth/invalid-email") return "That email address is invalid.";
+    if (c==="auth/missing-password" || c==="auth/weak-password") return "Password must be at least 6 characters.";
+    if (c==="auth/email-already-in-use") return "This email is already registered. Please log in.";
+    if (c==="auth/invalid-credential" || c==="auth/wrong-password" || c==="auth/user-not-found") return "Email or password is incorrect.";
+    if (c==="auth/too-many-requests") return "Too many attempts. Please try again later.";
+    return "Something went wrong. Please try again.";
+  }
+  window.wsubSubmit = function(){
+    var email = $("wsubEmail").value.trim(), pw = $("wsubPw").value, err = $("wsubErr");
+    err.textContent = "";
+    if (!email || !pw){ err.textContent = "Please enter your email and password."; return; }
+    var p = (wsubMode==="signup")
+      ? wsubAuth.createUserWithEmailAndPassword(email, pw)
+      : wsubAuth.signInWithEmailAndPassword(email, pw);
+    p.catch(function(e){ err.textContent = authErr(e); });
+  };
+  window.wsubLogout = function(){ wsubAuth.signOut(); };
+
+  wsubAuth.onAuthStateChanged(function(user){
+    var who = $("wsubWho"), btn = $("wsubAuthBtn");
+    if (user){
+      who.innerHTML = '<b>' + esc(user.email || "Logged in") + '</b>';
+      btn.textContent = "Log out"; btn.classList.remove("primary"); btn.onclick = window.wsubLogout;
+      wsubCloseModal();
+      if (typeof wsubPendingSaveAction === "function"){ var a = wsubPendingSaveAction; wsubPendingSaveAction = null; a(); }
+    } else {
+      who.textContent = "Log in to save numbers to your account";
+      btn.textContent = "Log in"; btn.classList.add("primary"); btn.onclick = window.wsubOpenModal;
+    }
+  });
+
+  // 저장: white = 화이트볼 배열(5개), powerball = 파워볼 숫자, game = 게임키.
+  // 미로그인 시 모달 → 로그인 후 자동 저장.
+  window.wsubSavePowerball = function(white, powerball, game){
+    if (!wsubAuth.currentUser){
+      wsubPendingSaveAction = function(){ window.wsubSavePowerball(white, powerball, game); };
+      wsubOpenModal();
+      return;
+    }
+    var uid = wsubAuth.currentUser.uid;
+    var ref = wsubDb.ref("wsub_saved/" + uid).push();
+    ref.set({
+      white: (white || []).slice().map(String).join(","),
+      powerball: powerball,
+      game: game,
+      savedAt: Date.now()
+    })
+      .then(function(){ wsubToast("Saved to your account"); })
+      .catch(function(e){ console.error(e); wsubToast("Save failed. Try again."); });
+  };
+  window.wsubIsLoggedIn = function(){ return !!wsubAuth.currentUser; };
+
+  var modalEl = $("wsubModal");
+  if (modalEl) modalEl.addEventListener("click", function(e){ if (e.target === this) wsubCloseModal(); });
+})();
+</script>
+
   <div class="wrap">
     <header>
       <div class="eyebrow">Dangsaju · 12 Stars</div>
-      <h1>🎴 당사주 로또</h1>
-      <div class="sub">타고난 별자리(천살)로 운세와 번호를 풀어냅니다</div>
+      <h1>🎴 Dangsaju Star Powerball</h1>
+      <div class="sub">Unlock your fortune and numbers from your birth star</div>
     </header>
 
     <div class="card">
-      <div class="label">생년월일 입력</div>
+      <div class="label">Enter your birth date</div>
       <div class="date-row">
-        <div class="fld"><small>년</small><select id="dsYear"></select></div>
-        <div class="fld"><small>월</small><select id="dsMonth"></select></div>
-        <div class="fld d3"><small>일</small><select id="dsDay"></select></div>
+        <div class="fld"><small>Year</small><select id="dsYear"></select></div>
+        <div class="fld"><small>Month</small><select id="dsMonth"></select></div>
+        <div class="fld d3"><small>Day</small><select id="dsDay"></select></div>
       </div>
-      <button class="run-btn" id="dsRunBtn">당사주 풀이</button>
+      <button class="run-btn" id="dsRunBtn">Reveal My Star</button>
     </div>
 
     <div class="card hidden" id="dsResultCard">
@@ -109,10 +265,10 @@
       <div class="star-name" id="dsName">-</div>
       <div class="star-tag" id="dsTag">-</div>
       <div class="star-fortune" id="dsFortune">-</div>
-      <div class="label">행운 번호</div>
+      <div class="label">Lucky Numbers</div>
       <div class="balls" id="dsBalls"></div>
-      <div class="meta"><b id="dsRoundTxt">-</b> · 천살 기반 추출</div>
-      <button class="save-btn" id="dsSaveBtn">나의 번호에 저장</button>
+      <div class="meta"><b id="dsRoundTxt">-</b> · Drawn from your star</div>
+      <button class="save-btn" id="dsSaveBtn">Save my numbers</button>
     </div>
   </div>
   <div class="toast" id="dsToast"></div>
@@ -131,18 +287,18 @@
 
   // 당사주 12천살: "한글|한자|한줄태그|운세"
   var STARS = [
-    "천귀|天貴|귀함의 별|타고난 품격으로 귀하게 쓰일 운명. 명예와 인정이 따릅니다.",
-    "천액|天厄|시련의 별|굽이를 넘으며 단단해지는 운. 견뎌낸 만큼 크게 빛납니다.",
-    "천권|天權|권세의 별|사람을 이끄는 힘을 타고났습니다. 결단할 때 길이 열립니다.",
-    "천파|天破|개혁의 별|낡은 것을 깨고 새로 세우는 운. 변화가 곧 기회입니다.",
-    "천간|天奸|지략의 별|남다른 기지와 재치의 별. 영민함이 위기를 복으로 바꿉니다.",
-    "천문|天文|학문의 별|배움과 예지의 별. 알수록 길이 넓어지고 귀인이 모입니다.",
-    "천복|天福|복록의 별|풍요와 인덕을 타고난 별. 베풀수록 복이 곱절로 돌아옵니다.",
-    "천역|天驛|역마의 별|움직임 속에 기회가 있는 별. 활동하고 떠날수록 운이 트입니다.",
-    "천고|天孤|수양의 별|홀로 깊어지는 별. 고요함 속에서 큰 그릇이 빚어집니다.",
-    "천인|天刃|강인의 별|굳센 의지와 추진력의 별. 정면으로 부딪쳐 길을 냅니다.",
-    "천예|天藝|재예의 별|손재주와 예술의 별. 표현할수록 사람과 복이 따릅니다.",
-    "천수|天壽|장수의 별|건강과 평안을 타고난 별. 꾸준함이 오래가는 복을 만듭니다."
+    "Heaven's Noble|天貴|Star of Nobility|Born with grace, destined to be honored. Esteem and recognition follow.",
+    "Heaven's Trial|天厄|Star of Hardship|You grow strong through every turn. The more you endure, the brighter you shine.",
+    "Heaven's Power|天權|Star of Authority|Born to lead others. The path opens the moment you decide.",
+    "Heaven's Break|天破|Star of Reform|You break the old and build anew. Change itself is your opportunity.",
+    "Heaven's Cunning|天奸|Star of Strategy|A star of rare wit. Your sharp mind turns crisis into fortune.",
+    "Heaven's Scholar|天文|Star of Learning|A star of study and insight. The more you learn, the wider your path and the more allies gather.",
+    "Heaven's Blessing|天福|Star of Fortune|Born to abundance and goodwill. Give, and blessings return twofold.",
+    "Heaven's Traveler|天驛|Star of Motion|Opportunity lies in movement. The more you go and do, the more your luck opens.",
+    "Heaven's Solitude|天孤|Star of Cultivation|A star that deepens alone. In stillness, a great vessel is shaped.",
+    "Heaven's Blade|天刃|Star of Strength|A star of firm will and drive. You carve your path head-on.",
+    "Heaven's Art|天藝|Star of Talent|A star of craft and art. The more you express, the more people and blessings follow.",
+    "Heaven's Longevity|天壽|Star of Long Life|Born to health and peace. Steadiness builds a fortune that lasts."
   ];
 
   // 띠(지지) 인덱스 0=자(쥐) … 11=해(돼지). (year-4)%12
@@ -225,22 +381,23 @@
     el.fortune.textContent=info.fortune;
     el.balls.innerHTML='';
     numbers.forEach(function(n){var b=document.createElement('div');b.className='ball';b.textContent=n;el.balls.appendChild(b);});var __pl=document.createElement('div');__pl.className='plus';__pl.textContent='+';el.balls.appendChild(__pl);var __pbb=document.createElement('div');__pbb.className='ball power';__pbb.textContent=state.power;el.balls.appendChild(__pbb);
-    el.saveBtn.textContent='나의 번호에 저장'; el.saveBtn.className='save-btn'; el.saveBtn.disabled=false;
+    el.saveBtn.textContent='Save my numbers'; el.saveBtn.className='save-btn'; el.saveBtn.disabled=false;
     el.resultCard.classList.remove('hidden');
 
-    el.roundTxt.textContent = '미국 파워볼 방식';
+    el.roundTxt.textContent = 'US Powerball method';
   }
 
   function loadSaved(){ try{var raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):[];}catch(e){return [];} }
   function saveResult() {
     if(!state.finished)return;
     var saved=loadSaved();
-    if(isDuplicate(saved, state.numbers, state.power, GAME_KEY)){showToast('이미 저장된 번호예요');return;}
+    if(isDuplicate(saved, state.numbers, state.power, GAME_KEY)){showToast('Already saved');return;}
     var entry=makeSavedEntry(state.numbers, state.power, state.nextRound,Date.now(),genId(GAME_KEY));
     saved.push(entry);
     try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(trimSavedByType(saved,MAX_PER_TYPE)));
-      el.saveBtn.textContent='✓ 저장 완료'; el.saveBtn.className='save-btn done'; el.saveBtn.disabled=true; showToast('나의 번호에 저장했어요');
-    }catch(e){showToast('저장 공간이 부족해요');}
+      if(window.wsubSavePowerball) window.wsubSavePowerball(state.numbers, state.power, GAME_KEY);
+      el.saveBtn.textContent='✓ Saved'; el.saveBtn.className='save-btn done'; el.saveBtn.disabled=true; showToast('Saved to your account');
+    }catch(e){showToast('Storage is full');}
   }
 
   function startDangsajuApp() {

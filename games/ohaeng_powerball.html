@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>오행 궁합 로또</title>
+<title>Five Elements Match Powerball</title>
 <style>
   :root { --cyan:#00ffff; --purple:#cc00ff; --gold:#ffd700; --green:#00ff00; --bg:#0a0a1a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -90,38 +90,194 @@
   .plus{color:#ff2d55;font-size:22px;font-weight:bold;align-self:center;text-shadow:0 0 8px #ff2d55;}
   .balls{align-items:center;}
   </style>
+
+<!-- ===== Wsub Powerball Firebase 저장 (자체완결형) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 14px;background:rgba(8,8,16,.92);border-bottom:1px solid rgba(255,255,255,.08);
+    position:sticky;top:0;z-index:9000;font-family:inherit;}
+  #wsubAuthBar .wsub-who{font-size:12.5px;color:#9aa0b4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #wsubAuthBar .wsub-who b{color:#e8a0a0;font-weight:600;}
+  .wsub-authbtn{flex:none;border:1px solid rgba(255,255,255,.18);background:transparent;color:#eef0f7;
+    font:inherit;font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;cursor:pointer;}
+  .wsub-authbtn.primary{background:#d96b6b;color:#1a0505;border-color:#d96b6b;}
+  .wsub-authbtn:active{transform:scale(.97);}
+  #wsubModal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;
+    padding:20px;background:rgba(5,5,10,.76);}
+  #wsubModal.open{display:flex;}
+  .wsub-box{width:100%;max-width:340px;background:#16131a;border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;padding:24px 22px;position:relative;font-family:inherit;color:#eef0f7;}
+  .wsub-box h2{font-size:20px;font-weight:700;margin:0 0 4px;color:#f6dede;}
+  .wsub-box .wsub-sub{font-size:13px;color:#9aa0b4;margin:0 0 18px;}
+  .wsub-field{margin-bottom:12px;}
+  .wsub-field input{width:100%;box-sizing:border-box;background:#0d0b12;border:1px solid rgba(255,255,255,.08);
+    border-radius:10px;padding:12px 13px;color:#eef0f7;font:inherit;font-size:15px;}
+  .wsub-field input:focus{outline:none;border-color:#c66;}
+  .wsub-err{color:#ff9a9a;font-size:12.5px;min-height:17px;margin:2px 2px 10px;}
+  .wsub-submit{width:100%;background:#d96b6b;color:#1a0505;border:none;font:inherit;font-weight:700;
+    font-size:15px;padding:13px;border-radius:11px;cursor:pointer;}
+  .wsub-submit:active{transform:scale(.99);}
+  .wsub-toggle{text-align:center;margin-top:14px;font-size:13px;color:#9aa0b4;}
+  .wsub-toggle button{background:none;border:none;color:#e8a0a0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0 2px;}
+  .wsub-close{position:absolute;top:16px;right:18px;background:none;border:none;color:#9aa0b4;font-size:24px;cursor:pointer;line-height:1;}
+  #wsubToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+    background:#1d1622;color:#f6dede;border:1px solid rgba(217,107,107,.4);padding:11px 20px;border-radius:999px;
+    font-family:inherit;font-size:13.5px;font-weight:600;z-index:9600;opacity:0;pointer-events:none;
+    transition:opacity .25s,transform .25s;}
+  #wsubToast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
 </head>
 <body>
+<div id="wsubAuthBar">
+  <div class="wsub-who" id="wsubWho">Log in to save numbers to your account</div>
+  <button class="wsub-authbtn primary" id="wsubAuthBtn" onclick="wsubOpenModal()">Log in</button>
+</div>
+<div id="wsubModal">
+  <div class="wsub-box">
+    <button class="wsub-close" onclick="wsubCloseModal()">&times;</button>
+    <h2 id="wsubModalTitle">Log in</h2>
+    <p class="wsub-sub" id="wsubModalSub">Sign in with your email and password</p>
+    <div class="wsub-field"><input type="email" id="wsubEmail" placeholder="Email" autocomplete="email" /></div>
+    <div class="wsub-field"><input type="password" id="wsubPw" placeholder="Password (6+ characters)" autocomplete="current-password" /></div>
+    <div class="wsub-err" id="wsubErr"></div>
+    <button class="wsub-submit" id="wsubSubmit" onclick="wsubSubmit()">Log in</button>
+    <div class="wsub-toggle" id="wsubToggle">No account yet? <button onclick="wsubToggleMode()">Sign up</button></div>
+  </div>
+</div>
+<div id="wsubToast"></div>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyBme5XW9mHy87Y-dwjQzY0DCuC7k2478aw",
+    authDomain: "powerball-prediction-3a2ab.firebaseapp.com",
+    databaseURL: "https://powerball-prediction-3a2ab-default-rtdb.firebaseio.com",
+    projectId: "powerball-prediction-3a2ab",
+    storageBucket: "powerball-prediction-3a2ab.firebasestorage.app",
+    messagingSenderId: "35475647063",
+    appId: "1:35475647063:web:e3c185b495da1175a25112"
+  };
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var wsubAuth = firebase.auth();
+  var wsubDb = firebase.database();
+  var wsubMode = "login";
+  var wsubPendingSaveAction = null;
+
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];}); }
+
+  var toastTimer = null;
+  function wsubToast(msg){
+    var t = $("wsubToast"); if(!t) return;
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  }
+
+  window.wsubOpenModal = function(){ $("wsubErr").textContent=""; $("wsubModal").classList.add("open"); };
+  window.wsubCloseModal = function(){ $("wsubModal").classList.remove("open"); };
+  window.wsubToggleMode = function(){
+    wsubMode = (wsubMode==="login") ? "signup" : "login";
+    var s = wsubMode==="signup";
+    $("wsubModalTitle").textContent = s ? "Sign up" : "Log in";
+    $("wsubModalSub").textContent = s ? "Create an account with email and password" : "Sign in with your email and password";
+    $("wsubSubmit").textContent = s ? "Sign up" : "Log in";
+    $("wsubToggle").innerHTML = s
+      ? 'Already have an account? <button onclick="wsubToggleMode()">Log in</button>'
+      : 'No account yet? <button onclick="wsubToggleMode()">Sign up</button>';
+    $("wsubErr").textContent = "";
+  };
+  function authErr(e){
+    var c = (e && e.code) || "";
+    if (c==="auth/invalid-email") return "That email address is invalid.";
+    if (c==="auth/missing-password" || c==="auth/weak-password") return "Password must be at least 6 characters.";
+    if (c==="auth/email-already-in-use") return "This email is already registered. Please log in.";
+    if (c==="auth/invalid-credential" || c==="auth/wrong-password" || c==="auth/user-not-found") return "Email or password is incorrect.";
+    if (c==="auth/too-many-requests") return "Too many attempts. Please try again later.";
+    return "Something went wrong. Please try again.";
+  }
+  window.wsubSubmit = function(){
+    var email = $("wsubEmail").value.trim(), pw = $("wsubPw").value, err = $("wsubErr");
+    err.textContent = "";
+    if (!email || !pw){ err.textContent = "Please enter your email and password."; return; }
+    var p = (wsubMode==="signup")
+      ? wsubAuth.createUserWithEmailAndPassword(email, pw)
+      : wsubAuth.signInWithEmailAndPassword(email, pw);
+    p.catch(function(e){ err.textContent = authErr(e); });
+  };
+  window.wsubLogout = function(){ wsubAuth.signOut(); };
+
+  wsubAuth.onAuthStateChanged(function(user){
+    var who = $("wsubWho"), btn = $("wsubAuthBtn");
+    if (user){
+      who.innerHTML = '<b>' + esc(user.email || "Logged in") + '</b>';
+      btn.textContent = "Log out"; btn.classList.remove("primary"); btn.onclick = window.wsubLogout;
+      wsubCloseModal();
+      if (typeof wsubPendingSaveAction === "function"){ var a = wsubPendingSaveAction; wsubPendingSaveAction = null; a(); }
+    } else {
+      who.textContent = "Log in to save numbers to your account";
+      btn.textContent = "Log in"; btn.classList.add("primary"); btn.onclick = window.wsubOpenModal;
+    }
+  });
+
+  // 저장: white = 화이트볼 배열(5개), powerball = 파워볼 숫자, game = 게임키.
+  // 미로그인 시 모달 → 로그인 후 자동 저장.
+  window.wsubSavePowerball = function(white, powerball, game){
+    if (!wsubAuth.currentUser){
+      wsubPendingSaveAction = function(){ window.wsubSavePowerball(white, powerball, game); };
+      wsubOpenModal();
+      return;
+    }
+    var uid = wsubAuth.currentUser.uid;
+    var ref = wsubDb.ref("wsub_saved/" + uid).push();
+    ref.set({
+      white: (white || []).slice().map(String).join(","),
+      powerball: powerball,
+      game: game,
+      savedAt: Date.now()
+    })
+      .then(function(){ wsubToast("Saved to your account"); })
+      .catch(function(e){ console.error(e); wsubToast("Save failed. Try again."); });
+  };
+  window.wsubIsLoggedIn = function(){ return !!wsubAuth.currentUser; };
+
+  var modalEl = $("wsubModal");
+  if (modalEl) modalEl.addEventListener("click", function(e){ if (e.target === this) wsubCloseModal(); });
+})();
+</script>
+
   <div class="wrap">
     <header>
       <div class="eyebrow">Five Elements · Compatibility</div>
-      <h1>💑 오행 궁합 로또</h1>
-      <div class="sub">두 사람의 오행 궁합으로 행운 번호를 얻습니다</div>
+      <h1>💑 Five Elements Match Powerball</h1>
+      <div class="sub">Get lucky numbers from two people's Five Elements compatibility</div>
     </header>
 
     <div class="card">
-      <div class="label">두 사람 생년월일</div>
+      <div class="label">Both birth dates</div>
       <div class="person">
-        <div class="pname">🧑 첫 번째 사람</div>
+        <div class="pname">🧑 Person 1</div>
         <div class="date-row">
-          <div class="fld"><small>년</small><select id="ohY1"></select></div>
-          <div class="fld"><small>월</small><select id="ohM1"></select></div>
-          <div class="fld d3"><small>일</small><select id="ohD1"></select></div>
+          <div class="fld"><small>Year</small><select id="ohY1"></select></div>
+          <div class="fld"><small>Month</small><select id="ohM1"></select></div>
+          <div class="fld d3"><small>Day</small><select id="ohD1"></select></div>
         </div>
       </div>
       <div class="person">
-        <div class="pname">🧑 두 번째 사람</div>
+        <div class="pname">🧑 Person 2</div>
         <div class="date-row">
-          <div class="fld"><small>년</small><select id="ohY2"></select></div>
-          <div class="fld"><small>월</small><select id="ohM2"></select></div>
-          <div class="fld d3"><small>일</small><select id="ohD2"></select></div>
+          <div class="fld"><small>Year</small><select id="ohY2"></select></div>
+          <div class="fld"><small>Month</small><select id="ohM2"></select></div>
+          <div class="fld d3"><small>Day</small><select id="ohD2"></select></div>
         </div>
       </div>
-      <button class="run-btn" id="ohRunBtn">궁합 보기</button>
+      <button class="run-btn" id="ohRunBtn">Check Match</button>
     </div>
 
     <div class="card hidden" id="ohResultCard">
-      <div class="label">오행 궁합 결과</div>
+      <div class="label">Match Result</div>
       <div class="elems">
         <div class="elem"><div class="badge" id="ohBadge1">?</div><div class="enm" id="ohName1">-</div></div>
         <div class="vs">❤</div>
@@ -129,13 +285,13 @@
       </div>
       <div class="rel" id="ohRel">-</div>
       <div class="gauge"><div class="gauge-fill" id="ohGauge"></div></div>
-      <div class="score-txt"><span id="ohScore">0</span>점</div>
+      <div class="score-txt"><span id="ohScore">0</span> pts</div>
       <div class="comment" id="ohComment">-</div>
 
-      <div class="label" style="margin-top:16px;">행운 번호</div>
+      <div class="label" style="margin-top:16px;">Lucky Numbers</div>
       <div class="balls" id="ohBalls"></div>
-      <div class="meta"><b id="ohRoundTxt">-</b> · 오행 조합 추출</div>
-      <button class="save-btn" id="ohSaveBtn">나의 번호에 저장</button>
+      <div class="meta"><b id="ohRoundTxt">-</b> · Drawn from the elements</div>
+      <button class="save-btn" id="ohSaveBtn">Save my numbers</button>
     </div>
   </div>
   <div class="toast" id="ohToast"></div>
@@ -154,11 +310,11 @@
 
   // 오행 인덱스: 0木 1火 2土 3金 4水
   var ELEMENTS = [
-    { idx:0, ko:'목(木)', emoji:'🌳', color:'#00ff00' },
-    { idx:1, ko:'화(火)', emoji:'🔥', color:'#ff5555' },
-    { idx:2, ko:'토(土)', emoji:'⛰️', color:'#ffd700' },
-    { idx:3, ko:'금(金)', emoji:'⚙️', color:'#00ffff' },
-    { idx:4, ko:'수(水)', emoji:'💧', color:'#5599ff' }
+    { idx:0, ko:'Wood (木)', emoji:'🌳', color:'#00ff00' },
+    { idx:1, ko:'Fire (火)', emoji:'🔥', color:'#ff5555' },
+    { idx:2, ko:'Earth (土)', emoji:'⛰️', color:'#ffd700' },
+    { idx:3, ko:'Metal (金)', emoji:'⚙️', color:'#00ffff' },
+    { idx:4, ko:'Water (水)', emoji:'💧', color:'#5599ff' }
   ];
 
   // 출생연도 끝자리 → 오행. 0,1=금 2,3=수 4,5=목 6,7=화 8,9=토
@@ -197,16 +353,16 @@
     return { score: s, rel: rel };
   }
   function relationLabel(rel) {
-    if (rel === 'sheng') return '상생(相生) — 서로 북돋는 사이';
-    if (rel === 'same')  return '동기(同氣) — 닮아서 통하는 사이';
-    if (rel === 'ke')    return '상극(相剋) — 부딪치며 배우는 사이';
-    return '평(平) — 무난한 사이';
+    if (rel === 'sheng') return 'Generating (相生) — mutually nurturing';
+    if (rel === 'same')  return 'Same Qi (同氣) — alike and in tune';
+    if (rel === 'ke')    return 'Overcoming (相剋) — clashing yet learning';
+    return 'Neutral (平) — an easy match';
   }
   function comment(score) {
-    if (score >= 85) return '하늘이 맺어준 인연이에요. 함께라면 기운이 배가됩니다.';
-    if (score >= 70) return '서로를 채워주는 좋은 조합이에요. 신뢰가 복을 부릅니다.';
-    if (score >= 55) return '무난하게 어울려요. 작은 배려가 관계를 빛나게 합니다.';
-    return '부딪힘이 있지만 그만큼 성장하는 사이예요. 인내가 행운을 부릅니다.';
+    if (score >= 85) return 'A match made in heaven. Together, your energy doubles.';
+    if (score >= 70) return 'A great pairing that completes each other. Trust draws blessings.';
+    if (score >= 55) return 'An easy fit. Small kindnesses make the bond shine.';
+    return 'There's friction, but you grow through it. Patience brings luck.';
   }
 
   function makeRng(seed) {
@@ -305,7 +461,7 @@
     el.comment.textContent = comment(res.score);
     el.balls.innerHTML='';
     numbers.forEach(function(n){var b=document.createElement('div');b.className='ball';b.textContent=n;el.balls.appendChild(b);});var __pl=document.createElement('div');__pl.className='plus';__pl.textContent='+';el.balls.appendChild(__pl);var __pbb=document.createElement('div');__pbb.className='ball power';__pbb.textContent=state.power;el.balls.appendChild(__pbb);
-    el.saveBtn.textContent='나의 번호에 저장'; el.saveBtn.className='save-btn'; el.saveBtn.disabled=false;
+    el.saveBtn.textContent='Save my numbers'; el.saveBtn.className='save-btn'; el.saveBtn.disabled=false;
     el.resultCard.classList.remove('hidden');
 
     // 게이지/숫자 카운트업 애니메이션
@@ -315,19 +471,20 @@
       el.score.textContent = Math.round(target*p); if(p<1)requestAnimationFrame(count); }
     requestAnimationFrame(count);
 
-    el.roundTxt.textContent = '미국 파워볼 방식';
+    el.roundTxt.textContent = 'US Powerball method';
   }
 
   function loadSaved(){ try{var raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):[];}catch(e){return [];} }
   function saveResult() {
     if(!state.finished)return;
     var saved=loadSaved();
-    if(isDuplicate(saved, state.numbers, state.power, GAME_KEY)){showToast('이미 저장된 번호예요');return;}
+    if(isDuplicate(saved, state.numbers, state.power, GAME_KEY)){showToast('Already saved');return;}
     var entry=makeSavedEntry(state.numbers, state.power, state.nextRound,Date.now(),genId(GAME_KEY));
     saved.push(entry);
     try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(trimSavedByType(saved,MAX_PER_TYPE)));
-      el.saveBtn.textContent='✓ 저장 완료'; el.saveBtn.className='save-btn done'; el.saveBtn.disabled=true; showToast('나의 번호에 저장했어요');
-    }catch(e){showToast('저장 공간이 부족해요');}
+      if(window.wsubSavePowerball) window.wsubSavePowerball(state.numbers, state.power, GAME_KEY);
+      el.saveBtn.textContent='✓ Saved'; el.saveBtn.className='save-btn done'; el.saveBtn.disabled=true; showToast('Saved to your account');
+    }catch(e){showToast('Storage is full');}
   }
 
   function startOhaengApp() {
