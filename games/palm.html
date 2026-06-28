@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>스스로 찾는 내 손금</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{
+    --bg:#12100d;--bg2:#1c1813;--bg3:#272118;
+    --gold:#c9a96e;--gold2:#e6cd95;--goldDim:#8a7448;
+    --line:#3a3228;--text:#ece3d2;--text2:#9d9276;
+    --emotion:#d96b6b;--brain:#5b9bd5;
+  }
+  body{background:#0a0908;color:var(--text);font-family:'Noto Sans KR',sans-serif;min-height:100vh;overflow-x:hidden;}
+  /* PC에서도 모바일 앱처럼 보이도록 중앙 폭 고정 */
+  #app-shell{max-width:460px;margin:0 auto;min-height:100vh;position:relative;background:var(--bg);box-shadow:0 0 60px rgba(0,0,0,.6);}
+  .serif{font-family:'Gowun Batang',serif;}
+  #loading{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:300;color:var(--gold);font-family:'Gowun Batang',serif;letter-spacing:3px;font-size:18px;}
+  .load-data-btn{display:inline-block;background:linear-gradient(135deg,var(--gold),var(--goldDim));color:#1a1510;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;padding:14px 28px;border-radius:30px;cursor:pointer;border:none;transition:.2s;}
+  .load-data-btn:active{transform:scale(.97);}
+
+  /* 메인 */
+  #screen-main{min-height:100vh;display:none;flex-direction:column;align-items:center;padding:40px 24px 60px;position:relative;
+    background:radial-gradient(ellipse at 50% 20%,#221c14 0%,#12100d 60%);}
+  .brand{font-family:'Gowun Batang',serif;font-size:12px;letter-spacing:8px;color:var(--goldDim);margin-bottom:8px;margin-top:20px;}
+  .main-title{font-family:'Gowun Batang',serif;font-size:34px;font-weight:700;color:var(--gold2);letter-spacing:7px;text-align:center;margin-bottom:6px;}
+  .main-sub{font-size:12px;color:var(--text2);letter-spacing:2px;margin-bottom:36px;}
+  /* 메인 화면 - 저장한 손금 바로가기 버튼 */
+  .saved-shortcut{width:100%;display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#2a2316,#1f1a12);border:1px solid var(--gold);border-radius:14px;padding:14px 18px;margin-bottom:28px;cursor:pointer;transition:.2s;}
+  .saved-shortcut:active{transform:scale(.98);}
+  .saved-shortcut .ss-icon{font-size:20px;}
+  .saved-shortcut .ss-text{flex:1;text-align:left;}
+  .saved-shortcut .ss-title{font-family:'Gowun Batang',serif;font-size:14px;font-weight:700;color:var(--gold2);}
+  .saved-shortcut .ss-desc{font-size:11px;color:var(--text2);margin-top:2px;}
+  .saved-shortcut .ss-count{background:var(--gold);color:#1a1510;font-size:12px;font-weight:700;border-radius:12px;padding:2px 10px;flex-shrink:0;}
+  .saved-shortcut .ss-arrow{color:var(--gold2);font-size:18px;flex-shrink:0;}
+  .pick-label{font-family:'Gowun Batang',serif;font-size:28px;font-weight:700;margin:6px 0 20px;letter-spacing:1px;align-self:center;width:100%;text-align:center;background:linear-gradient(95deg,#e8c07d 0%,#fff3d6 28%,#d4a85e 52%,#fff3d6 76%,#e8c07d 100%);background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:shimmer 3.2s linear infinite;text-shadow:0 2px 12px rgba(201,169,110,.25);}
+  @keyframes shimmer{to{background-position:200% center;}}
+  .line-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;}
+  .line-card{background:linear-gradient(160deg,var(--bg2),var(--bg3));border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;transition:.25s;display:flex;flex-direction:column;}
+  .line-card:active{transform:scale(.98);border-color:var(--gold);}
+  .lc-preview{padding:14px 14px 8px;}
+  .lc-preview canvas{width:100%;aspect-ratio:648/900;display:block;border-radius:10px;background:#e8e2d6;border:1px solid var(--line);}
+  .lc-head{padding:6px 14px 16px;display:flex;align-items:center;gap:10px;}
+  .lc-dot{width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;border:1.5px solid;font-family:'Gowun Batang',serif;font-size:16px;}
+  .lc-info{min-width:0;}
+  .lc-name{font-family:'Gowun Batang',serif;font-size:24px;font-weight:800;line-height:1.25;letter-spacing:.5px;background:linear-gradient(100deg,#ff9a9a 0%,#ffd27a 18%,#b9f08a 36%,#8ad7ff 54%,#c9a2ff 72%,#ff9ad5 90%,#ff9a9a 100%);background-size:220% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:nameGlow 3.4s linear infinite;filter:drop-shadow(0 0 5px rgba(255,180,120,.55)) drop-shadow(0 0 11px rgba(150,200,255,.35));}
+  .lc-desc{font-size:10px;color:var(--text2);margin-top:3px;line-height:1.3;}
+  @keyframes nameGlow{0%{background-position:150% center;}100%{background-position:-50% center;}}
+
+  /* 기타선 컴팩트 셀: 재운선 옆 한 칸에 2개를 위아래 반반으로 */
+  .misc-cell{display:flex;flex-direction:column;gap:12px;}
+  .misc-card{flex:1;background:linear-gradient(160deg,var(--bg2),var(--bg3));border:1px solid var(--line);border-radius:16px;cursor:pointer;transition:.25s;display:flex;align-items:center;gap:10px;padding:12px 14px;min-height:0;}
+  .misc-card:active{transform:scale(.98);border-color:var(--gold);}
+  .misc-card .lc-dot{width:30px;height:30px;font-size:14px;}
+  .mc-name{font-family:'Gowun Batang',serif;font-size:22px;font-weight:800;line-height:1.25;letter-spacing:.5px;background:linear-gradient(100deg,#ff9a9a 0%,#ffd27a 18%,#b9f08a 36%,#8ad7ff 54%,#c9a2ff 72%,#ff9ad5 90%,#ff9a9a 100%);background-size:220% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:nameGlow 3.4s linear infinite;filter:drop-shadow(0 0 5px rgba(255,180,120,.55)) drop-shadow(0 0 11px rgba(150,200,255,.35));}
+  .mc-desc{font-size:9.5px;color:var(--text2);margin-top:2px;line-height:1.3;}
+
+  /* 탐색 */
+  #screen-explore{min-height:100vh;display:none;flex-direction:column;padding-bottom:90px;}
+  .ex-header{background:rgba(28,24,19,.97);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:30;}
+  .back-btn{background:none;border:none;color:var(--gold);font-size:26px;cursor:pointer;line-height:1;padding:0 4px 2px 0;}
+  .ex-title{font-family:'Gowun Batang',serif;font-size:18px;font-weight:700;color:var(--gold2);}
+  .ex-step{margin-left:auto;font-size:11px;color:var(--text2);background:var(--bg3);padding:4px 10px;border-radius:20px;}
+  .ex-progress{position:sticky;top:0;z-index:31;height:3px;background:transparent;margin-top:-3px;}
+  .ex-progress-fill{height:100%;width:0;background:linear-gradient(90deg,var(--goldDim),var(--gold2));transition:width .4s cubic-bezier(.2,.8,.2,1);border-radius:0 2px 2px 0;}
+
+  .ex-body{flex:1;padding:26px 16px 22px;}
+  .question{font-family:'Gowun Batang',serif;font-size:21px;font-weight:700;color:var(--gold2);text-align:center;margin-bottom:6px;line-height:1.4;animation:fade .4s ease;}
+  .q-hint{font-size:12px;color:var(--text2);text-align:center;margin-bottom:10px;animation:fade .4s ease;}
+  .q-emph{font-size:13.5px;color:var(--gold2);text-align:center;margin-bottom:22px;animation:fade .4s ease;background:rgba(201,169,110,.1);border:1px solid var(--goldDim);border-radius:22px;padding:9px 14px;display:inline-block;width:auto;margin-left:auto;margin-right:auto;}
+  .q-emph b{color:var(--gold2);font-weight:700;}
+  .ex-body .q-emph{display:block;max-width:300px;margin-left:auto;margin-right:auto;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+  .choice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px;}
+  .choice{background:var(--bg2);border:1px solid var(--line);border-radius:14px;overflow:hidden;cursor:pointer;transition:.2s;animation:rise .35s ease forwards;opacity:0;}
+  @keyframes rise{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+  .choice:active{transform:scale(.97);}
+  .choice.selected{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold),0 6px 18px rgba(201,169,110,.25);transform:translateY(-2px);}
+  .choice canvas{width:100%;aspect-ratio:648/900;display:block;background:#e8e2d6;}
+  .choice-name{padding:10px 11px 12px;font-size:17px;color:var(--text);line-height:1.35;border-top:1px solid var(--line);height:92px;position:relative;transition:.2s;font-weight:700;display:flex;flex-direction:column;justify-content:center;overflow:hidden;text-shadow:0 1px 3px rgba(0,0,0,.55);letter-spacing:.2px;}
+  .choice-name .cn-text{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;background:linear-gradient(100deg,var(--text) 0%,var(--text) 40%,#fff6df 50%,var(--gold2) 56%,var(--text) 66%,var(--text) 100%);background-size:250% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;animation:nameGlow 3.4s linear infinite;}
+  .choice.selected .choice-name .cn-text{background:none;-webkit-text-fill-color:var(--gold2);color:var(--gold2);animation:none;}
+  .choice-special{margin-top:5px;}
+  .choice.selected .choice-name{background:rgba(201,169,110,.14);color:var(--gold2);font-weight:700;border-top-color:var(--gold);}
+  .choice-check{position:absolute;top:-30px;right:8px;width:28px;height:28px;border-radius:50%;background:var(--gold);color:#1a1510;display:none;align-items:center;justify-content:center;font-size:16px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.4);}
+  .choice.selected .choice-check{display:flex;animation:pop .25s ease;}
+  @keyframes pop{0%{transform:scale(0);}60%{transform:scale(1.2);}100%{transform:scale(1);}}
+
+  .nav-row{display:flex;gap:10px;margin-top:8px;}
+  .nav-row.nav-top{margin-top:0;margin-bottom:18px;}
+  .nav-btn{flex:1;border-radius:14px;padding:16px;cursor:pointer;font-family:'Gowun Batang',serif;font-size:15px;transition:.2s;border:1px solid var(--line);background:var(--bg2);color:var(--text2);}
+  .nav-btn.primary{background:linear-gradient(135deg,var(--goldDim),var(--gold));color:#1a1510;border-color:var(--gold);font-weight:700;}
+  .nav-btn:active{transform:scale(.98);}
+
+  /* 앱인토스 하단 배너 광고 */
+  #ad-banner{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:460px;height:96px;z-index:60;background:var(--bg);}
+  /* 배너 켜졌을 때: 본문 맨 아래 버튼이 배너에 안 가리게 넉넉한 여백 */
+  body.ad-on #screen-explore{padding-bottom:140px !important;}
+  body.ad-on #screen-main{padding-bottom:120px;}
+  .picked{display:flex;gap:13px;padding:14px 0;border-bottom:1px solid var(--line);animation:fade .3s ease;}
+  .picked canvas{width:64px;aspect-ratio:648/900;border-radius:8px;background:#e8e2d6;flex-shrink:0;cursor:pointer;}
+  .picked-info{flex:1;min-width:0;}
+  .picked-q{font-size:10px;color:var(--goldDim);margin-bottom:2px;}
+  .picked-name{font-family:'Gowun Batang',serif;font-size:13.5px;font-weight:700;color:var(--gold2);margin-bottom:4px;}
+  .picked-text{font-size:11.5px;color:var(--text2);line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .picked-del{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0;}
+
+  /* 팝업 */
+  #popup{display:none;position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;z-index:200;background:rgba(0,0,0,.82);align-items:flex-end;justify-content:center;}
+  #popup.open{display:flex;}
+  .sheet{background:var(--bg2);border-radius:24px 24px 0 0;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:20px 22px 32px;animation:slideUp .32s cubic-bezier(.2,.8,.2,1);border-top:1px solid var(--line);}
+  @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .p-handle{width:42px;height:4px;background:var(--line);border-radius:2px;margin:0 auto 18px;}
+  .p-canvas-wrap{width:100%;max-width:200px;margin:0 auto 16px;border-radius:14px;overflow:hidden;border:1px solid var(--line);}
+  .p-canvas{width:100%;aspect-ratio:648/900;display:block;background:#e8e2d6;}
+  .p-name{font-family:'Gowun Batang',serif;font-size:18px;font-weight:700;color:var(--gold2);text-align:center;line-height:1.4;}
+  .p-src{font-size:11px;color:var(--text2);text-align:center;margin-top:4px;margin-bottom:14px;}
+  .p-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;}
+  .tag{background:var(--bg3);border:1px solid var(--line);border-radius:20px;padding:4px 11px;font-size:11px;color:var(--text2);}
+  .p-text{font-size:13.5px;line-height:1.85;color:var(--text);background:var(--bg3);border-radius:12px;padding:15px 16px;margin-bottom:10px;}
+  .p-text.sub{border-left:2px solid var(--gold);}
+
+  .summary-box{background:linear-gradient(135deg,#2a2316,#1f1a12);border:1px solid var(--gold);border-radius:16px;padding:20px;margin:6px 0 16px;animation:fade .5s ease;}
+  .summary-title{font-family:'Gowun Batang',serif;font-size:15px;font-weight:700;color:var(--gold2);margin-bottom:12px;letter-spacing:1px;}
+  .summary-text{font-size:15px;line-height:1.9;color:var(--text);margin-bottom:14px;}
+  .summary-keywords{display:flex;flex-wrap:wrap;gap:7px;}
+  .kw{background:rgba(201,169,110,.15);border:1px solid var(--goldDim);color:var(--gold2);border-radius:20px;padding:5px 12px;font-size:12px;}
+
+  #topbar{position:sticky;top:0;z-index:40;background:rgba(18,16,13,.97);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .tb-logo{font-size:15px;font-weight:700;color:var(--gold2);letter-spacing:2px;}
+  .tb-menu{background:none;border:none;color:var(--gold);font-size:22px;cursor:pointer;line-height:1;}
+  #menu-overlay{display:none;position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;z-index:150;background:rgba(0,0,0,.6);}
+  #menu-overlay.open{display:block;}
+  .menu-panel{position:absolute;top:52px;right:14px;background:var(--bg2);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:180px;box-shadow:0 8px 30px rgba(0,0,0,.5);animation:fade .2s ease;}
+  .menu-item{padding:15px 18px;font-size:14px;color:var(--text);cursor:pointer;border-bottom:1px solid var(--line);transition:.15s;}
+  .menu-item:last-child{border-bottom:none;}
+  .menu-item:active{background:var(--bg3);}
+  .result-hand{background:var(--bg2);border:1px solid var(--gold);border-radius:16px;padding:18px;margin-bottom:16px;text-align:center;animation:fade .5s ease;}
+  .result-hand canvas{width:200px;aspect-ratio:648/900;background:#e8e2d6;border-radius:12px;border:1px solid var(--line);}
+  .result-hand-label{font-family:'Gowun Batang',serif;font-size:13px;color:var(--gold2);margin-top:10px;letter-spacing:1px;}
+  /* 결과 카드 */
+  .result-card{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;animation:fade .4s ease;}
+  .rc-head{display:flex;gap:12px;align-items:flex-start;}
+  .rc-thumb{width:64px;flex-shrink:0;aspect-ratio:648/900;background:#e8e2d6;border-radius:9px;border:1px solid var(--line);}
+  .rc-headtext{flex:1;min-width:0;padding-top:2px;}
+  .rc-q{font-size:10.5px;color:var(--goldDim);letter-spacing:.5px;margin-bottom:3px;}
+  .rc-name{font-size:15.5px;font-weight:700;color:var(--gold2);line-height:1.35;}
+  .rc-sub{font-size:12.5px;color:var(--text);margin-top:5px;line-height:1.5;opacity:.92;}
+  .rc-body{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+  .rc-body p{font-size:13px;line-height:1.85;color:var(--text);margin-bottom:8px;}
+  .rc-body p:last-child{margin-bottom:0;}
+  /* 조심할 것 / 행동 방향 칸 */
+  .rc-extra{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+  .rc-note{font-size:12.5px;line-height:1.7;border-radius:10px;padding:9px 12px;}
+  .rc-note .rc-note-label{display:block;font-size:11px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
+  .rc-caution{background:rgba(176,106,90,.12);border-left:2px solid #b06a5a;color:var(--text);}
+  .rc-caution .rc-note-label{color:#d59585;}
+  .rc-advice{background:rgba(212,175,90,.12);border-left:2px solid var(--gold);color:var(--text);}
+  .rc-advice .rc-note-label{color:var(--gold2);}
+  /* 게이지바 */
+  .gauge-box{background:linear-gradient(135deg,#2a2316,#1f1a12);border:1px solid var(--gold);border-radius:16px;padding:18px 20px;margin:6px 0 16px;animation:fade .5s ease;}
+  .gauge-title{font-family:'Gowun Batang',serif;font-size:15px;font-weight:700;color:var(--gold2);margin-bottom:14px;letter-spacing:1px;}
+  .gauge-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+  .gauge-label{font-size:12px;color:var(--text);width:62px;flex-shrink:0;}
+  .gauge-track{flex:1;height:8px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden;}
+  .gauge-fill{height:100%;border-radius:5px;transition:width .6s ease;}
+  .gauge-val{font-size:12px;font-weight:700;width:28px;text-align:right;flex-shrink:0;}
+  .gauge-val.pos{color:var(--gold2);}
+  .gauge-val.neg{color:#d59585;}
+  .gauge-hint{font-size:11px;color:var(--text2);margin-top:10px;text-align:center;opacity:.8;}
+  /* 특별 게이지 (빨간 강조 + 별 누적) */
+  .special-box{background:linear-gradient(135deg,#2a1614,#1f1210);border:1px solid #c0584a;border-radius:16px;padding:16px 18px;margin:6px 0 16px;animation:fade .5s ease;box-shadow:0 0 12px rgba(192,88,74,.18);}
+  .special-title{font-family:'Gowun Batang',serif;font-size:15px;font-weight:700;color:#ff8a76;margin-bottom:12px;letter-spacing:1px;}
+  .special-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;}
+  .special-name{font-size:13px;color:#ffd9d0;flex-shrink:0;font-weight:700;}
+  .special-stars{display:flex;gap:2px;flex:1;flex-wrap:wrap;}
+  .special-star{color:#ff5a44;font-size:16px;text-shadow:0 0 6px rgba(255,90,68,.6);line-height:1;}
+  .special-cnt{font-size:12px;font-weight:700;color:#ff8a76;flex-shrink:0;}
+  .special-hint{font-size:11px;color:#d8a59c;margin-top:8px;text-align:center;opacity:.85;}
+  /* choice 카드 안 빨간 배지 */
+  .choice-special{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;}
+  .csp-badge{font-size:9.5px;background:#2a1210;border:1px solid #c0584a;color:#ff8a76;border-radius:4px;padding:1px 5px;font-weight:700;}
+  /* 결과 카드 안 빨간 배지 */
+  .rc-special{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+  .rcsp-badge{font-size:10.5px;background:#2a1210;border:1px solid #c0584a;color:#ff8a76;border-radius:5px;padding:2px 7px;font-weight:700;}
+  .save-btn{background:var(--bg3)!important;border-color:var(--gold)!important;color:var(--gold2)!important;}
+  .close-btn{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:12px;padding:15px;color:var(--text2);font-size:14px;cursor:pointer;margin-top:6px;font-family:'Noto Sans KR';}
+  /* MBTI 성정 박스 (청록 강조) */
+  .mbti-box{background:linear-gradient(135deg,#10221f,#0d1a1c);border:1px solid #3b8a86;border-radius:16px;padding:16px 18px;margin:6px 0 16px;box-shadow:0 0 12px rgba(59,138,134,.16);animation:fade .5s ease;}
+  .mbti-title{font-family:'Gowun Batang',serif;font-size:15px;font-weight:700;color:#7fe3da;margin-bottom:10px;letter-spacing:1px;}
+  .mbti-type{font-family:'Gowun Batang',serif;font-size:26px;font-weight:700;color:#aef3ea;letter-spacing:6px;text-align:center;margin:2px 0 12px;text-shadow:0 0 10px rgba(127,227,218,.4);}
+  .mbti-row{padding:8px 0;border-top:1px solid rgba(127,227,218,.12);}
+  .mbti-row:first-of-type{border-top:none;}
+  .mbti-head{display:flex;align-items:center;gap:8px;margin-bottom:3px;}
+  .mbti-letter{font-family:'Gowun Batang',serif;font-weight:700;color:#0d1a1c;background:#7fe3da;border-radius:6px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+  .mbti-axis{font-size:13px;font-weight:700;color:#cfeee9;flex:1;}
+  .mbti-tally{font-size:11px;color:#8fb8b3;flex-shrink:0;}
+  .mbti-desc{font-size:12px;color:#bcded9;line-height:1.6;padding-left:30px;}
+  .mbti-even{color:#9bbdb8;font-style:italic;padding-left:0;}
+  .mbti-hint{font-size:11px;color:#8fb8b3;margin-top:8px;text-align:center;opacity:.85;}
+  /* ===== 마스코트/할머니 애니메이션 (공유) ===== */
+  @keyframes bk_o{0%,90%,100%{opacity:1}94%,96%{opacity:0}}
+  @keyframes bk_c{0%,90%,100%{opacity:0}94%,96%{opacity:1}}
+  @keyframes nod{0%,70%,100%{transform:translateY(0) rotate(0deg)}80%{transform:translateY(4px) rotate(-2deg)}90%{transform:translateY(4px) rotate(2deg)}}
+  @keyframes mtail{0%,100%{transform:rotate(0deg)}50%{transform:rotate(8deg)}}
+  @keyframes hl_bo{0%,90%,100%{opacity:1}94%,96%{opacity:0}}
+  @keyframes hl_bc{0%,90%,100%{opacity:0}94%,96%{opacity:1}}
+  @keyframes hl_wv{0%,12%,100%{transform:rotate(0deg)}30%{transform:rotate(13deg)}45%{transform:rotate(-5deg)}60%{transform:rotate(10deg)}75%{transform:rotate(-3deg)}88%{transform:rotate(4deg)}}
+  .bk_open{animation:bk_o 4.6s ease-in-out infinite}
+  .bk_closed{animation:bk_c 4.6s ease-in-out infinite}
+  .nod{transform-box:fill-box;transform-origin:50% 80%;animation:nod 3.6s ease-in-out infinite}
+  .tail{transform-box:fill-box;transform-origin:20% 90%;animation:mtail 2.4s ease-in-out infinite}
+  .hl_open{animation:hl_bo 4.6s ease-in-out infinite}
+  .hl_closed{animation:hl_bc 4.6s ease-in-out infinite}
+  .hl_wave{transform-box:fill-box;transform-origin:50% 88%;animation:hl_wv 2.8s ease-in-out infinite}
+  /* MBTI 마스코트 배치 */
+  .mbti-mascot-wrap{display:flex;justify-content:center;gap:10px;margin:2px 0 10px;}
+  .mbti-mascot{width:46%;max-width:190px;}
+  .mbti-mascot.solo{width:62%;max-width:230px;}
+  .mbti-mascot svg{width:100%;height:auto;display:block;}
+  /* 미니 할머니 (제목 옆 등) */
+  .halmoni-mini{width:38px;height:38px;flex-shrink:0;vertical-align:middle;display:inline-block;}
+  .halmoni-mini svg{width:100%;height:100%;display:block;}
+  .summary-title,.mbti-title{display:flex;align-items:center;gap:8px;}
+  .summary-title .halmoni-mini{margin-left:auto;width:76px;height:76px;}
+  .q-head-row{display:flex;align-items:center;gap:10px;}
+  .q-head-row .halmoni-mini{width:171px;height:171px;}
+  .q-head-row .question{font-size:42px;}
+  .main-head{display:flex;align-items:center;gap:14px;justify-content:center;margin-top:24px;margin-bottom:36px;flex-wrap:wrap;}
+  .main-halmoni{width:110px;height:110px;flex-shrink:0;}
+  .main-halmoni svg{width:100%;height:100%;display:block;}
+  .main-head-text{text-align:left;}
+  .main-head-text .brand{margin-top:0;margin-bottom:4px;}
+  .main-head-text .main-title{font-size:27px;letter-spacing:3px;text-align:left;margin-bottom:4px;}
+  .main-head-text .main-sub{margin-bottom:0;}
+</style>
+</head>
+<body>
+<div id="app-shell">
+
+<div id="loading">스스로 찾는 내 손금</div>
+
+<!-- 상단 메뉴바 -->
+<div id="topbar">
+  <div class="tb-logo serif">스스로 찾는 내 손금</div>
+  <button class="tb-menu" onclick="toggleMenu()">☰</button>
+</div>
+<!-- 드롭다운 메뉴 -->
+<div id="menu-overlay" onclick="if(event.target===this)toggleMenu()">
+  <div class="menu-panel">
+    <div class="menu-item" onclick="goMain();toggleMenu();">🏠 홈</div>
+    <div class="menu-item" onclick="showSaved();">📑 저장한 손금</div>
+    <label class="menu-item" style="display:block;">📂 데이터 불러오기
+      <input type="file" accept=".json,application/json" style="display:none" onchange="onPickDataFile(event);toggleMenu();">
+    </label>
+    <div class="menu-item" onclick="showAbout();toggleMenu();">ℹ️ 앱 정보</div>
+  </div>
+</div>
+
+<!-- 메인 -->
+<div id="screen-main">
+  <div class="main-head">
+    <div class="main-halmoni" id="main-halmoni"></div>
+    <div class="main-head-text">
+      <div class="brand">PALMISTRY</div>
+      <div class="main-title">스스로 찾는 내 손금</div>
+      <div class="main-sub">자네 손금을 할머니와 함께 들여다보자</div>
+    </div>
+  </div>
+  <div class="saved-shortcut" id="saved-shortcut" onclick="showSaved()" style="display:none;">
+    <span class="ss-icon">📑</span>
+    <span class="ss-text">
+      <span class="ss-title">저장한 내 손금</span>
+      <span class="ss-desc">풀이를 모아 보고, 합쳐서 볼 수 있단다</span>
+    </span>
+    <span class="ss-count" id="ss-count">0</span>
+    <span class="ss-arrow">›</span>
+  </div>
+  <div class="pick-label">— 어느 손금을 볼지 골라보렴 —</div>
+  <div class="line-list" id="line-list"></div>
+</div>
+
+<!-- 탐색 -->
+<div id="screen-explore">
+  <div class="ex-header">
+    <button class="back-btn" onclick="goMain()">‹</button>
+    <div class="ex-title" id="ex-title"></div>
+    <div class="ex-step" id="ex-step"></div>
+  </div>
+  <div class="ex-progress"><div class="ex-progress-fill" id="ex-progress-fill"></div></div>
+  <div class="ex-body" id="ex-body"></div>
+</div>
+
+<!-- 앱인토스 하단 배너 광고 (TossAds) -->
+<div id="ad-banner"></div>
+
+<!-- 팝업 -->
+<div id="popup" onclick="if(event.target===this)closePopup()">
+  <div class="sheet">
+    <div class="p-handle"></div>
+    <div class="p-canvas-wrap"><canvas class="p-canvas" id="p-canvas" width="324" height="450"></canvas></div>
+    <div class="p-name" id="p-name"></div>
+    <div class="p-src" id="p-src"></div>
+    <div class="p-tags" id="p-tags"></div>
+    <div id="p-texts"></div>
+    <button class="close-btn" onclick="closePopup()">닫기</button>
+  </div>
+</div>
+
+</div><!-- /app-shell -->
+
+<script>
+// ===== MBTI 동물 마스코트 + 미니 할머니 (인라인 SVG) =====
+const HALMONI_MINI = "<svg viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\"><circle cx=\"300\" cy=\"300\" r=\"232\" fill=\"#f6e7c8\"/><circle cx=\"300\" cy=\"300\" r=\"232\" fill=\"none\" stroke=\"#a9763a\" stroke-width=\"6\"/><g transform=\"translate(300,292)\"><path d=\"M -78 92 C -120 70 -126 -20 -96 -74 C -74 -120 -28 -140 6 -136 C 60 -130 96 -92 100 -38 C 104 14 86 66 50 96\" fill=\"#a85d3a\" opacity=\"0.92\"/><path d=\"M -70 30 C -88 -30 -64 -96 -8 -104 C 44 -110 86 -74 88 -22 C 90 18 78 54 56 78 C 30 104 -48 100 -70 30 Z\" fill=\"#f4d9b8\"/><circle cx=\"-30\" cy=\"-6\" r=\"20\" fill=\"none\" stroke=\"#5b3a22\" stroke-width=\"4\"/><circle cx=\"34\" cy=\"-6\" r=\"20\" fill=\"none\" stroke=\"#5b3a22\" stroke-width=\"4\"/><line x1=\"-10\" y1=\"-6\" x2=\"14\" y2=\"-6\" stroke=\"#5b3a22\" stroke-width=\"4\"/><g class=\"hl_open\"><circle cx=\"-30\" cy=\"-6\" r=\"4\" fill=\"#3a2414\"/><circle cx=\"34\" cy=\"-6\" r=\"4\" fill=\"#3a2414\"/></g><g class=\"hl_closed\"><path d=\"M -42 -8 Q -30 4 -18 -8\" fill=\"none\" stroke=\"#3a2414\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M 22 -8 Q 34 4 46 -8\" fill=\"none\" stroke=\"#3a2414\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M -16 30 C -4 40 12 40 22 30\" fill=\"none\" stroke=\"#a85d3a\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M -56 -70 C -30 -86 6 -90 36 -82\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"7\" stroke-linecap=\"round\" opacity=\"0.5\"/><circle cx=\"-48\" cy=\"44\" r=\"9\" fill=\"#e6a07a\" opacity=\"0.6\"/><circle cx=\"48\" cy=\"44\" r=\"9\" fill=\"#e6a07a\" opacity=\"0.6\"/></g><g class=\"hl_wave\"><g transform=\"translate(404,452)\"><path d=\"M -44 30 C -52 12 -50 -14 -44 -38 C -42 -47 -34 -48 -32 -39 L -28 -10 C -27 -4 -22 -4 -22 -11 L -20 -72 C -19 -82 -8 -82 -7 -72 L -5 -14 C -4 -7 1 -7 1 -14 L 4 -80 C 5 -90 16 -90 17 -80 L 19 -14 C 20 -7 25 -7 25 -14 L 29 -70 C 30 -80 41 -79 40 -70 L 38 -10 C 37 -3 42 -3 44 -10 L 51 -46 C 54 -56 65 -52 62 -43 L 54 2 C 50 22 42 38 30 50 L -20 50 C -34 44 -40 42 -44 30 Z\" fill=\"#f4d9b8\" stroke=\"#a9763a\" stroke-width=\"3\" stroke-linejoin=\"round\"/><path d=\"M -34 -2 C -14 -10 14 -8 36 2\" fill=\"none\" stroke=\"#b5472f\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M -34 12 C -10 2 22 6 44 18\" fill=\"none\" stroke=\"#a9763a\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></g></g></svg>";
+const MBTI_MASCOT = {"INTJ": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">INTJ</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">올빼미</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#c9ad82\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#c9ad82\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#c9ad82\"/><polygon points=\"104,128 122,90 138,126\" fill=\"#b99a6a\"/><polygon points=\"196,128 178,90 162,126\" fill=\"#b99a6a\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#b99a6a\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#8f774e\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><g class=\"bk_open\"><circle cx=\"130\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"170\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"132.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/><circle cx=\"172.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M122 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M162 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></g><polygon points=\"138,186 162,186 150,202\" fill=\"#e8a23a\" stroke=\"#c8841f\" stroke-width=\"1.5\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">역시 자네</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">머리를 못 따라가</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">역시 자네</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">머리를 못 따라가</text></g></svg>", "INTP": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">INTP</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">너구리</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#c7c2ba\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#c7c2ba\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#c7c2ba\"/><polygon points=\"96,150 104,96 142,138\" fill=\"#b9b3aa\" stroke=\"#8f8a82\" stroke-width=\"2\"/><polygon points=\"204,150 196,96 158,138\" fill=\"#b9b3aa\" stroke=\"#8f8a82\" stroke-width=\"2\"/><polygon points=\"106,142 112,114 132,138\" fill=\"#f3b6a0\"/><polygon points=\"194,142 188,114 168,138\" fill=\"#f3b6a0\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#b9b3aa\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#8f8a82\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><path d=\"M104 168 q24 -18 46 4 q-8 18 -26 18 q-20 0 -20 -22z\" fill=\"#5b5048\"/><path d=\"M196 168 q-24 -18 -46 4 q8 18 26 18 q20 0 20 -22z\" fill=\"#5b5048\"/><g class=\"bk_open\"><circle cx=\"130\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"170\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"132.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/><circle cx=\"172.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M122 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M162 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M150 193 v5\" stroke=\"#6b4a2e\" stroke-width=\"2\"/><path d=\"M150 198 q-8 6 -14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"M150 198 q8 6 14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 생각은</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">늘 새롭구나</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 생각은</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">늘 새롭구나</text></g></svg>", "ENTJ": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ENTJ</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">사자</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#e8b870\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#e8b870\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#e8b870\"/><circle cx=\"150\" cy=\"172\" r=\"92\" fill=\"#caa24a\"/><circle cx=\"110\" cy=\"128\" r=\"18\" fill=\"#e0a857\"/><circle cx=\"190\" cy=\"128\" r=\"18\" fill=\"#e0a857\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#e0a857\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#b9842f\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><path d=\"M118 134 q32 -16 64 0\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"6\" stroke-linecap=\"round\" opacity=\"0.45\"/><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M132 198 q18 18 36 0\" fill=\"#b5472f\" opacity=\"0.22\"/><path d=\"M132 198 q18 16 36 0\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네는 타고난</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">대장이야</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네는 타고난</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">대장이야</text></g></svg>", "ENTP": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ENTP</text><path d=\"M470 150 l7 22 l22 7 l-22 7 l-7 22 l-7 -22 l-22 -7 l22 -7 z\" fill=\"#f2c14e\"/><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">여우</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><g class=\"tail\"><path d=\"M236 250 q40 -6 30 -54 q-2 -18 -16 -16 q10 6 6 26 q-4 30 -34 30 z\" fill=\"#ef9b54\" stroke=\"#c87a36\" stroke-width=\"2\"/></g><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#f3b074\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#f3b074\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#f3b074\"/><polygon points=\"96,150 104,96 142,138\" fill=\"#ef9b54\" stroke=\"#c87a36\" stroke-width=\"2\"/><polygon points=\"204,150 196,96 158,138\" fill=\"#ef9b54\" stroke=\"#c87a36\" stroke-width=\"2\"/><polygon points=\"106,142 112,114 132,138\" fill=\"#f3b6a0\"/><polygon points=\"194,142 188,114 168,138\" fill=\"#f3b6a0\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#ef9b54\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#c87a36\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><path d=\"M118 134 q32 -16 64 0\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"6\" stroke-linecap=\"round\" opacity=\"0.45\"/><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M132 198 q18 18 36 0\" fill=\"#b5472f\" opacity=\"0.22\"/><path d=\"M132 198 q18 16 36 0\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 말재주를</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">누가 당하나</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 말재주를</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">누가 당하나</text></g></svg>", "INFJ": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">INFJ</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">사슴</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#e0b88c\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#e0b88c\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#e0b88c\"/><path d=\"M118 120 q-18 -46 -40 -40 q16 8 8 42\" fill=\"none\" stroke=\"#9a6b3a\" stroke-width=\"6\" stroke-linecap=\"round\"/><path d=\"M182 120 q18 -46 40 -40 q-16 8 -8 42\" fill=\"none\" stroke=\"#9a6b3a\" stroke-width=\"6\" stroke-linecap=\"round\"/><ellipse cx=\"104\" cy=\"150\" rx=\"18\" ry=\"28\" fill=\"#d8a877\"/><ellipse cx=\"196\" cy=\"150\" rx=\"18\" ry=\"28\" fill=\"#d8a877\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#d8a877\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#ad8254\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><path d=\"M118 134 q32 -16 64 0\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"6\" stroke-linecap=\"round\" opacity=\"0.45\"/><g class=\"bk_open\"><circle cx=\"130\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"170\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"132.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/><circle cx=\"172.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M122 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M162 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M150 193 v5\" stroke=\"#6b4a2e\" stroke-width=\"2\"/><path d=\"M150 198 q-8 6 -14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"M150 198 q8 6 14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네는 마음을</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">잘 헤아리는구나</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네는 마음을</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">잘 헤아리는구나</text></g></svg>", "INFP": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">INFP</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">양</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#fff\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#fff\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#fff\"/><circle cx=\"98\" cy=\"160\" r=\"20\" fill=\"#e6dcc6\"/><circle cx=\"202\" cy=\"160\" r=\"20\" fill=\"#e6dcc6\"/><g fill=\"#f3ead9\"><circle cx=\"108\" cy=\"140\" r=\"26\"/><circle cx=\"192\" cy=\"140\" r=\"26\"/><circle cx=\"92\" cy=\"172\" r=\"26\"/><circle cx=\"208\" cy=\"172\" r=\"26\"/><circle cx=\"112\" cy=\"206\" r=\"26\"/><circle cx=\"188\" cy=\"206\" r=\"26\"/><circle cx=\"150\" cy=\"112\" r=\"26\"/></g><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#f3ead9\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#d8cdb6\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><g class=\"bk_open\"><circle cx=\"130\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"170\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"132.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/><circle cx=\"172.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M122 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M162 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M150 193 v5\" stroke=\"#6b4a2e\" stroke-width=\"2\"/><path d=\"M150 198 q-8 6 -14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"M150 198 q8 6 14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 말은 어찌</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">그리 예쁘냐</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 말은 어찌</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">그리 예쁘냐</text></g></svg>", "ENFJ": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ENFJ</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">강아지</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#eec98f\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#eec98f\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#eec98f\"/><ellipse cx=\"98\" cy=\"158\" rx=\"26\" ry=\"40\" fill=\"#e6b878\" stroke=\"#bf9354\" stroke-width=\"2\" transform=\"rotate(-16 98 158)\"/><ellipse cx=\"202\" cy=\"158\" rx=\"26\" ry=\"40\" fill=\"#e6b878\" stroke=\"#bf9354\" stroke-width=\"2\" transform=\"rotate(16 202 158)\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#e6b878\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#bf9354\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><path d=\"M118 134 q32 -16 64 0\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"6\" stroke-linecap=\"round\" opacity=\"0.45\"/><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M132 198 q18 18 36 0\" fill=\"#b5472f\" opacity=\"0.22\"/><path d=\"M132 198 q18 16 36 0\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 덕에</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">다들 모이는구나</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 덕에</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">다들 모이는구나</text></g></svg>", "ENFP": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ENFP</text><path d=\"M470 150 l7 22 l22 7 l-22 7 l-7 22 l-7 -22 l-22 -7 l22 -7 z\" fill=\"#f2c14e\"/><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">다람쥐</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><g class=\"tail\"><path d=\"M214 268 q70 -10 60 -96 q-4 -34 -30 -28 q18 10 14 56 q-6 52 -52 50 z\" fill=\"#e69a52\" stroke=\"#c87e3c\" stroke-width=\"2\"/></g><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#f0ad6c\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#f0ad6c\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#f0ad6c\"/><circle cx=\"106\" cy=\"120\" r=\"24\" fill=\"#e69a52\" stroke=\"#c87e3c\" stroke-width=\"2\"/><circle cx=\"194\" cy=\"120\" r=\"24\" fill=\"#e69a52\" stroke=\"#c87e3c\" stroke-width=\"2\"/><circle cx=\"106\" cy=\"122\" r=\"12\" fill=\"#f3b6a0\"/><circle cx=\"194\" cy=\"122\" r=\"12\" fill=\"#f3b6a0\"/><path d=\"M100 100 q4 -16 12 -18\" fill=\"none\" stroke=\"#c87e3c\" stroke-width=\"3\" stroke-linecap=\"round\"/><path d=\"M200 100 q-4 -16 -12 -18\" fill=\"none\" stroke=\"#c87e3c\" stroke-width=\"3\" stroke-linecap=\"round\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#e69a52\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#c87e3c\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><path d=\"M118 134 q32 -16 64 0\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"6\" stroke-linecap=\"round\" opacity=\"0.45\"/><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M132 198 q18 18 36 0\" fill=\"#b5472f\" opacity=\"0.22\"/><path d=\"M132 198 q18 16 36 0\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 곁엔</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">웃음이 핀다</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 곁엔</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">웃음이 핀다</text></g></svg>", "ISTJ": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ISTJ</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">고양이</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><g class=\"tail\"><path d=\"M236 250 q40 -6 30 -54 q-2 -18 -16 -16 q10 6 6 26 q-4 30 -34 30 z\" fill=\"#e7c485\" stroke=\"#caa15a\" stroke-width=\"2\"/></g><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#edcf92\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#edcf92\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#edcf92\"/><polygon points=\"96,150 104,96 142,138\" fill=\"#e7c485\" stroke=\"#caa15a\" stroke-width=\"2\"/><polygon points=\"204,150 196,96 158,138\" fill=\"#e7c485\" stroke=\"#caa15a\" stroke-width=\"2\"/><polygon points=\"106,142 112,114 132,138\" fill=\"#f3b6a0\"/><polygon points=\"194,142 188,114 168,138\" fill=\"#f3b6a0\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#e7c485\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#caa15a\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><g stroke=\"#caa15a\" stroke-width=\"3\" stroke-linecap=\"round\"><line x1=\"150\" y1=\"116\" x2=\"150\" y2=\"132\"/><line x1=\"134\" y1=\"120\" x2=\"138\" y2=\"134\"/><line x1=\"166\" y1=\"120\" x2=\"162\" y2=\"134\"/></g><g stroke=\"#caa15a\" stroke-width=\"1.8\" stroke-linecap=\"round\" opacity=\"0.8\"><line x1=\"116\" y1=\"188\" x2=\"92\" y2=\"184\"/><line x1=\"116\" y1=\"194\" x2=\"92\" y2=\"196\"/><line x1=\"184\" y1=\"188\" x2=\"208\" y2=\"184\"/><line x1=\"184\" y1=\"194\" x2=\"208\" y2=\"196\"/></g><circle cx=\"130\" cy=\"172\" r=\"20\" fill=\"#fffdf6\" fill-opacity=\"0.5\" stroke=\"#6b4a2e\" stroke-width=\"3\"/><circle cx=\"170\" cy=\"172\" r=\"20\" fill=\"#fffdf6\" fill-opacity=\"0.5\" stroke=\"#6b4a2e\" stroke-width=\"3\"/><path d=\"M146 170 h8\" stroke=\"#6b4a2e\" stroke-width=\"3\"/><g class=\"bk_open\"><circle cx=\"130\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"170\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"132.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/><circle cx=\"172.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M122 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M162 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M150 193 v5\" stroke=\"#6b4a2e\" stroke-width=\"2\"/><path d=\"M150 198 q-8 6 -14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"M150 198 q8 6 14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네가 있어</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">든든하다</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네가 있어</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">든든하다</text></g></svg>", "ISFJ": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ISFJ</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">토끼</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#fff7ec\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#fff7ec\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#fff7ec\"/><ellipse cx=\"124\" cy=\"86\" rx=\"17\" ry=\"52\" fill=\"#f1e7da\" stroke=\"#d8cab6\" stroke-width=\"2\"/><ellipse cx=\"176\" cy=\"86\" rx=\"17\" ry=\"52\" fill=\"#f1e7da\" stroke=\"#d8cab6\" stroke-width=\"2\"/><ellipse cx=\"124\" cy=\"92\" rx=\"8\" ry=\"38\" fill=\"#f6c0c0\"/><ellipse cx=\"176\" cy=\"92\" rx=\"8\" ry=\"38\" fill=\"#f6c0c0\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#f1e7da\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#d8cab6\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M150 193 v5\" stroke=\"#6b4a2e\" stroke-width=\"2\"/><path d=\"M150 198 q-8 6 -14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"M150 198 q8 6 14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 덕에</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">마음이 놓인다</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 덕에</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">마음이 놓인다</text></g></svg>", "ESTJ": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ESTJ</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">곰</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#caa07a\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#caa07a\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#caa07a\"/><circle cx=\"104\" cy=\"118\" r=\"26\" fill=\"#b98c63\" stroke=\"#8f6c45\" stroke-width=\"2\"/><circle cx=\"196\" cy=\"118\" r=\"26\" fill=\"#b98c63\" stroke=\"#8f6c45\" stroke-width=\"2\"/><circle cx=\"104\" cy=\"120\" r=\"13\" fill=\"#f3b6a0\"/><circle cx=\"196\" cy=\"120\" r=\"13\" fill=\"#f3b6a0\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#b98c63\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#8f6c45\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><path d=\"M118 134 q32 -16 64 0\" fill=\"none\" stroke=\"#ffffff\" stroke-width=\"6\" stroke-linecap=\"round\" opacity=\"0.45\"/><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M132 198 q18 18 36 0\" fill=\"#b5472f\" opacity=\"0.22\"/><path d=\"M132 198 q18 16 36 0\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네가 맡으면</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">일이 척척이다</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네가 맡으면</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">일이 척척이다</text></g></svg>", "ESFJ": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ESFJ</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">판다</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#fff\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#fff\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#fff\"/><circle cx=\"104\" cy=\"118\" r=\"26\" fill=\"#3a3330\"/><circle cx=\"196\" cy=\"118\" r=\"26\" fill=\"#3a3330\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#f4efe8\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#cfc7bb\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"126\" cy=\"168\" rx=\"20\" ry=\"26\" fill=\"#3a3330\" transform=\"rotate(-15 126 168)\"/><ellipse cx=\"174\" cy=\"168\" rx=\"20\" ry=\"26\" fill=\"#3a3330\" transform=\"rotate(15 174 168)\"/><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M132 198 q18 18 36 0\" fill=\"#b5472f\" opacity=\"0.22\"/><path d=\"M132 198 q18 16 36 0\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 없으면</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">서운하지</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 없으면</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">서운하지</text></g></svg>", "ISTP": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ISTP</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">수달</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#c4ad92\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#c4ad92\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#c4ad92\"/><polygon points=\"96,150 104,96 142,138\" fill=\"#a98f73\" stroke=\"#86715a\" stroke-width=\"2\"/><polygon points=\"204,150 196,96 158,138\" fill=\"#a98f73\" stroke=\"#86715a\" stroke-width=\"2\"/><polygon points=\"106,142 112,114 132,138\" fill=\"#f3b6a0\"/><polygon points=\"194,142 188,114 168,138\" fill=\"#f3b6a0\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#a98f73\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#86715a\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><g stroke=\"#86715a\" stroke-width=\"1.6\" stroke-linecap=\"round\" opacity=\"0.7\"><line x1=\"120\" y1=\"190\" x2=\"100\" y2=\"188\"/><line x1=\"180\" y1=\"190\" x2=\"200\" y2=\"188\"/></g><g class=\"bk_open\"><circle cx=\"130\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"170\" cy=\"172\" r=\"8\" fill=\"#2e2118\"/><circle cx=\"132.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/><circle cx=\"172.5\" cy=\"169\" r=\"2.7\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M122 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M162 172 q8 7 16 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"3.5\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M150 193 v5\" stroke=\"#6b4a2e\" stroke-width=\"2\"/><path d=\"M150 198 q-8 6 -14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"M150 198 q8 6 14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 손은 못</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">고치는 게 없구나</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 손은 못</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">고치는 게 없구나</text></g></svg>", "ISFP": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ISFP</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">아기고양이</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><g class=\"tail\"><path d=\"M236 250 q40 -6 30 -54 q-2 -18 -16 -16 q10 6 6 26 q-4 30 -34 30 z\" fill=\"#f0dcae\" stroke=\"#d8be86\" stroke-width=\"2\"/></g><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#f5e6c4\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#f5e6c4\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#f5e6c4\"/><polygon points=\"96,150 104,96 142,138\" fill=\"#f0dcae\" stroke=\"#d8be86\" stroke-width=\"2\"/><polygon points=\"204,150 196,96 158,138\" fill=\"#f0dcae\" stroke=\"#d8be86\" stroke-width=\"2\"/><polygon points=\"106,142 112,114 132,138\" fill=\"#f3b6a0\"/><polygon points=\"194,142 188,114 168,138\" fill=\"#f3b6a0\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#f0dcae\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#d8be86\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><g stroke=\"#d8be86\" stroke-width=\"3\" stroke-linecap=\"round\"><line x1=\"150\" y1=\"116\" x2=\"150\" y2=\"132\"/><line x1=\"134\" y1=\"120\" x2=\"138\" y2=\"134\"/><line x1=\"166\" y1=\"120\" x2=\"162\" y2=\"134\"/></g><g stroke=\"#d8be86\" stroke-width=\"1.8\" stroke-linecap=\"round\" opacity=\"0.8\"><line x1=\"116\" y1=\"188\" x2=\"92\" y2=\"184\"/><line x1=\"116\" y1=\"194\" x2=\"92\" y2=\"196\"/><line x1=\"184\" y1=\"188\" x2=\"208\" y2=\"184\"/><line x1=\"184\" y1=\"194\" x2=\"208\" y2=\"196\"/></g><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M150 193 v5\" stroke=\"#6b4a2e\" stroke-width=\"2\"/><path d=\"M150 198 q-8 6 -14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><path d=\"M150 198 q8 6 14 1\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4a6a0\" opacity=\"0.6\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네 보는 눈이</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">참 곱다</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네 보는 눈이</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">참 곱다</text></g></svg>", "ESTP": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ESTP</text><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">호랑이</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><g class=\"tail\"><path d=\"M236 250 q40 -6 30 -54 q-2 -18 -16 -16 q10 6 6 26 q-4 30 -34 30 z\" fill=\"#ef9b54\" stroke=\"#c87a36\" stroke-width=\"2\"/></g><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#f0a866\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#f0a866\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#f0a866\"/><polygon points=\"96,150 104,96 142,138\" fill=\"#ef9b54\" stroke=\"#c87a36\" stroke-width=\"2\"/><polygon points=\"204,150 196,96 158,138\" fill=\"#ef9b54\" stroke=\"#c87a36\" stroke-width=\"2\"/><polygon points=\"106,142 112,114 132,138\" fill=\"#f3b6a0\"/><polygon points=\"194,142 188,114 168,138\" fill=\"#f3b6a0\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#ef9b54\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#c87a36\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><g stroke=\"#8a4a22\" stroke-width=\"5\" stroke-linecap=\"round\"><line x1=\"150\" y1=\"116\" x2=\"150\" y2=\"138\"/><line x1=\"128\" y1=\"122\" x2=\"132\" y2=\"142\"/><line x1=\"172\" y1=\"122\" x2=\"168\" y2=\"142\"/><line x1=\"96\" y1=\"172\" x2=\"116\" y2=\"176\"/><line x1=\"204\" y1=\"172\" x2=\"184\" y2=\"176\"/></g><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><path d=\"M144 186 h12 l-6 7 z\" fill=\"#c9736a\"/><path d=\"M132 198 q18 18 36 0\" fill=\"#b5472f\" opacity=\"0.22\"/><path d=\"M132 198 q18 16 36 0\" fill=\"none\" stroke=\"#6b4a2e\" stroke-width=\"2.5\" stroke-linecap=\"round\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네랑 있으면</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">안 심심해</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네랑 있으면</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">안 심심해</text></g></svg>", "ESFP": "<svg  viewBox=\"0 0 600 600\" xmlns=\"http://www.w3.org/2000/svg\" role=\"img\"><rect x=\"0\" y=\"0\"  rx=\"40\" fill=\"#f6efdc\"/><rect x=\"8\" y=\"8\" width=\"584\" height=\"584\" rx=\"34\" fill=\"none\" stroke=\"#c9a96e\" stroke-width=\"6\"/><text x=\"300\" y=\"84\" text-anchor=\"middle\" font-family=\"sans-serif\" font-size=\"52\" font-weight=\"700\" letter-spacing=\"7\" fill=\"#b3792f\">ESFP</text><path d=\"M470 150 l7 22 l22 7 l-22 7 l-7 22 l-7 -22 l-22 -7 l22 -7 z\" fill=\"#f2c14e\"/><text x=\"556\" y=\"68\" text-anchor=\"end\" font-family=\"sans-serif\" font-size=\"26\" fill=\"#a07c44\">병아리</text><g transform=\"translate(22.5,37) scale(1.85)\"><g class=\"nod\"><ellipse cx=\"150\" cy=\"250\" rx=\"60\" ry=\"43\" fill=\"#ffe17a\"/><ellipse cx=\"150\" cy=\"256\" rx=\"33\" ry=\"25\" fill=\"#fbeccb\"/><ellipse cx=\"120\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#ffe17a\"/><ellipse cx=\"180\" cy=\"287\" rx=\"15\" ry=\"10\" fill=\"#ffe17a\"/><path d=\"M138 116 q12 -22 24 0\" fill=\"#e8a23a\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"#f5d23f\"/><circle cx=\"150\" cy=\"172\" r=\"62\" fill=\"none\" stroke=\"#d3a91f\" stroke-width=\"2\"/><ellipse cx=\"150\" cy=\"190\" rx=\"35\" ry=\"25\" fill=\"#fbeccb\"/><g class=\"bk_open\"><circle cx=\"128\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"172\" cy=\"170\" r=\"11\" fill=\"#2e2118\"/><circle cx=\"132\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/><circle cx=\"176\" cy=\"166\" r=\"3.6\" fill=\"#fff\"/></g><g class=\"bk_closed\"><path d=\"M118 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M162 170 q10 9 20 0\" fill=\"none\" stroke=\"#2e2118\" stroke-width=\"4\" stroke-linecap=\"round\"/></g><polygon points=\"138,186 162,186 150,202\" fill=\"#e8a23a\" stroke=\"#c8841f\" stroke-width=\"1.5\"/><circle cx=\"112\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/><circle cx=\"188\" cy=\"193\" r=\"10\" fill=\"#f4928c\" opacity=\"0.7\"/></g></g><g font-family=\"sans-serif\" font-size=\"50\" font-weight=\"700\" text-anchor=\"middle\"><text x=\"300\" y=\"520\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">자네가 오면</text><text x=\"300\" y=\"572\" fill=\"#fff\" stroke=\"#fff\" stroke-width=\"9\" paint-order=\"stroke\">잔치가 되는구나</text><text x=\"300\" y=\"520\" fill=\"#5a4226\">자네가 오면</text><text x=\"300\" y=\"572\" fill=\"#5a4226\">잔치가 되는구나</text></g></svg>"};
+
+let APP_DATA = { meta:{canvasW:648,canvasH:900}, trees:[], cards:{} };
+
+// 데이터 파일명 (이것만 갈아끼우면 앱 전체가 업데이트됨)
+const DATA_FILE = "songgeum_data.json";
+
+// 트리에디터 출력 형식(allCards 배열) → 앱 형식(cards dict)으로 변환
+function buildAppData(raw){
+  const cards = {};
+  (raw.allCards || []).forEach(c=>{
+    cards[c.id] = {
+      id: c.id,
+      name: c.name || "",
+      source: c.source || "",
+      texts: c.texts || [],
+      // 5단 필드 (에디터에서 채운 새 구조)
+      subtitle: c.subtitle || "",
+      body: c.body || "",
+      caution: c.caution || "",
+      advice: c.advice || "",
+      scores: c.scores || {},
+      tags: c.tags || [],
+      specialTags: c.specialTags || [],
+      mbti_EI: c.mbti_EI||"", mbti_SN: c.mbti_SN||"", mbti_TF: c.mbti_TF||"", mbti_JP: c.mbti_JP||"",
+      pts: c.pts || [],
+      color: c.color || "#c9a96e",
+      lw: c.lw != null ? c.lw : 15,
+      mode: c.mode || "line",
+      opacity: c.opacity != null ? c.opacity : 1,
+      sineAmp: c.sineAmp != null ? c.sineAmp : 3,
+      sineFreq: c.sineFreq != null ? c.sineFreq : 18,
+      stairH: c.stairH != null ? c.stairH : 5,
+      stairW: c.stairW != null ? c.stairW : 5,
+      stairG: c.stairG != null ? c.stairG : 0,
+      mergedShapes: c.mergedShapes || undefined,
+      bSize: c.bSize, bCount: c.bCount, bSpread: c.bSpread,
+      fineN: c.fineN, endCap: c.endCap, tipShape: c.tipShape,
+    };
+  });
+  return {
+    meta: { canvasW:648, canvasH:900 },
+    trees: raw.trees || [],
+    cards: cards,
+  };
+}
+
+const BG_URI = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NDggOTAwIiB3aWR0aD0iNjQ4IiBoZWlnaHQ9IjkwMCI+PHJlY3Qgd2lkdGg9IjY0OCIgaGVpZ2h0PSI5MDAiIGZpbGw9IndoaXRlIi8+PGcgaWQ9ImhhbmQtbGluZXMiIG9wYWNpdHk9IjEiPiAgPHBhdGggZD0iTSAxNTcuNSA4NTYuMSBDIDE1Ny44IDg0Ny4wIDE1OS4yIDgxNC40IDE1OS42IDgwMS42IEMgMTYwLjAgNzg4LjggMTY0LjAgNzkyLjYgMTU5LjYgNzc5LjQgQyAxNTUuMiA3NjYuMiAxNDAuOCA3MzguNyAxMzMuMiA3MjIuNSBDIDEyNS43IDcwNi40IDExOC41IDY5Ni44IDExNC41IDY4Mi43IEMgMTEwLjUgNjY4LjYgMTExLjYgNjU4LjAgMTA5LjIgNjM4LjEgQyAxMDYuOSA2MTguMyAxMDEuOCA1ODAuOCAxMDAuMyA1NjMuNiBDIDk4LjggNTQ2LjQgMTAyLjEgNTQ1LjggMTAwLjMgNTM0LjcgQyA5OC41IDUyMy43IDkyLjIgNTEwLjIgODkuNSA0OTcuMSBDIDg2LjcgNDgzLjkgODcuMSA0NzAuNCA4My45IDQ1NS45IEMgODAuOCA0NDEuNSA3NS4zIDQyNC40IDcwLjggNDEwLjMgQyA2Ni4yIDM5Ni4yIDYwLjYgMzg0LjIgNTYuNSAzNzEuMyBDIDUyLjUgMzU4LjMgNTAuNCAzNDUuMSA0Ni41IDMzMi41IEMgNDIuNyAzMTkuOSAzNi44IDMwNS4zIDMzLjQgMjk1LjcgQyAyOS45IDI4Ni4wIDI3LjUgMjgyLjIgMjUuNyAyNzQuNiBDIDIzLjkgMjY3LjAgMjEuOCAyNTYuMCAyMi41IDI1MC4zIEMgMjMuMyAyNDQuNSAyNy4zIDI0Mi43IDMwLjIgMjQwLjEgQyAzMy4xIDIzNy41IDM2LjEgMjM1LjEgNDAuMCAyMzQuNSBDIDQzLjggMjM0LjAgNDguMCAyMzMuNyA1My4xIDIzNi45IEMgNTguMyAyNDAuMSA2NS4xIDI0NS4wIDcwLjggMjUzLjUgQyA3Ni40IDI2Mi4wIDgwLjkgMjczLjkgODcuMSAyODcuOSBDIDkzLjMgMzAyLjAgMTAxLjQgMzIxLjggMTA4LjAgMzM3LjkgQyAxMTQuNSAzNTQuMCAxMjEuMyAzNzEuOCAxMjYuNyAzODQuNiBDIDEzMi4wIDM5Ny41IDEzNS42IDQxMC4zIDEzOS44IDQxNC44IEMgMTQ0LjAgNDE5LjIgMTQ4LjEgNDEyLjggMTUxLjkgNDExLjMgQyAxNTUuOCA0MDkuOCAxNjEuMCA0MDkuOCAxNjMuMCA0MDUuNyBDIDE2NS4wIDQwMS43IDE2NC41IDM5Ni40IDE2NC4xIDM4Ni44IEMgMTYzLjcgMzc3LjIgMTYyLjcgMzY3LjUgMTYwLjcgMzQ4LjAgQyAxNTguNiAzMjguNiAxNTQuMSAyOTUuNyAxNTEuOSAyNzAuMSBDIDE0OS44IDI0NC41IDE0OC4yIDIxMC45IDE0Ny41IDE5NC41IEMgMTQ2LjcgMTc4LjAgMTQ4LjAgMTc4LjYgMTQ3LjUgMTcxLjIgQyAxNDcuMCAxNjMuOCAxNDUuMiAxNTcuNyAxNDQuMyAxNTAuMSBDIDE0My40IDE0Mi41IDE0MS4zIDEzMy43IDE0Mi4yIDEyNS42IEMgMTQzLjEgMTE3LjQgMTQ2LjkgMTA2LjYgMTQ5LjggMTAxLjIgQyAxNTIuNyA5NS45IDE1NS4yIDk0LjYgMTU5LjYgOTMuNSBDIDE2NC4wIDkyLjQgMTcxLjMgOTMuMyAxNzYuMiA5NC41IEMgMTgxLjEgOTUuOCAxODUuMyA5Ni45IDE4OS4xIDEwMS4yIEMgMTkzLjAgMTA1LjUgMTk1LjggMTExLjUgMTk5LjEgMTIwLjIgQyAyMDIuNCAxMjguOSAyMDYuNCAxMzguNyAyMDguOSAxNTMuMyBDIDIxMS41IDE2Ny45IDIxMi42IDE4OS44IDIxNC40IDIwNy44IEMgMjE2LjMgMjI1LjggMjE4LjEgMjQwLjUgMjIwLjAgMjYxLjIgQyAyMjEuOCAyODIuMCAyMjMuNiAzMTUuMyAyMjUuNSAzMzIuNSBDIDIyNy4zIDM0OS43IDIyOS4yIDM1NS45IDIzMS4wIDM2NC42IEMgMjMyLjggMzczLjMgMjMzLjQgMzgxLjggMjM2LjMgMzg0LjYgQyAyMzkuMiAzODcuNCAyNDYuMiAzOTQuMiAyNDguNCAzODEuNCBDIDI1MC42IDM2OC42IDI0OS4xIDMyOS4zIDI0OS41IDMwOC4wIEMgMjQ5LjkgMjg2LjYgMjUwLjkgMjc2LjggMjUwLjggMjUzLjUgQyAyNTAuNiAyMzAuMiAyNDkuMCAxOTIuNiAyNDguNCAxNjguMCBDIDI0Ny45IDE0My4zIDI0Ni44IDEyMS45IDI0Ny40IDEwNS41IEMgMjQ3LjkgODkuMiAyNDkuMyA3OS40IDI1MS44IDcwLjAgQyAyNTQuNCA2MC42IDI1Ny45IDUzLjUgMjYyLjcgNDguOSBDIDI2Ny40IDQ0LjMgMjc0LjMgNDIuNiAyODAuMyA0Mi4yIEMgMjg2LjQgNDEuOSAyOTMuOSA0Mi44IDI5OS4wIDQ2LjcgQyAzMDQuMSA1MC42IDMwNy43IDU4LjcgMzExLjEgNjUuNyBDIDMxNC42IDcyLjcgMzE4LjQgNzUuMSAzMTkuOCA4OC45IEMgMzIxLjMgMTAyLjggMzE5LjMgMTI1LjEgMzE5LjggMTQ5LjAgQyAzMjAuNCAxNzIuOSAzMjIuMSAyMDYuMiAzMjMuMCAyMzIuNCBDIDMyMy45IDI1OC41IDMyNC42IDI4Ny4zIDMyNS40IDMwNS44IEMgMzI2LjEgMzI0LjMgMzI3LjcgMzMxLjcgMzI3LjUgMzQzLjUgQyAzMjcuMyAzNTUuMyAzMjMuMCAzNzEuMSAzMjQuMSAzNzYuOSBDIDMyNS4yIDM4Mi42IDMzMC40IDM3Ny44IDMzNC4xIDM3OC4wIEMgMzM3LjggMzc4LjEgMzQxLjggMzkwLjkgMzQ2LjIgMzc4LjAgQyAzNTAuNiAzNjUuMCAzNTUuMyAzMjQuNyAzNjAuNCAzMDAuMiBDIDM2NS41IDI3NS44IDM3MS41IDI1Ni4wIDM3Ni44IDIzMS4zIEMgMzgyLjEgMjA2LjYgMzg3LjkgMTczLjggMzkyLjMgMTUyLjMgQyAzOTYuNyAxMzAuOCAzOTguMiAxMTIuOCA0MDMuMSAxMDIuMyBDIDQwOC4xIDkxLjcgNDE0LjcgOTAuMiA0MjEuOCA4OC45IEMgNDI5LjAgODcuNyA0MzkuNCA5MC4zIDQ0NS45IDk0LjUgQyA0NTIuMyA5OC44IDQ1Ny40IDEwOC4xIDQ2MC4zIDExNC42IEMgNDYzLjIgMTIxLjAgNDYzLjcgMTIzLjMgNDYzLjUgMTMzLjMgQyA0NjMuMyAxNDMuMyA0NjEuMSAxNTYuMyA0NTkuMCAxNzQuNCBDIDQ1Ny4wIDE5Mi42IDQ1My44IDIyMy4wIDQ1MS40IDI0Mi4zIEMgNDQ5LjAgMjYxLjYgNDQ3LjkgMjY4LjQgNDQ0LjggMjkwLjEgQyA0NDEuNyAzMTEuOCA0MzYuNCAzNTEuMiA0MzIuOSAzNzIuNCBDIDQyOS40IDM5My41IDQyNS4zIDM5OS4wIDQyNC4wIDQxNi45IEMgNDIyLjcgNDM0LjkgNDI0LjkgNDYxLjIgNDI1LjAgNDgwLjMgQyA0MjUuMiA0OTkuNCA0MjMuMiA1MjMuNSA0MjUuMCA1MzEuNSBDIDQyNi45IDUzOS41IDQyOS41IDUzNy45IDQzNi4xIDUyOC4xIEMgNDQyLjcgNTE4LjIgNDU1LjYgNDg5LjIgNDY0LjYgNDcyLjUgQyA0NzMuNSA0NTUuOCA0ODAuMSA0NDMuNSA0ODkuOCA0MjcuOSBDIDQ5OS42IDQxMi4zIDUxMS4xIDM4OS44IDUyMi44IDM3OS4wIEMgNTM0LjUgMzY4LjMgNTQ5LjAgMzY2LjcgNTYwLjAgMzYzLjUgQyA1NzEuMCAzNjAuNCA1ODAuNCAzNTkuNSA1ODguNyAzNjAuMyBDIDU5Ni45IDM2MS4xIDYwNS4zIDM2NC45IDYwOS41IDM2OC4xIEMgNjEzLjcgMzcxLjIgNjE1LjAgMzc0LjAgNjEzLjcgMzc5LjAgQyA2MTIuNSAzODQuMCA2MDUuMSAzOTIuMiA2MDEuOCAzOTguMCBDIDU5OC41IDQwMy43IDU5Ny43IDQwNy44IDU5NC4wIDQxMy41IEMgNTkwLjMgNDE5LjIgNTg0LjEgNDI2LjEgNTc5LjcgNDMyLjQgQyA1NzUuMyA0MzguOCA1NzAuMiA0NDUuNyA1NjcuNiA0NTEuNCBDIDU2NS4xIDQ1Ny4xIDU2NS4wIDQ2MS4zIDU2NC40IDQ2Ni45IEMgNTYzLjkgNDcyLjUgNTY3LjIgNDc4LjMgNTY0LjQgNDg0LjggQyA1NjEuNyA0OTEuMyA1NTQuNyA0OTguNSA1NDguMSA1MDUuOSBDIDU0MS41IDUxMy4zIDUzMS41IDUyMC4xIDUyNC45IDUyOS4xIEMgNTE4LjMgNTM4LjIgNTEyLjQgNTUwLjQgNTA4LjUgNTYwLjQgQyA1MDQuNyA1NzAuNCA1MDQuMCA1NzcuNiA1MDIuMCA1ODkuMiBDIDQ5OS45IDYwMC45IDUwMS4yIDYxNS40IDQ5Ni40IDYzMC40IEMgNDkxLjcgNjQ1LjQgNDgwLjYgNjY1LjUgNDczLjUgNjc5LjMgQyA0NjYuNCA2OTMuMCA0NjIuMCA3MDIuMSA0NTMuNyA3MTIuNiBDIDQ0NS41IDcyMy4yIDQzMy43IDczMi4yIDQyNC4wIDc0Mi42IEMgNDE0LjMgNzUyLjkgNDA0LjEgNzY2LjAgMzk1LjUgNzc0LjkgQyAzODYuOSA3ODMuOCAzNzYuMiA3ODYuOSAzNzIuNSA3OTYuMCBDIDM2OC45IDgwNS4xIDM3My4xIDgxOS4yIDM3My42IDgyOS40IEMgMzc0LjEgODM5LjYgMzc1LjQgODUyLjUgMzc1LjcgODU3LjEiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIzLjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gMTU4LjUgODU2LjEgQyAxNTguNyA4NDUuNyAxNTkuMiA4MDYuOCAxNTkuNiA3OTMuOCBDIDE2MC4wIDc4MC45IDE2Ny44IDc5NC40IDE2MC43IDc3OC4zIEMgMTUzLjUgNzYyLjIgMTI1LjEgNzE0LjggMTE2LjkgNjk3LjEgQyAxMDguNyA2NzkuNSAxMTQuNSA2OTMuNSAxMTEuNCA2NzIuNiBDIDEwOC4yIDY1MS42IDEwMC4yIDU5My44IDk4LjIgNTcxLjQgQyA5Ni4yIDU0OS4wIDEwMC4yIDU0Ni43IDk5LjIgNTM4LjIgQyA5OC4zIDUyOS43IDk1LjAgNTMwLjMgOTIuNyA1MjAuMyBDIDkwLjMgNTEwLjMgODYuOCA0ODguNyA4NS4wIDQ3OC4xIEMgODMuMiA0NjcuNiA4NS42IDQ3Mi44IDgxLjggNDU3LjAgQyA3OC4wIDQ0MS4yIDY3LjQgNDA0LjEgNjIuMSAzODMuNiBDIDU2LjcgMzYzLjAgNTUuNCAzNDkuNyA0OS45IDMzMy42IEMgNDQuNSAzMTcuNSAzNC4wIDMwMC4wIDI5LjEgMjg2LjkgQyAyNC4yIDI3My43IDIwLjggMjYyLjMgMjAuNCAyNTQuNiBDIDIwLjAgMjQ2LjggMjMuNyAyNDQuMCAyNi44IDI0MC4xIEMgMjkuOSAyMzYuMyAzNS4yIDIzMi40IDM4LjkgMjMxLjMgQyA0Mi42IDIzMC4yIDQ1LjkgMjMyLjUgNDguOSAyMzMuNSBDIDUxLjggMjM0LjQgNTUuMyAyMzYuMyA1Ni41IDIzNi45IiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iNC4wIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDE0My4yIDQxNC44IEMgMTQ0LjcgNDEzLjUgMTQ4LjcgNDA4LjkgMTUxLjkgNDA2LjggQyAxNTUuMiA0MDQuOCAxNjEuNSA0MDguMCAxNjMuMCA0MDIuNSBDIDE2NC41IDM5Ny4wIDE2MS44IDM4Ni4xIDE2MC43IDM3My43IEMgMTU5LjYgMzYxLjIgMTU4LjIgMzQ3LjggMTU2LjQgMzI4LjAgQyAxNTQuNiAzMDguMSAxNTEuNSAyNzguMyAxNDkuOCAyNTQuNiBDIDE0OC4yIDIzMC44IDE0Ny4wIDE5OS43IDE0Ni40IDE4NS42IEMgMTQ1LjkgMTcxLjYgMTQ3LjUgMTc4LjUgMTQ2LjQgMTcwLjEgQyAxNDUuMyAxNjEuOCAxNDAuMiAxNDYuOCAxMzkuOCAxMzUuNyBDIDEzOS41IDEyNC42IDE0MS43IDExMC42IDE0NC4zIDEwMy40IEMgMTQ2LjggOTYuMSAxNTAuMCA5NC4yIDE1NS4xIDkyLjIgQyAxNjAuMiA5MC4xIDE2OS45IDkwLjIgMTc0LjkgOTEuMSBDIDE3OS45IDkyLjAgMTgzLjIgOTYuNyAxODQuOSA5Ny44IiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iNC4zIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDI0MS44IDM4OC4xIEMgMjQyLjggMzg2LjYgMjQ2LjYgMzg5LjYgMjQ3LjQgMzc5LjAgQyAyNDguMSAzNjguNCAyNDYuMCAzNDUuMSAyNDYuMyAzMjQuNiBDIDI0Ni43IDMwNC4wIDI0OS4zIDI3OC40IDI0OS41IDI1NS42IEMgMjQ5LjcgMjMyLjggMjQ4LjEgMjEzLjcgMjQ3LjQgMTg3LjggQyAyNDYuNyAxNjEuOSAyNDQuNSAxMjEuMSAyNDUuMiAxMDAuMSBDIDI0Ni4wIDc5LjIgMjQ4LjcgNzEuNSAyNTEuOCA2Mi4yIEMgMjU0LjkgNTIuOSAyNTkuMCA0OC4xIDI2My45IDQ0LjQgQyAyNjguOSA0MC43IDI3NS4yIDQwLjEgMjgxLjQgNDAuMSBDIDI4Ny42IDQwLjEgMjk3LjEgNDIuMyAzMDEuMSA0NC40IEMgMzA1LjIgNDYuNCAzMDQuOSA1MS4wIDMwNS42IDUyLjMiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSI0LjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gMzI2LjQgMzc2LjkgQyAzMjcuNSAzNzYuNSAzMzAuMyAzNzQuNCAzMzMuMCAzNzQuNyBDIDMzNS43IDM3NS4xIDM0MC4xIDM4My4xIDM0Mi44IDM3OS4wIEMgMzQ1LjUgMzc0LjkgMzQ2LjYgMzY0LjIgMzQ5LjQgMzUwLjIgQyAzNTIuMSAzMzYuMSAzNTUuMCAzMTUuMiAzNTkuNCAyOTQuNiBDIDM2My44IDI3NC4wIDM3MS4yIDI0Ny4zIDM3NS43IDIyNi44IEMgMzgwLjMgMjA2LjIgMzgzLjEgMTg5LjcgMzg2LjggMTcxLjIgQyAzOTAuNCAxNTIuNyAzOTMuOCAxMjkuMCAzOTcuNiAxMTUuNiBDIDQwMS40IDEwMi4zIDQwNC4xIDk1LjkgNDA5LjcgOTEuMSBDIDQxNS40IDg2LjMgNDI0LjUgODYuMCA0MzEuNiA4Ni44IEMgNDM4LjcgODcuNSA0NDguMSA5Mi4zIDQ1Mi40IDk1LjYgQyA0NTYuOCA5OS4wIDQ1Ny4wIDEwNS4wIDQ1OC4wIDEwNi44IiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iNC4zIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDQyNy40IDUyOS4xIEMgNDI3LjcgNTMwLjEgNDI2LjkgNTM3LjUgNDI5LjUgNTM0LjcgQyA0MzIuMCA1MzIuMCA0MzYuNCA1MjMuNyA0NDIuNyA1MTIuNiBDIDQ0OC45IDUwMS40IDQ1OS42IDQ4MS41IDQ2Ni45IDQ2OC4wIEMgNDc0LjIgNDU0LjUgNDc5LjEgNDQ0LjEgNDg2LjQgNDMxLjQgQyA0OTMuNyA0MTguNiA1MDMuNSA0MDEuMSA1MTAuNyAzOTEuMyBDIDUxNy44IDM4MS41IDUxOC44IDM3Ny45IDUyOS40IDM3Mi40IEMgNTQwLjAgMzY2LjggNTYxLjYgMzU5LjggNTc0LjIgMzU3LjkgQyA1ODYuOCAzNTYuMSA1OTcuOSAzNTkuMCA2MDUuMCAzNjEuNCBDIDYxMi4yIDM2My44IDYxNS41IDM2OC44IDYxNy4xIDM3Mi40IEMgNjE4LjggMzc1LjkgNjE1LjIgMzgwLjggNjE0LjggMzgyLjUiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSI0LjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gNDMuNCAzMDkuMCBDIDQ2LjUgMzA4LjcgNTYuNyAzMDguMiA2Mi4xIDMwNi45IEMgNjcuNCAzMDUuNiA3MS44IDMwMy4wIDc1LjIgMzAxLjMgQyA3OC43IDI5OS42IDgxLjYgMjk3LjUgODIuOSAyOTYuOCIgc3Ryb2tlPSIjODg4IiBzdHJva2Utd2lkdGg9IjIuMSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTSA1OS43IDM2MS40IEMgNjEuOSAzNjEuNCA2Ny45IDM2Mi45IDcyLjkgMzYxLjQgQyA3Ny45IDM1OS45IDg0LjkgMzU1LjAgODkuNSAzNTIuMyBDIDk0LjAgMzQ5LjcgOTguNSAzNDYuOCAxMDAuMyAzNDUuNyIgc3Ryb2tlPSIjODg4IiBzdHJva2Utd2lkdGg9IjIuMSIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHBhdGggZD0iTSA2MS4wIDM2Ny4wIEMgNjQuMSAzNjcuMCA3Mi41IDM3MC4wIDc5LjUgMzY3LjAgQyA4Ni40IDM2NC4wIDk4LjggMzUyLjEgMTAyLjYgMzQ5LjEiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIyLjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gOTcuMSA0NTUuOSBDIDk4LjYgNDUzLjMgMTAyLjIgNDQ0LjUgMTA1LjggNDQwLjIgQyAxMDkuNSA0MzUuOSAxMTQuMyA0MzMuMSAxMTkuMCA0MzAuMyBDIDEyMy44IDQyNy41IDEzMS44IDQyNC43IDEzNC4zIDQyMy42IiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMi4xIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDE1MC45IDE3NC40IEMgMTUyLjkgMTczLjkgMTU4LjQgMTcyLjEgMTYzLjAgMTcxLjIgQyAxNjcuNiAxNzAuMyAxNzIuMyAxNjkuMiAxNzguMyAxNjkuMSBDIDE4NC4zIDE2OC45IDE5NS43IDE3MC4wIDE5OS4xIDE3MC4xIiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMi4xIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDE2Ny4yIDI4My40IEMgMTY5LjQgMjgyLjEgMTc2LjIgMjc3LjMgMTgwLjQgMjc1LjcgQyAxODQuNiAyNzQuMCAxODguNSAyNzMuOSAxOTIuNSAyNzMuNSBDIDE5Ni42IDI3My4yIDIwMi42IDI3My41IDIwNC43IDI3My41IiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMi4xIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDE2Ny4yIDI5MS40IEMgMTY5LjQgMjkwLjUgMTc1LjUgMjg3LjEgMTgwLjQgMjg1LjggQyAxODUuNCAyODQuNSAxOTIuMCAyODMuOCAxOTcuMCAyODMuNCBDIDIwMi4wIDI4My4wIDIwOC4wIDI4My40IDIxMC4yIDI4My40IiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMi4xIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDE3Ni4yIDM5OS4xIEMgMTc5LjQgMzk4LjkgMTg5LjUgMzk4LjkgMTk1LjcgMzk4LjAgQyAyMDEuOSAzOTcuMSAyMDkuMCAzOTQuOSAyMTMuNCAzOTMuNSBDIDIxNy44IDM5Mi4wIDIyMC42IDM4OS45IDIyMi4xIDM4OS4yIiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMi4xIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDI1OS41IDEzNC42IEMgMjYyLjYgMTM0LjIgMjcyLjkgMTMyLjYgMjc4LjIgMTMyLjIgQyAyODMuNSAxMzEuOCAyODYuOCAxMzEuOCAyOTEuNCAxMzIuMiBDIDI5NS45IDEzMi42IDMwMy4yIDEzNC4yIDMwNS42IDEzNC42IiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMi4xIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDI2My45IDI2Mi4zIEMgMjY1LjkgMjYxLjIgMjcxLjUgMjU3LjEgMjc1LjggMjU1LjYgQyAyODAuMiAyNTQuMiAyODQuNiAyNTMuNSAyOTAuMSAyNTMuNSBDIDI5NS42IDI1My41IDMwNS43IDI1NS4zIDMwOC44IDI1NS42IiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMi4xIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDI2Mi43IDI2Ny45IEMgMjY1LjYgMjY3LjkgMjc0LjggMjY4LjMgMjgwLjMgMjY3LjkgQyAyODUuOCAyNjcuNiAyOTAuMSAyNjYuNyAyOTUuNiAyNjUuOCBDIDMwMS4xIDI2NC44IDMxMC4zIDI2Mi45IDMxMy4yIDI2Mi4zIiBzdHJva2U9IiM4ODgiIHN0cm9rZS13aWR0aD0iMi4xIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cGF0aCBkPSJNIDI1NC4wIDM4Mi41IEMgMjU2LjMgMzgxLjYgMjYzLjEgMzc4LjQgMjY4LjIgMzc2LjkgQyAyNzMuMyAzNzUuNCAyNzkuMyAzNzQuNiAyODQuOCAzNzMuNyBDIDI5MC4zIDM3Mi43IDI5Ni40IDM3MS4zIDMwMS4xIDM3MS4zIEMgMzA1LjkgMzcxLjMgMzExLjIgMzczLjMgMzEzLjIgMzczLjciIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIyLjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gNDAwLjAgMTcyLjMgQyA0MDMuNiAxNzIuNiA0MTQuNSAxNzIuOCA0MjEuOCAxNzQuNCBDIDQyOS4xIDE3Ni4xIDQzOC44IDE4MC4yIDQ0My43IDE4Mi40IEMgNDQ4LjcgMTg0LjYgNDUwLjEgMTg2LjkgNDUxLjQgMTg3LjgiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIyLjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gMzg2LjggMjY1LjggQyAzODkuOSAyNjYuMSAzOTguOSAyNjcuNCA0MDUuMyAyNjcuOSBDIDQxMS42IDI2OC40IDQyMC40IDI2Ny45IDQyNS4wIDI2OS4wIEMgNDI5LjYgMjcwLjEgNDMxLjYgMjczLjcgNDMyLjkgMjc0LjYiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIyLjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gMzg0LjQgMjcyLjQgQyAzODYuMyAyNzMuMiAzOTAuOSAyNzUuOCAzOTUuNSAyNzYuNyBDIDQwMC4xIDI3Ny43IDQwNi4wIDI3Ny44IDQxMS45IDI3OC4wIEMgNDE3LjcgMjc4LjIgNDI3LjQgMjc4LjAgNDMwLjYgMjc4LjAiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIyLjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gMzYwLjQgMzc5LjAgQyAzNjMuNyAzNzkuMCAzNzMuMiAzNzguMyAzODAuMiAzNzkuMCBDIDM4Ny4xIDM3OS44IDM5Ni42IDM4MS43IDQwMi4xIDM4My42IEMgNDA3LjYgMzg1LjQgNDExLjMgMzg5LjEgNDEzLjEgMzkwLjIiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIyLjEiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gNDk0LjMgNDMxLjQgQyA0OTYuMyA0MzQuMSA1MDAuOSA0NDIuNyA1MDYuMiA0NDguMCBDIDUxMS41IDQ1My4yIDUyMC41IDQ1OS4zIDUyNi4wIDQ2Mi42IEMgNTMxLjUgNDY1LjkgNTM3LjAgNDY3LjEgNTM5LjEgNDY4LjAiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIyLjYiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gNDQxLjYgNTMxLjUgQyA0NDQuMiA1MzQuOCA0NTIuNyA1NDQuNyA0NTYuOSA1NTEuMyBDIDQ2MS4xIDU1OC4wIDQ2Mi45IDU2Mi44IDQ2Ni45IDU3MS40IEMgNDcwLjkgNTc5LjkgNDc4LjggNTk3LjQgNDgxLjEgNjAyLjYiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSIzLjIiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gMTAxLjYgNTM0LjcgQyAxMDUuOSA1MzQuMiAxMTUuNyA1MzQuMyAxMjcuNyA1MzEuNSBDIDEzOS44IDUyOC44IDE1Ni4zIDUyNC41IDE3My44IDUxOC4yIEMgMTkxLjQgNTExLjggMjE0LjYgNTAyLjUgMjMzLjEgNDkzLjYgQyAyNTEuNiA0ODQuNyAyNzAuMSA0NzQuMiAyODQuOCA0NjQuOCBDIDI5OS40IDQ1NS4zIDMxMy4wIDQ0My44IDMyMC45IDQzNy4wIEMgMzI4LjggNDMwLjEgMzMwLjEgNDI1LjggMzMxLjkgNDIzLjYiIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSI0LjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gMTc2LjIgNTkyLjcgQyAxODEuNiA1ODguMCAxOTUuOSA1NzQuMyAyMDguOSA1NjQuNyBDIDIyMS45IDU1NS4wIDIzNi4yIDU0NC40IDI1NC4wIDUzNC43IEMgMjcxLjcgNTI1LjEgMjk3LjYgNTE0LjAgMzE1LjQgNTA3LjAgQyAzMzMuMSA0OTkuOSAzNDYuMCA0OTYuMiAzNjAuNCA0OTIuNSBDIDM3NC45IDQ4OC44IDM5MS4xIDQ4Ni4zIDQwMi4xIDQ4NC44IEMgNDEzLjEgNDgzLjMgNDIyLjMgNDgzLjkgNDI2LjMgNDgzLjciIHN0cm9rZT0iIzg4OCIgc3Ryb2tlLXdpZHRoPSI0LjMiIGZpbGw9Im5vbmUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0gMzI1LjQgNzQ2LjAgQyAzMjIuOCA3MzkuNSAzMTQuMiA3MjEuNSAzMDkuOCA3MDcuMCBDIDMwNS41IDY5Mi42IDMwMC4zIDY3Ni4zIDI5OS4wIDY1OS4yIEMgMjk3LjcgNjQyLjIgMjk4LjUgNjIyLjcgMzAyLjIgNjA0LjcgQyAzMDUuOCA1ODYuOCAzMTEuMiA1NjcuMyAzMjAuOSA1NTEuMyBDIDMzMC42IDUzNS40IDM0Ny4xIDUxOS4zIDM2MC40IDUwOS4xIEMgMzczLjggNDk5LjAgMzkwLjAgNDk0LjMgNDAxLjAgNDkwLjQgQyA0MTIuMCA0ODYuNSA0MjIuMSA0ODYuNiA0MjYuMyA0ODUuOSIgc3Ryb2tlPSIjODg4IiBzdHJva2Utd2lkdGg9IjQuMyIgZmlsbD0ibm9uZSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9nPjwvc3ZnPg==";
+const CW = APP_DATA.meta.canvasW, CH = APP_DATA.meta.canvasH;
+
+const bgImg = new Image();
+let bgReady = false;
+let bgBright = null; // 밝게 처리한 배경 캔버스
+bgImg.onload = ()=>{ bgReady = true; prepBg(); loadDataThenInit(); };
+bgImg.onerror = ()=>{ bgReady = false; loadDataThenInit(); };
+bgImg.src = BG_URI;
+
+// 데이터를 불러온 뒤 앱 시작
+async function loadDataThenInit(){
+  if(APP_DATA.trees && APP_DATA.trees.length){ init(); return; } // 이미 로드됨
+  try{
+    const res = await fetch(DATA_FILE, {cache:"no-store"});
+    if(!res.ok) throw new Error("fetch fail "+res.status);
+    const raw = await res.json();
+    APP_DATA = buildAppData(raw);
+    init();
+  }catch(e){
+    // 로컬 file:// 등으로 fetch가 막힌 경우 → 불러오기 안내 화면
+    showLoadPrompt();
+  }
+}
+
+// 사용자가 직접 tree.json을 고르게 하는 안내 화면
+function showLoadPrompt(){
+  const ld = document.getElementById('loading');
+  ld.innerHTML = `
+    <div style="text-align:center;max-width:320px;padding:0 20px;">
+      <div style="font-size:22px;letter-spacing:4px;margin-bottom:18px;">스스로 찾는 내 손금</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.9;letter-spacing:0;margin-bottom:24px;">
+        손금 데이터를 불러와 주세요.<br>트리 에디터에서 만든 tree.json 파일을 골라주시면 됩니다.
+      </div>
+      <label class="load-data-btn">
+        📂 tree.json 불러오기
+        <input type="file" accept=".json,application/json" style="display:none" onchange="onPickDataFile(event)">
+      </label>
+      <div style="font-size:11px;color:var(--goldDim);margin-top:18px;letter-spacing:0;line-height:1.7;">
+        (서버나 앱에서는 자동으로 불러와집니다)
+      </div>
+    </div>`;
+}
+
+// 파일 선택으로 데이터 불러오기
+function onPickDataFile(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    try{
+      const raw = JSON.parse(e.target.result);
+      APP_DATA = buildAppData(raw);
+      const ld = document.getElementById('loading');
+      ld.innerHTML = '스스로 찾는 내 손금';
+      init();
+    }catch(err){
+      alert('파일을 읽지 못했어요. tree.json 형식이 맞는지 확인해주세요.\n\n'+err.message);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+// 배경을 밝게 처리: 흰 바탕 + 진한 선 → 캔버스에 미리 렌더
+function prepBg(){
+  const off = document.createElement('canvas');
+  off.width = CW; off.height = CH;
+  const octx = off.getContext('2d');
+  // 밝은 베이지 바탕
+  octx.fillStyle = '#f2ede3';
+  octx.fillRect(0,0,CW,CH);
+  octx.drawImage(bgImg,0,0,CW,CH);
+  bgBright = off;
+}
+
+let ctx, scale;
+function applyCurve(ps){ctx.moveTo(ps[0].x,ps[0].y);if(ps.length===2){ctx.lineTo(ps[1].x,ps[1].y);return;}for(let i=0;i<ps.length-1;i++){const p0=ps[Math.max(i-1,0)],p1=ps[i],p2=ps[i+1],p3=ps[Math.min(i+2,ps.length-1)];ctx.bezierCurveTo(p1.x+(p2.x-p0.x)/6,p1.y+(p2.y-p0.y)/6,p2.x-(p3.x-p1.x)/6,p2.y-(p3.y-p1.y)/6,p2.x,p2.y);}}
+function drawBrush(pts,c,bSize,bCount,bSpread,alpha){if(pts.length<2)return;const n=parseInt(bCount)||5,sp=parseInt(bSpread)||12;ctx.save();for(let k=0;k<n;k++){const off=(k-(n-1)/2)*(sp*scale/n);ctx.strokeStyle=c;ctx.lineWidth=Math.max(0.4,(bSize*scale/n)*0.7);ctx.lineCap="round";ctx.globalAlpha=alpha*(0.25+Math.random()*0.45);ctx.setLineDash([Math.random()*5+2,Math.random()*7+2]);ctx.beginPath();const ps2=pts.map(p=>({x:p.x*scale,y:p.y*scale+off+(Math.random()-0.5)*sp*scale*0.25}));ctx.moveTo(ps2[0].x,ps2[0].y);ps2.forEach((p,i)=>{if(i>0)ctx.lineTo(p.x,p.y);});ctx.stroke();}ctx.setLineDash([]);ctx.restore();}
+function drawFineLines(ps,c,w,alpha){const n=4,sp=w*scale*0.85;ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=c;ctx.lineCap="round";for(let k=0;k<n;k++){const off=(k-(n-1)/2)*sp;ctx.lineWidth=Math.max(0.4,w*scale*0.28);ctx.setLineDash([]);ctx.beginPath();const sh=ps.map(p=>({x:p.x,y:p.y+off}));ctx.moveTo(sh[0].x,sh[0].y);sh.forEach((p,i)=>{if(i>0)ctx.lineTo(p.x,p.y);});ctx.stroke();}ctx.restore();}
+// 붓글씨(테이퍼) 선: 시작은 fromRatio*폭, 끝은 toRatio*폭으로 점점 가늘어짐 (피커 v59 이식)
+function drawTaperLine(ps, c, baseW, alpha, smooth, fromRatio, toRatio, both){
+  if(ps.length<2) return;
+  const fr = (fromRatio!=null?fromRatio:1.0);
+  const tr = (toRatio!=null?toRatio:0.05);
+  let path=[];
+  if(smooth && ps.length>2){
+    const steps=14;
+    for(let i=0;i<ps.length-1;i++){
+      const p0=ps[Math.max(i-1,0)],p1=ps[i],p2=ps[i+1],p3=ps[Math.min(i+2,ps.length-1)];
+      const c1x=p1.x+(p2.x-p0.x)/6, c1y=p1.y+(p2.y-p0.y)/6;
+      const c2x=p2.x-(p3.x-p1.x)/6, c2y=p2.y-(p3.y-p1.y)/6;
+      for(let t=0;t<=steps;t++){
+        const u=t/steps, mt=1-u;
+        const x=mt*mt*mt*p1.x+3*mt*mt*u*c1x+3*mt*u*u*c2x+u*u*u*p2.x;
+        const y=mt*mt*mt*p1.y+3*mt*mt*u*c1y+3*mt*u*u*c2y+u*u*u*p2.y;
+        if(t>0||i===0) path.push({x,y});
+      }
+    }
+  } else {
+    const steps=10;
+    for(let i=0;i<ps.length-1;i++){
+      for(let t=0;t<=steps;t++){
+        const u=t/steps;
+        if(t>0||i===0) path.push({x:ps[i].x+(ps[i+1].x-ps[i].x)*u, y:ps[i].y+(ps[i+1].y-ps[i].y)*u});
+      }
+    }
+  }
+  if(path.length<2) return;
+  let segLen=[], total=0;
+  for(let i=1;i<path.length;i++){const dx=path[i].x-path[i-1].x,dy=path[i].y-path[i-1].y;const l=Math.sqrt(dx*dx+dy*dy);segLen.push(l);total+=l;}
+  if(!total) return;
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=c;ctx.lineCap="round";ctx.lineJoin="round";ctx.setLineDash([]);
+  let acc=0;
+  for(let i=1;i<path.length;i++){
+    const tStart=acc/total; acc+=segLen[i-1]; const tEnd=acc/total; const tMid=(tStart+tEnd)/2;
+    let ratio;
+    if(both){ ratio = tr + (1-tr)*Math.sin(Math.PI*tMid); }
+    else { ratio = fr+(tr-fr)*Math.pow(tMid,1.4); }
+    ctx.lineWidth=Math.max(0.3, baseW*ratio);
+    ctx.beginPath(); ctx.moveTo(path[i-1].x,path[i-1].y); ctx.lineTo(path[i].x,path[i].y); ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawShape(s,alpha){
+  if(!s.pts||s.pts.length===0)return;
+  const ps=s.pts.map(p=>({x:p.x*scale,y:p.y*scale})),c=s.color,w=s.lw,m=s.mode;
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=w*scale;ctx.lineCap="round";ctx.lineJoin="round";
+  if(m==="straight"){ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(ps[0].x,ps[0].y);ps.forEach((p,i)=>{if(i>0)ctx.lineTo(p.x,p.y);});ctx.stroke();}
+  else if(m==="curve"){ctx.setLineDash([]);ctx.beginPath();applyCurve(ps);ctx.stroke();}
+  else if(m==="taper_curve"||m==="taper_both"){
+    const toRatio = (s.taperTo!=null) ? s.taperTo : 0.05;
+    drawTaperLine(ps, c, w*scale, alpha, true, s.taperFrom, toRatio, m==="taper_both");
+  }
+  else if(m==="tip_branch"||m==="tip_feather"||m==="tip_feather_up"||m==="tip_feather_both"||m==="tip_broom"){
+    // 본선은 곡선으로 그리기
+    ctx.setLineDash([]);ctx.beginPath();applyCurve(ps);ctx.stroke();
+    if(ps.length<2) {ctx.restore();return;}
+    // 끝점과 끝방향 계산
+    const ep=ps[ps.length-1];
+    const pp=ps[ps.length-2];
+    const ang=Math.atan2(ep.y-pp.y, ep.x-pp.x);
+    const blen=w*scale*4.5; // 가지 길이
+    ctx.lineWidth=Math.max(0.8, w*scale*0.55);
+    if(m==="tip_branch"){
+      // 분기: Y자형 - 비대칭 곡선 2갈래 (더 길게)
+      const blen2 = blen * 1.8;
+      const angles=[ang-0.5, ang+0.65]; // 비대칭 각도
+      const curves=[0.3, -0.25]; // 각 가지의 휘는 방향 (비대칭)
+      angles.forEach((a, idx)=>{
+        const ex = ep.x + Math.cos(a)*blen2;
+        const ey = ep.y + Math.sin(a)*blen2;
+        // 제어점: 가지 중간에서 옆으로 휘게
+        const cx = ep.x + Math.cos(a)*blen2*0.5 + Math.cos(a+Math.PI/2)*blen2*curves[idx];
+        const cy = ep.y + Math.sin(a)*blen2*0.5 + Math.sin(a+Math.PI/2)*blen2*curves[idx];
+        ctx.beginPath();
+        ctx.moveTo(ep.x, ep.y);
+        ctx.quadraticCurveTo(cx, cy, ex, ey);
+        ctx.stroke();
+      });
+    } else if(m==="tip_feather"||m==="tip_feather_up"||m==="tip_feather_both"){
+      // 지선: 4개, 간격 2배, 비대칭 곡선
+      const nx=-Math.sin(ang), ny=Math.cos(ang); // 법선벡터 (위쪽)
+      const flen = blen * 1.4;
+      const spacing = blen * 1.0;
+      const count = 4;
+      const drawSide = (side)=>{ // side: 1=아래(-nx), -1=위(+nx)
+        for(let i=0; i<count; i++){
+          const bx = ep.x - Math.cos(ang)*spacing*i;
+          const by = ep.y - Math.sin(ang)*spacing*i;
+          const ex = bx + nx*flen*side + Math.cos(ang)*flen*0.35;
+          const ey = by + ny*flen*side + Math.sin(ang)*flen*0.35;
+          const cx = bx + nx*flen*0.5*side + Math.cos(ang)*flen*0.1;
+          const cy = by + ny*flen*0.5*side + Math.sin(ang)*flen*0.1;
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.quadraticCurveTo(cx, cy, ex, ey);
+          ctx.stroke();
+        }
+      };
+      if(m==="tip_feather") drawSide(-1);       // 아래지선
+      else if(m==="tip_feather_up") drawSide(1); // 위지선
+      else { drawSide(1); drawSide(-1); }        // 위아래지선
+    } else if(m==="tip_broom"){
+      // 빗자루: 끝에서 부채꼴로 4~5갈래 퍼짐
+      const spread=0.9;
+      const count=5;
+      for(let i=0;i<count;i++){
+        const a=ang - spread/2 + spread*(i/(count-1));
+        const len=blen*(0.7+0.3*(1-Math.abs(i-(count-1)/2)/((count-1)/2+0.5)));
+        ctx.beginPath();
+        ctx.moveTo(ep.x, ep.y);
+        ctx.lineTo(ep.x+Math.cos(a)*len, ep.y+Math.sin(a)*len);
+        ctx.stroke();
+      }
+    }
+  }
+  else if(m==="dash_straight"){ctx.setLineDash([6*scale,4*scale]);ctx.beginPath();ctx.moveTo(ps[0].x,ps[0].y);ps.forEach((p,i)=>{if(i>0)ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.setLineDash([]);}
+  else if(m==="dash_curve"){ctx.setLineDash([6*scale,4*scale]);ctx.beginPath();applyCurve(ps);ctx.stroke();ctx.setLineDash([]);}
+  else if(m==="fine_straight"||m==="fine_curve"){ctx.restore();drawFineLines(ps,c,w,alpha);return;}
+  else if(m==="sine_curve"||m==="sine_straight"){
+    const ampMul=s.sineAmp||1.5;
+    const freqPx=s.sineFreq||26;
+    const amp=w*scale*ampMul, wlen=freqPx*scale;
+    ctx.lineWidth=w*scale;
+
+    function drawWave(waveFunc){
+      ctx.beginPath();
+      for(let i=0;i<ps.length-1;i++){
+        const p1=ps[i],p2=ps[i+1];
+        const dx=p2.x-p1.x,dy=p2.y-p1.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        const ang=Math.atan2(dy,dx);
+        const nx=-Math.sin(ang),ny=Math.cos(ang);
+        const steps=Math.max(10,Math.round(dist*3));
+        for(let s=0;s<=steps;s++){
+          const t=s/steps, along=t*dist;
+          const off=waveFunc(along);
+          const x=p1.x+Math.cos(ang)*along+nx*off;
+          const y=p1.y+Math.sin(ang)*along+ny*off;
+          if(s===0&&i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+        }
+      }
+      ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+    // sin 파 그리기
+    drawWave(d=>amp*Math.sin((d/wlen)*Math.PI*2));
+    // cos 파 겹쳐 그리기 (반투명)
+    ctx.globalAlpha=alpha*0.6;
+    drawWave(d=>-amp*Math.sin((d/wlen)*Math.PI*2));
+    ctx.globalAlpha=alpha;
+  }
+  else if(m==="break_straight"||m==="break_curve"){
+    ctx.setLineDash([]);
+    const shMul=s.stairH||5;
+    const swMul=s.stairW||5;
+    const gapPx=s.stairG!==undefined?s.stairG:0;
+    const sh=w*scale*shMul, sw=w*scale*swMul, gap=gapPx*scale;
+    if(ps.length>=2){
+      for(let i=0;i<ps.length-1;i++){
+        const p1=ps[i],p2=ps[i+1];
+        const dx=p2.x-p1.x,dy=p2.y-p1.y;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        const ang=Math.atan2(dy,dx);
+        const nx=-Math.sin(ang),ny=Math.cos(ang);
+        const steps=Math.max(2,Math.round(dist/sw));
+        let flip=1;
+        for(let s=0;s<steps;s++){
+          const t1=s/steps, t2=(s+0.5)/steps, t3=(s+1)/steps;
+          const ax=p1.x+dx*t1,  ay=p1.y+dy*t1;
+          const bx=p1.x+dx*t2,  by=p1.y+dy*t2;
+          const cx2=p1.x+dx*t3, cy2=p1.y+dy*t3;
+          // 간격(끊김) 적용
+          const gapRatio = gap/(sw*2);
+          const t1g = t1+gapRatio/steps, t3g = t3-gapRatio/steps;
+          const axg=p1.x+dx*t1g, ayg=p1.y+dy*t1g;
+          const cx2g=p1.x+dx*Math.max(t1,t3g), cy2g=p1.y+dy*Math.max(t1,t3g);
+          ctx.beginPath();
+          ctx.moveTo(axg, ayg);
+          ctx.lineTo(bx, by);
+          ctx.lineTo(bx+nx*sh*flip, by+ny*sh*flip);
+          ctx.lineTo(cx2g+nx*sh*flip, cy2g+ny*sh*flip);
+          ctx.stroke();
+          flip*=-1;
+        }
+      }
+    }
+  }
+  else if(m==="oval_empty"){if(ps.length>=2){const cx=(ps[0].x+ps[1].x)/2,cy=(ps[0].y+ps[1].y)/2,rx=Math.max(Math.abs(ps[1].x-ps[0].x)/2,4),ry=Math.max(Math.abs(ps[1].y-ps[0].y)/2,4);ctx.setLineDash([]);ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();}}
+  else if(m==="oval_dash"){if(ps.length>=2){const cx=(ps[0].x+ps[1].x)/2,cy=(ps[0].y+ps[1].y)/2,rx=Math.max(Math.abs(ps[1].x-ps[0].x)/2,4),ry=Math.max(Math.abs(ps[1].y-ps[0].y)/2,4);ctx.setLineDash([6*scale,4*scale]);ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);}}
+  else if(m==="oval_filled"){if(ps.length>=2){const cx=(ps[0].x+ps[1].x)/2,cy=(ps[0].y+ps[1].y)/2,rx=Math.max(Math.abs(ps[1].x-ps[0].x)/2,4),ry=Math.max(Math.abs(ps[1].y-ps[0].y)/2,4);ctx.setLineDash([]);ctx.beginPath();ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.stroke();}}
+  else if(m==="brush"){ctx.restore();drawBrush(s.pts,c,s.brushSize||8,s.brushCount||5,s.brushSpread||12,alpha);return;}
+  else if(m==="dot_empty"||m==="dot_filled"||m==="cross_single"||m==="cross_double"){
+    const sz=(s.dotSize||8)*scale;
+    const gap=(s.dotGap||12)*scale;
+    ctx.setLineDash([]);
+    ps.forEach(p=>{
+      const sz2=(s.dotSize2!=null?s.dotSize2:(s.dotSize||8)/2)*scale;
+      const rot=s.dotRot||0;
+      if(m==="dot_empty"){
+        ctx.beginPath();ctx.ellipse(p.x,p.y,sz,sz2,rot,0,Math.PI*2);ctx.stroke();
+      } else if(m==="dot_filled"){
+        ctx.beginPath();ctx.ellipse(p.x,p.y,sz,sz2,rot,0,Math.PI*2);ctx.fill();ctx.stroke();
+      } else if(m==="cross_single"){
+        ctx.beginPath();
+        ctx.moveTo(p.x-sz,p.y);ctx.lineTo(p.x+sz,p.y);
+        ctx.moveTo(p.x,p.y-sz);ctx.lineTo(p.x,p.y+sz);
+        ctx.stroke();
+      } else if(m==="cross_double"){
+        // 첫번째 십자
+        ctx.beginPath();
+        ctx.moveTo(p.x-sz,p.y-gap/2);ctx.lineTo(p.x+sz,p.y-gap/2);
+        ctx.moveTo(p.x,p.y-gap/2-sz);ctx.lineTo(p.x,p.y-gap/2+sz);
+        ctx.stroke();
+        // 두번째 십자
+        ctx.beginPath();
+        ctx.moveTo(p.x-sz,p.y+gap/2);ctx.lineTo(p.x+sz,p.y+gap/2);
+        ctx.moveTo(p.x,p.y+gap/2-sz);ctx.lineTo(p.x,p.y+gap/2+sz);
+        ctx.stroke();
+      }
+    });
+  }
+  else if(m==="text_only"){
+    if(ps.length>=1){
+      ctx.font=`bold ${Math.round(14*scale)}px sans-serif`;
+      const txt=s.texts&&s.texts[0]?s.texts[0]:(s.text||"");
+      if(txt){
+        ctx.fillText(txt,ps[0].x,ps[0].y);
+      } else {
+        // 텍스트 없으면 작은 T 마커 표시
+        ctx.globalAlpha=alpha*0.5;
+        ctx.strokeStyle=c;ctx.lineWidth=1.5*scale;
+        ctx.beginPath();
+        ctx.moveTo(ps[0].x-6*scale,ps[0].y-8*scale);ctx.lineTo(ps[0].x+6*scale,ps[0].y-8*scale);
+        ctx.moveTo(ps[0].x,ps[0].y-8*scale);ctx.lineTo(ps[0].x,ps[0].y+4*scale);
+        ctx.stroke();
+        ctx.globalAlpha=alpha;
+      }
+    }
+  }
+  else { /* 미지원 모드 안전망 */
+    if(ps.length>=2){ctx.setLineDash([]);ctx.beginPath();applyCurve(ps);ctx.stroke();}
+    else if(ps.length===1){ctx.beginPath();ctx.arc(ps[0].x,ps[0].y,Math.max(1,w*scale*0.5),0,Math.PI*2);ctx.fill();}
+  }
+  ctx.restore();
+}
+
+function renderCard(canvas, card){
+  ctx = canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  scale = W/CW;
+  ctx.clearRect(0,0,W,H);
+  if(bgBright){ ctx.drawImage(bgBright,0,0,W,H); }
+  else if(bgReady){ ctx.drawImage(bgImg,0,0,W,H); }
+  const shapes=[];
+  (card.mergedShapes||[]).forEach(s=>{ if(s&&s.type!=='bg') shapes.push(s); });
+  if(shapes.length>0){
+    shapes.forEach(s=>drawShape(s,(s.opacity!=null?s.opacity:1)));
+  }else{
+    drawShape({pts:card.pts,color:card.color,lw:card.lw,mode:card.mode,opacity:card.opacity,
+      texts:card.texts,text:card.texts&&card.texts[0],sineAmp:card.sineAmp,sineFreq:card.sineFreq,
+      stairH:card.stairH,stairW:card.stairW,stairG:card.stairG},(card.opacity!=null?card.opacity:1));
+  }
+}
+
+
+
+// ===== 합성 손금 렌더링: 카드마다 '담당 구간'만 진하게, 나머지는 연하게 =====
+// ▼ 튜닝 노브 (구간은 선 길이 0~1 기준)
+const MERGE_CFG = {
+  faint: 0.15,         // 연하게(담당 아님) 불투명도
+  solid: 1.0,          // 진하게(담당 구간) 불투명도
+  branchAlpha: 0.6,    // 지선·2중선 카드 표시 농도
+  front: [0.00, 0.42], // 출발 카드 → 앞(왼쪽) 구간
+  mid:   [0.30, 0.72], // 모양 카드 → 가운데 구간
+  back:  [0.58, 1.00], // 끝 카드 → 뒤(오른쪽) 구간
+  ramp:  0.05          // 구간 경계 번짐 폭(부드럽게)
+};
+const MARK_MODES = ['oval_filled','oval_empty','dot_filled','dot_empty','cross_single','cross_double','point'];
+
+// 질문 이름(+태그)으로 역할 분류
+function roleFromQuestion(q, card){
+  q = q || '';
+  const hay = q + ' ' + ((card&&card.tags)?card.tags.join(' '):'') + ' ' + ((card&&card.name)||'');
+  if(card && MARK_MODES.includes(card.mode)) return 'mark';
+  if(/지선|갈라/.test(hay)) return 'branch';
+  if(/이중|2중|쌍/.test(hay)) return 'overlay';
+  if(/출발|시작/.test(q)) return 'front';
+  if(/끝/.test(q)) return 'back';
+  return 'mid'; // 모양·곡선·직선·사인 등
+}
+
+// 점 순서를 '선마다 다른 시작점'부터 0→1이 되도록 정규화
+// axis: 'x'(가로선)/'y'(세로선),  from: 'min'/'max' (시작이 어느 끝인지)
+const LINE_START = {
+  '감정선': { axis:'x', from:'min' },  // 왼쪽 시작
+  '두뇌선': { axis:'x', from:'max' },  // 오른쪽(검지 아래) 시작
+  '지능선': { axis:'x', from:'max' },  // (두뇌선 별칭)
+  '생명선': { axis:'y', from:'min' },  // 위(검지 쪽)→손목 아래로  ※'왼쪽'이면 알려주오
+  '운명선': { axis:'y', from:'max' },  // 아래 시작
+  '태양선': { axis:'y', from:'max' },  // 아래(지구) 시작
+  '재운선': { axis:'y', from:'max' },  // 아래 시작
+  '결혼선': { axis:'x', from:'max' }   // 소지(오른쪽) 시작
+};
+const DEFAULT_START = { axis:'x', from:'min' };
+function lineOf(card){
+  const tags=(card&&card.tags)||[];
+  for(const ln in LINE_START){ if(tags.some(t=>t&&t.indexOf(ln)>=0)) return ln; }
+  return null;
+}
+function startCfg(card){ const ln=lineOf(card); return (ln&&LINE_START[ln])||DEFAULT_START; }
+function normDir(ps, cfg){
+  if(ps.length<2) return ps;
+  cfg = cfg || DEFAULT_START;
+  const k=cfg.axis;
+  const firstIsMin = ps[0][k] <= ps[ps.length-1][k];
+  const wantFirstMin = (cfg.from==='min');
+  return (firstIsMin !== wantFirstMin) ? ps.slice().reverse() : ps;
+}
+// Catmull-Rom 촘촘 샘플링 (2점이면 직선)
+function densePoints(ps){
+  if(!ps || ps.length<2) return ps?ps.slice():[];
+  const out=[], SUB=16;
+  for(let i=0;i<ps.length-1;i++){
+    const p0=ps[Math.max(i-1,0)],p1=ps[i],p2=ps[i+1],p3=ps[Math.min(i+2,ps.length-1)];
+    for(let k=0;k<SUB;k++){
+      const u=k/SUB,u2=u*u,u3=u2*u;
+      out.push({
+        x:0.5*((2*p1.x)+(-p0.x+p2.x)*u+(2*p0.x-5*p1.x+4*p2.x-p3.x)*u2+(-p0.x+3*p1.x-3*p2.x+p3.x)*u3),
+        y:0.5*((2*p1.y)+(-p0.y+p2.y)*u+(2*p0.y-5*p1.y+4*p2.y-p3.y)*u2+(-p0.y+3*p1.y-3*p2.y+p3.y)*u3)
+      });
+    }
+  }
+  out.push(ps[ps.length-1]); return out;
+}
+// 위치 t(0~1)와 역할로 불투명도 결정 (담당 구간=진하게)
+function bandAlpha(t, role){
+  const C=MERGE_CFG, r=C.ramp, band=C[role];
+  if(!band) return C.faint;
+  const a=band[0], b=band[1];
+  let f;
+  if(t < a-r || t > b+r) f=0;
+  else if(t < a) f=(t-(a-r))/r;
+  else if(t > b) f=((b+r)-t)/r;
+  else f=1;
+  f=Math.max(0,Math.min(1,f));
+  return C.faint + (C.solid - C.faint)*f;
+}
+// 주선을 구간별 농도로 긋기
+function strokeProfiled(ps, color, w, role, cfg){
+  const dense=densePoints(normDir(ps, cfg));
+  if(dense.length<2) return;
+  const seg=[]; let total=0;
+  for(let i=1;i<dense.length;i++){ const d=Math.hypot(dense[i].x-dense[i-1].x, dense[i].y-dense[i-1].y); seg.push(d); total+=d; }
+  if(!total) return;
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=w*scale; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.setLineDash([]);
+  let acc=0;
+  for(let i=1;i<dense.length;i++){
+    const t=(acc + seg[i-1]/2)/total; acc+=seg[i-1];
+    ctx.globalAlpha=bandAlpha(t, role);
+    ctx.beginPath(); ctx.moveTo(dense[i-1].x*scale,dense[i-1].y*scale); ctx.lineTo(dense[i].x*scale,dense[i].y*scale); ctx.stroke();
+  }
+  ctx.restore();
+}
+// 합성 렌더: 주선(구간별) 먼저, 지선·2중선·점무늬는 위에 얹기
+function renderMerged(canvas, items){
+  ctx = canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height; scale=W/CW;
+  ctx.clearRect(0,0,W,H);
+  if(bgBright){ ctx.drawImage(bgBright,0,0,W,H); } else if(bgReady){ ctx.drawImage(bgImg,0,0,W,H); }
+  const overlays=[];
+  items.forEach(it=>{
+    const card=it.card; if(!card) return;
+    const role=roleFromQuestion(it.question, card);
+    if(role==='mark'||role==='branch'||role==='overlay'){ overlays.push({card,role}); return; }
+    if(card.pts && card.pts.length>=2) strokeProfiled(card.pts, card.color||'#E24B4A', card.lw||5, role, startCfg(card));
+  });
+  overlays.forEach(({card,role})=>{
+    const a=(role==='mark')?(card.opacity!=null?card.opacity:1):MERGE_CFG.branchAlpha;
+    const shapes=[]; (card.mergedShapes||[]).forEach(s=>{ if(s&&s.type!=='bg') shapes.push(s); });
+    if(shapes.length>0){ shapes.forEach(s=>drawShape(s,(s.opacity!=null?s.opacity:1)*a)); }
+    else drawShape({pts:card.pts,color:card.color,lw:card.lw,mode:card.mode,opacity:card.opacity,texts:card.texts,text:card.texts&&card.texts[0],sineAmp:card.sineAmp,sineFreq:card.sineFreq,stairH:card.stairH,stairW:card.stairW,stairG:card.stairG}, a);
+  });
+}
+
+// 여러 카드를 한 캔버스에 겹쳐 그리기 (종합 손그림)
+function renderMulti(canvas, cards){
+  ctx = canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  scale = W/CW;
+  ctx.clearRect(0,0,W,H);
+  if(bgBright){ ctx.drawImage(bgBright,0,0,W,H); }
+  else if(bgReady){ ctx.drawImage(bgImg,0,0,W,H); }
+  cards.forEach(card=>{
+    const shapes=[];
+    (card.mergedShapes||[]).forEach(s=>{ if(s&&s.type!=='bg') shapes.push(s); });
+    if(shapes.length>0){
+      shapes.forEach(s=>drawShape(s,(s.opacity!=null?s.opacity:1)));
+    }else{
+      drawShape({pts:card.pts,color:card.color,lw:card.lw,mode:card.mode,opacity:card.opacity,
+        texts:card.texts,text:card.texts&&card.texts[0],sineAmp:card.sineAmp,sineFreq:card.sineFreq,
+        stairH:card.stairH,stairW:card.stairW,stairG:card.stairG},(card.opacity!=null?card.opacity:1));
+    }
+  });
+}
+
+// 결과를 이미지로 저장
+// 이미지로 저장 (기존 로직)
+function downloadImage(){
+  const canvas=document.createElement('canvas');
+  canvas.width=648; canvas.height=900;
+  renderMerged(canvas, picked.map(p=>({card:p.card, question:p.question})));
+  const link=document.createElement('a');
+  link.download='내손금_'+new Date().toISOString().slice(0,10)+'.png';
+  link.href=canvas.toDataURL('image/png');
+  link.click();
+}
+
+// 저장 키
+const SAVE_KEY='songgeum_saved_v1';
+function loadSaved(){
+  try{ const raw=localStorage.getItem(SAVE_KEY); return raw?JSON.parse(raw):[]; }
+  catch(e){ return []; }
+}
+function persistSaved(list){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(list)); return true; }
+  catch(e){ return false; }
+}
+
+// 결과 저장 (localStorage)
+function saveResult(){
+  if(!picked.length){ alert('고른 손금이 없구나.'); return; }
+  const entry={
+    id:'r_'+Date.now(),
+    line:curLine?curLine.name:'',
+    date:new Date().toISOString(),
+    summary:buildSummary(picked),
+    scores:sumScores(picked.map(p=>p.card)),
+    cardIds:picked.map(p=>p.card.id),
+    questions:picked.map(p=>p.question),
+  };
+  const list=loadSaved();
+  list.unshift(entry);
+  const ok=persistSaved(list);
+  if(ok){
+    showToast('할머니가 자네 손금을 잘 적어두었단다 ✦');
+  } else {
+    alert('저장 공간을 쓸 수 없는 환경이구나.\n앱으로 설치하면 저장이 된단다.\n지금은 「이미지로 저장」을 써보렴.');
+  }
+}
+
+// 토스트 알림
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){
+    t=document.createElement('div'); t.id='toast';
+    t.style.cssText='position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:rgba(28,24,19,.97);border:1px solid var(--gold);color:var(--gold2);padding:12px 22px;border-radius:24px;font-size:13px;z-index:400;opacity:0;transition:.3s;font-family:"Gowun Batang",serif;letter-spacing:1px;box-shadow:0 6px 24px rgba(0,0,0,.5);max-width:300px;text-align:center;';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  requestAnimationFrame(()=>{ t.style.opacity='1'; });
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{ t.style.opacity='0'; },2200);
+}
+
+// ===== 상태 =====
+let curLine=null;       // 현재 선 트리 (col1)
+let curCol2=null;       // 이어지는 col2 트리
+let questions=[];        // [{name, cardIds}] 평탄화된 질문 목록
+let qIndex=0;            // 현재 질문 인덱스
+let selectedThisQ=null;  // 이번 질문에서 선택한 카드
+let picked=[];           // 누적: [{card, question}]
+
+const LINE_META={
+  '두뇌선':{c:'#5b9bd5',icon:'智',desc:'사고력·판단력·창조성'},
+  '감정선':{c:'#d96b6b',icon:'情',desc:'감정·애정·인간관계'},
+  '생명선':{c:'#6fae6f',icon:'命',desc:'건강·생명력·체력'},
+  '운명선':{c:'#b88fd0',icon:'運',desc:'직업운·인생의 흐름'},
+  '재운선':{c:'#d4af5a',icon:'財',desc:'재물운·금전 감각'},
+  '결혼선':{c:'#d98fb0',icon:'緣',desc:'결혼·만남의 인연'},
+  '태양선':{c:'#e0a94e',icon:'陽',desc:'성공운·인기운'},
+  '보조선':{c:'#9d9276',icon:'補',desc:'그 밖의 여러 손금'},
+};
+
+// ===== 게이지 점수 =====
+const SCORE_AXES=["재물운","연애운","직업운","건강운","행운조상가호","추진력","지성판단력","창의감성","사교성","인내성실"];
+// ===== 게이지 구간별 할머니 총평 멘트 =====
+// 각 축마다 양수(pos)/음수(neg) 방향으로 점수가 커질수록(2→4→6→8→10→12+)
+// 의미가 점점 강조·극단화되도록 6단계 멘트를 둔다.
+// 적용 규칙: 합산 점수의 절대값을 보고 단계 결정.
+//   |v| >= 2,4,6,8,10,12 → 0~5 인덱스. (|v|<2면 멘트 없음)
+const GAUGE_COMMENTS = {
+  "재물운": {
+    pos: [
+      "재물 모으는 손금이 살짝 비친단다",
+      "돈이 차근차근 붙는 기운이 또렷하구나",
+      "재물복이 제법 도탑게 자리잡았단다",
+      "돈이 모이고 불어나는 힘이 아주 단단하구나",
+      "재물의 기운이 넘쳐흐르니 가히 부의 손금이란다",
+      "재물복이 하늘에 닿을 듯하니 만금을 쥘 손금이로구나",
+    ],
+    neg: [
+      "돈이 손에서 살짝 새는 기운이 있단다",
+      "재물을 단단히 붙들 줄 알아야 하는 손금이구나",
+      "씀씀이를 다잡지 않으면 돈이 흩어지기 쉽단다",
+      "재물이 자꾸 빠져나가니 주머니를 야무지게 단속하렴",
+      "돈복을 스스로 지켜야 하는 손금이 또렷하구나",
+      "재물이 크게 새어 나갈 기운이니 단단히 갈무리해야 한단다",
+    ],
+  },
+  "연애운": {
+    pos: [
+      "정이 도탑게 흐르는 손금이 살짝 비친단다",
+      "사랑이 따뜻하게 깃든 기운이 또렷하구나",
+      "연애복이 제법 무르익은 손금이란다",
+      "정 깊고 사랑받는 힘이 아주 단단하구나",
+      "사랑의 기운이 넘쳐흐르니 인연이 끊이지 않는 손금이란다",
+      "연애복이 하늘에 닿을 듯하니 만인이 따르는 손금이로구나",
+    ],
+    neg: [
+      "마음을 살짝 닫아두는 기운이 있단다",
+      "정을 나누는 데 조심스러운 손금이구나",
+      "사랑 앞에 마음 문을 닫기 쉬우니 살펴보렴",
+      "정이 메마르기 쉬우니 마음을 더 열어야 한단다",
+      "사랑을 스스로 밀어내는 기운이 또렷하구나",
+      "정이 크게 식을 기운이니 마음을 따뜻이 다잡아야 한단다",
+    ],
+  },
+  "직업운": {
+    pos: [
+      "일자리 운이 살짝 트이는 손금이란다",
+      "맡은 일에서 빛나는 기운이 또렷하구나",
+      "직업복이 제법 도탑게 자리잡았단다",
+      "일에서 크게 인정받는 힘이 아주 단단하구나",
+      "직업의 기운이 넘쳐흐르니 한자리 차지할 손금이란다",
+      "출세길이 하늘에 닿을 듯하니 큰 자리에 오를 손금이로구나",
+    ],
+    neg: [
+      "일자리에 살짝 굴곡이 비치는 기운이 있단다",
+      "맡은 일에 마음을 더 붙여야 하는 손금이구나",
+      "일이 자주 바뀌기 쉬우니 한 길을 깊이 파보렴",
+      "직업의 길이 흔들리기 쉬우니 뿌리를 단단히 내려야 한단다",
+      "일자리 운을 스스로 다잡아야 하는 손금이 또렷하구나",
+      "직업의 길이 크게 흔들릴 기운이니 자리를 굳건히 지켜야 한단다",
+    ],
+  },
+  "건강운": {
+    pos: [
+      "몸의 기운이 살짝 도타운 손금이란다",
+      "건강한 기운이 또렷이 흐르는구나",
+      "몸이 튼실하고 활기찬 손금이란다",
+      "건강의 힘이 아주 단단하니 좀처럼 지치지 않겠구나",
+      "생기가 넘쳐흐르니 무병장수할 손금이란다",
+      "건강복이 하늘에 닿을 듯하니 천수를 누릴 손금이로구나",
+    ],
+    neg: [
+      "몸을 살짝 아껴야 하는 기운이 있단다",
+      "기력을 잘 돌봐야 하는 손금이구나",
+      "무리하면 몸이 상하기 쉬우니 쉬어가며 하렴",
+      "건강을 단단히 챙겨야 하는 기운이 또렷하구나",
+      "몸이 자주 고단하기 쉬우니 더욱 아껴 써야 한단다",
+      "기력이 크게 빠질 기운이니 몸을 무엇보다 귀히 다뤄야 한단다",
+    ],
+  },
+  "행운조상가호": {
+    pos: [
+      "조상의 음덕이 살짝 비치는 손금이란다",
+      "보살핌받는 기운이 또렷이 흐르는구나",
+      "행운과 가호가 제법 도탑게 깃들었단다",
+      "하늘이 돕는 힘이 아주 단단하구나",
+      "조상가호가 넘쳐흐르니 위기마다 손길이 닿는 손금이란다",
+      "하늘의 보살핌이 가득하니 천운을 타고난 손금이로구나",
+    ],
+    neg: [
+      "스스로 길을 열어야 하는 기운이 살짝 있단다",
+      "기댈 곳이 적어 홀로 서야 하는 손금이구나",
+      "도움을 바라기보다 제 힘으로 헤쳐야 하는 손금이란다",
+      "기댈 언덕이 옅으니 더욱 야무지게 살아야 한단다",
+      "홀로 길을 닦아야 하는 기운이 또렷하구나",
+      "기댈 곳 없이 제 힘으로 일어서야 할 손금이니 더욱 단단해야 한단다",
+    ],
+  },
+  "추진력": {
+    pos: [
+      "밀고 나가는 기운이 살짝 비친단다",
+      "마음먹으면 해내는 힘이 또렷하구나",
+      "추진력이 제법 도탑게 자리잡았단다",
+      "한번 정하면 끝을 보는 힘이 아주 단단하구나",
+      "기세가 넘쳐흐르니 거침없이 나아가는 손금이란다",
+      "추진력이 하늘을 찌를 듯하니 못 이룰 게 없는 손금이로구나",
+    ],
+    neg: [
+      "결단을 살짝 미루는 기운이 있단다",
+      "마음먹기까지 시간이 걸리는 손금이구나",
+      "망설임이 잦으니 한 걸음 먼저 내디뎌 보렴",
+      "추진하는 힘을 더 길러야 하는 기운이 또렷하구나",
+      "마음만 앞서고 발이 더디기 쉬우니 다잡아야 한단다",
+      "결단이 크게 더딜 기운이니 작은 일부터 끝맺는 연습을 해야 한단다",
+    ],
+  },
+  "지성판단력": {
+    pos: [
+      "머리 쓰는 기운이 살짝 비친단다",
+      "차근차근 따지는 지혜가 또렷하구나",
+      "지성과 판단력이 제법 도탑게 자리잡았단다",
+      "옳고 그름을 가리는 힘이 아주 단단하구나",
+      "지혜가 넘쳐흐르니 무엇이든 꿰뚫어 보는 손금이란다",
+      "총명함이 하늘에 닿을 듯하니 만사를 밝게 헤아릴 손금이로구나",
+    ],
+    neg: [
+      "생각보다 마음이 먼저 가는 기운이 살짝 있단다",
+      "찬찬히 따져보는 버릇을 들이면 좋은 손금이구나",
+      "서두르다 그르치기 쉬우니 한 박자 늦춰 생각해 보렴",
+      "판단을 더 가다듬어야 하는 기운이 또렷하구나",
+      "마음이 앞서 일을 그르치기 쉬우니 늘 한 번 더 헤아려야 한단다",
+      "성급함이 클 기운이니 매사 깊이 따져보는 습관을 들여야 한단다",
+    ],
+  },
+  "창의감성": {
+    pos: [
+      "감성이 살짝 도타운 손금이란다",
+      "남다른 상상의 기운이 또렷하구나",
+      "창의와 감성이 제법 무르익은 손금이란다",
+      "새것을 빚어내는 힘이 아주 단단하구나",
+      "예술의 기운이 넘쳐흐르니 만드는 일에서 빛날 손금이란다",
+      "창의가 하늘에 닿을 듯하니 세상에 없던 걸 빚어낼 손금이로구나",
+    ],
+    neg: [
+      "현실을 살뜰히 챙기는 기운이 살짝 있단다",
+      "마음의 결을 더 펼쳐도 좋은 손금이구나",
+      "딱딱하게 굳기 쉬우니 가끔 마음을 풀어주렴",
+      "감성을 더 틔워야 하는 기운이 또렷하구나",
+      "메마르기 쉬우니 가슴 설레는 일을 곁에 두어야 한단다",
+      "감성이 크게 메마를 기운이니 마음을 적실 일을 부러 찾아야 한단다",
+    ],
+  },
+  "사교성": {
+    pos: [
+      "사람을 끄는 기운이 살짝 비친단다",
+      "두루 어울리는 정이 또렷하구나",
+      "사교성이 제법 도탑게 자리잡았단다",
+      "사람을 품는 힘이 아주 단단하구나",
+      "인덕이 넘쳐흐르니 가는 곳마다 사람이 모이는 손금이란다",
+      "사람 복이 하늘에 닿을 듯하니 만인이 따르는 손금이로구나",
+    ],
+    neg: [
+      "혼자 있기를 살짝 즐기는 기운이 있단다",
+      "사람과 거리를 두는 손금이구나",
+      "어울림이 적으니 먼저 손 내밀어 보면 좋겠구나",
+      "사람과의 정을 더 나눠야 하는 기운이 또렷하구나",
+      "혼자 움츠리기 쉬우니 마음 문을 한 뼘 더 열어야 한단다",
+      "사람을 크게 멀리할 기운이니 곁의 인연을 더욱 귀히 여겨야 한단다",
+    ],
+  },
+  "인내성실": {
+    pos: [
+      "꾸준한 기운이 살짝 비친단다",
+      "끝까지 버티는 힘이 또렷하구나",
+      "인내와 성실이 제법 도탑게 자리잡았단다",
+      "한길을 묵묵히 가는 힘이 아주 단단하구나",
+      "성실함이 넘쳐흐르니 못 이룰 게 없는 손금이란다",
+      "인내가 하늘에 닿을 듯하니 바위도 뚫을 손금이로구나",
+    ],
+    neg: [
+      "끈기를 살짝 더 길러야 하는 기운이 있단다",
+      "싫증이 빠른 손금이구나",
+      "쉬이 지치기 쉬우니 작은 목표부터 끝맺어 보렴",
+      "버티는 힘을 더 길러야 하는 기운이 또렷하구나",
+      "중도에 놓기 쉬우니 한 가지를 끝까지 붙들어야 한단다",
+      "끈기가 크게 부족할 기운이니 매듭을 짓는 연습을 거듭해야 한단다",
+    ],
+  },
+};
+
+// 합산 점수(절대값)로 구간 단계(0~5) 결정. |v|<2면 -1(멘트 없음)
+function gaugeLevel(absV){
+  if(absV>=12) return 5;
+  if(absV>=10) return 4;
+  if(absV>=8)  return 3;
+  if(absV>=6)  return 2;
+  if(absV>=4)  return 1;
+  if(absV>=2)  return 0;
+  return -1;
+}
+// 합산 점수 객체 → 구간별 할머니 멘트 배열 (점수 높은 순)
+function gaugeComments(total){
+  const items=SCORE_AXES.map(a=>({axis:a,val:total[a]||0})).filter(it=>it.val!==0);
+  // 절대값 큰 순 → 같으면 양수 먼저
+  items.sort((a,b)=>Math.abs(b.val)-Math.abs(a.val) || b.val-a.val);
+  const out=[];
+  items.forEach(it=>{
+    const lvl=gaugeLevel(Math.abs(it.val));
+    if(lvl<0) return;
+    const tbl=GAUGE_COMMENTS[it.axis];
+    if(!tbl) return;
+    const arr=it.val>0?tbl.pos:tbl.neg;
+    if(arr&&arr[lvl]) out.push(arr[lvl]);
+  });
+  return out;
+}
+// 합산 점수 → 게이지 기반 할머니 총평 문단 생성
+function buildGaugeSummary(total){
+  const comments=gaugeComments(total);
+  if(!comments.length) return '';
+  return comments.join(' ');
+}
+
+
+// 카드 묶음의 점수를 축별로 합산
+function sumScores(cards){
+  const total={};
+  SCORE_AXES.forEach(a=>total[a]=0);
+  (cards||[]).forEach(c=>{
+    const s=c&&c.scores;
+    if(s){ SCORE_AXES.forEach(a=>{ if(typeof s[a]==='number') total[a]+=s[a]; }); }
+  });
+  return total;
+}
+// 합산 점수로 게이지바 HTML 생성 (0점 축은 숨김, 점수 높은 순 정렬)
+// ===== MBTI 성정 집계 =====
+const MBTI_AXES_APP = [
+  {keyL:'E',keyR:'I',field:'mbti_EI',labL:'외향 E',labR:'내향 I',
+   descL:'사람들과 어울리며 바깥에서 기운을 얻는 사람이지',
+   descR:'혼자 조용히 있을 때 기운이 차오르는 사람이란다'},
+  {keyL:'S',keyR:'N',field:'mbti_SN',labL:'감각 S',labR:'직관 N',
+   descL:'눈에 보이는 사실과 경험을 믿고 현실에 발붙인 사람이지',
+   descR:'보이지 않는 뜻과 가능성을 읽어내는 상상력 깊은 사람이란다'},
+  {keyL:'T',keyR:'F',field:'mbti_TF',labL:'사고 T',labR:'감정 F',
+   descL:'이치와 옳고 그름으로 차분히 따져 판단하는 사람이지',
+   descR:'사람의 마음과 정을 먼저 헤아리는 따뜻한 사람이란다'},
+  {keyL:'J',keyR:'P',field:'mbti_JP',labL:'판단 J',labR:'인식 P',
+   descL:'미리 계획하고 차근차근 매듭짓는 야무진 사람이지',
+   descR:'흐름에 맞춰 자유롭고 유연하게 사는 사람이란다'},
+];
+// 미니 할머니 (눈 깜박임 + 손 흔들기) 한 조각
+function halmoniMini(extraClass){ return `<span class="halmoni-mini ${extraClass||''}">${HALMONI_MINI}</span>`; }
+// MBTI 확정 정도에 따른 마스코트: 4축 확정=1마리, 3축 확정=후보 2마리
+function buildMbtiMascot(letters){
+  const known = letters.filter(x=>x).length;
+  const svg=(type,cls)=>{ const s=MBTI_MASCOT[type]; return s?`<div class="mbti-mascot ${cls||''}">${s}</div>`:''; };
+  if(known===4){
+    const m=svg(letters.join(''),'solo');
+    return m?`<div class="mbti-mascot-wrap">${m}</div>`:'';
+  }
+  if(known===3){
+    const idx=letters.findIndex(x=>!x);
+    const a=MBTI_AXES_APP[idx];
+    const t1=letters.slice(); t1[idx]=a.keyL;
+    const t2=letters.slice(); t2[idx]=a.keyR;
+    const m1=svg(t1.join('')), m2=svg(t2.join(''));
+    return (m1||m2)?`<div class="mbti-mascot-wrap">${m1}${m2}</div>`:'';
+  }
+  return '';
+}
+function buildMbtiHTML(cards){
+  const tally={}; MBTI_AXES_APP.forEach(a=>tally[a.field]={L:0,R:0});
+  (cards||[]).forEach(c=>{ MBTI_AXES_APP.forEach(a=>{ const v=c&&c[a.field]; if(v===a.keyL)tally[a.field].L++; else if(v===a.keyR)tally[a.field].R++; }); });
+  let typeStr=''; let any=false; const letters=[];
+  const rows=MBTI_AXES_APP.map(a=>{
+    const t=tally[a.field], n=t.L+t.R;
+    const cnt=`${a.keyL} ${t.L} · ${a.keyR} ${t.R}`;
+    if(n===0){ typeStr+='·'; letters.push(null); return ''; }
+    any=true;
+    if(t.L===t.R){ typeStr+='·'; letters.push(null);
+      return `<div class="mbti-row"><div class="mbti-head"><span class="mbti-axis">${a.labL} / ${a.labR}</span><span class="mbti-tally">${cnt}</span></div><div class="mbti-desc mbti-even">${a.keyL}와 ${a.keyR}가 아직 반반이라, 어느 쪽이라 말하긴 이르단다</div></div>`;
+    }
+    const L=t.L>t.R;
+    const letter=L?a.keyL:a.keyR, lab=L?a.labL:a.labR, desc=L?a.descL:a.descR;
+    typeStr+=letter; letters.push(letter);
+    return `<div class="mbti-row"><div class="mbti-head"><span class="mbti-letter">${letter}</span><span class="mbti-axis">${lab}</span><span class="mbti-tally">${cnt}</span></div><div class="mbti-desc">${desc}</div></div>`;
+  }).join('');
+  if(!any) return '';
+  const typeLine = /[A-Z]/.test(typeStr) ? `<div class="mbti-type">${typeStr}</div>` : '';
+  const mascotWrap = buildMbtiMascot(letters);
+  return `<div class="mbti-box">
+    <div class="mbti-title">\u2726 \uc790\ub124 \uc190\uae08\uc774 \ub9d0\ud558\ub294 \uc131\uc815</div>
+    ${mascotWrap}
+    ${typeLine}
+    ${rows}
+    <div class="mbti-hint">\uace0\ub978 \uc190\uae08\uc5d0 \ub2f4\uae34 \uc131\uc815\uc744 MBTI \ub124 \uac08\ub798\ub85c \ubaa8\uc544 \ubcf8 \uac8c\ub780\ub2e4</div>
+  </div>`;
+}
+// 카드 묶음에서 특별 게이지(빨간 배지) 이름별 개수 집계
+function countSpecialTags(cards){
+  const cnt={};
+  (cards||[]).forEach(c=>{
+    (c&&c.specialTags||[]).forEach(t=>{ if(t){ cnt[t]=(cnt[t]||0)+1; } });
+  });
+  return cnt;
+}
+// 특별 게이지 HTML 생성 (개수만큼 빨간 별, 개수 많은 순 정렬)
+function buildSpecialHTML(cards){
+  const cnt=countSpecialTags(cards);
+  const items=Object.keys(cnt).map(name=>({name,n:cnt[name]}));
+  if(!items.length) return '';
+  items.sort((a,b)=>b.n-a.n);
+  const rows=items.map(it=>{
+    const stars=Array.from({length:it.n},()=>'<span class="special-star">★</span>').join('');
+    return `<div class="special-row">
+      <div class="special-name">${it.name}</div>
+      <div class="special-stars">${stars}</div>
+      <div class="special-cnt">×${it.n}</div>
+    </div>`;
+  }).join('');
+  return `<div class="special-box">
+    <div class="special-title">✦ 자네만의 특별한 기운</div>
+    ${rows}
+    <div class="special-hint">같은 기운이 여러 번 나올수록 별이 늘어난단다</div>
+  </div>`;
+}
+
+function buildGaugeHTML(total){
+  const items=SCORE_AXES.map(a=>({axis:a,val:total[a]||0})).filter(it=>it.val!==0);
+  if(!items.length) return '';
+  items.sort((a,b)=>b.val-a.val);
+  // 막대 길이 기준: 절대값 최대치를 100%로
+  const maxAbs=Math.max(...items.map(it=>Math.abs(it.val)),1);
+  const rows=items.map(it=>{
+    const pct=Math.round(Math.abs(it.val)/maxAbs*100);
+    const pos=it.val>0;
+    const barColor=pos?'linear-gradient(90deg,#d4af5a,#e8c878)':'linear-gradient(90deg,#b06a5a,#c98878)';
+    const sign=pos?'+':'';
+    return `<div class="gauge-row">
+      <div class="gauge-label">${it.axis}</div>
+      <div class="gauge-track"><div class="gauge-fill" style="width:${pct}%;background:${barColor};"></div></div>
+      <div class="gauge-val ${pos?'pos':'neg'}">${sign}${it.val}</div>
+    </div>`;
+  }).join('');
+  return `<div class="gauge-box">
+    <div class="gauge-title">✦ 자네 손금의 기운</div>
+    ${rows}
+    <div class="gauge-hint">고른 손금들의 기운을 모아 본 게란다</div>
+  </div>`;
+}
+
+function init(){
+  document.getElementById('loading').style.display='none';
+  // 화면 리셋: 탐색/팝업 닫고 메인으로
+  const ex=document.getElementById('screen-explore'); if(ex) ex.style.display='none';
+  const pp=document.getElementById('popup'); if(pp) pp.classList.remove('open');
+  const tb=document.getElementById('topbar'); if(tb) tb.style.display='flex';
+  const tr=document.getElementById('tray'); if(tr){ tr.classList.add('hidden'); tr.classList.remove('open'); }
+  document.getElementById('screen-main').style.display='flex';
+  { const mh=document.getElementById('main-halmoni'); if(mh && !mh.innerHTML.trim()) mh.innerHTML=HALMONI_MINI; }
+  // 저장한 손금 바로가기 버튼 갱신
+  const savedListMain=loadSaved();
+  const ssBtn=document.getElementById('saved-shortcut');
+  if(ssBtn){
+    if(savedListMain.length){
+      ssBtn.style.display='flex';
+      document.getElementById('ss-count').textContent=savedListMain.length;
+    } else {
+      ssBtn.style.display='none';
+    }
+  }
+  const col1=APP_DATA.trees.filter(t=>t.col===1);
+  const box=document.getElementById('line-list');
+  box.innerHTML='';
+  const mainTrees=col1.filter(t=>!(t.name||'').startsWith('기타'));
+  const miscTrees=col1.filter(t=>(t.name||'').startsWith('기타'));
+  mainTrees.forEach((tree,i)=>{
+    const m=LINE_META[tree.name]||{c:'#c9a96e',icon:'手',desc:''};
+    const rootCardId=(tree.root.cards&&tree.root.cards[0])||null;
+    const card=document.createElement('div');
+    card.className='line-card';
+    card.innerHTML=`
+      ${rootCardId?'<div class="lc-preview"><canvas width="195" height="270"></canvas></div>':''}
+      <div class="lc-head">
+        <div class="lc-dot" style="border-color:${m.c};color:${m.c};">${m.icon}</div>
+        <div class="lc-info"><div class="lc-name">${tree.name}</div><div class="lc-desc">${m.desc}</div></div>
+      </div>`;
+    card.onclick=()=>openLine(tree);
+    box.appendChild(card);
+    if(rootCardId){
+      const cv=card.querySelector('canvas');
+      const c=APP_DATA.cards[rootCardId];
+      if(c) requestAnimationFrame(()=>renderCard(cv,c));
+    }
+  });
+  // 기타선들: 한 칸 안에 위아래 반반(컴팩트)으로
+  if(miscTrees.length){
+    const cell=document.createElement('div');
+    cell.className='misc-cell';
+    miscTrees.forEach(tree=>{
+      const m=LINE_META[tree.name]||{c:'#9d9276',icon:'他',desc:'그 밖의 손금'};
+      const mc=document.createElement('div');
+      mc.className='misc-card';
+      mc.innerHTML=`
+        <div class="lc-dot" style="border-color:${m.c};color:${m.c};">${m.icon}</div>
+        <div class="lc-info"><div class="mc-name">${tree.name}</div><div class="mc-desc">${m.desc}</div></div>`;
+      mc.onclick=()=>openLine(tree);
+      cell.appendChild(mc);
+    });
+    box.appendChild(cell);
+  }
+}
+
+function openLine(tree){
+  curLine=tree;
+  // col1 트리들 중 이 트리가 몇 번째인지 → 같은 순번의 col2 트리를 짝으로 (이름 매칭 폐기)
+  const col1List=APP_DATA.trees.filter(t=>t.col===1);
+  const col2List=APP_DATA.trees.filter(t=>t.col===2);
+  const idx=col1List.findIndex(t=>t.id===tree.id);
+  curCol2=(idx>=0 && col2List[idx])?col2List[idx]:null;
+  // 질문 평탄화: col1 가지들 + col2 가지들
+  questions=[];
+  tree.root.children.forEach(br=>{ if((br.cards||[]).length) questions.push({name:br.name,cardIds:br.cards}); });
+  if(curCol2){
+    curCol2.root.children.forEach(br=>{ if((br.cards||[]).length) questions.push({name:br.name,cardIds:br.cards,col2:true}); });
+  }
+  qIndex=0; picked=[]; selectedThisQ=null;
+  updateTray();
+  document.getElementById('tray')?.classList.remove('hidden');
+  document.getElementById('screen-main').style.display='none';
+  document.getElementById('topbar').style.display='none';
+  document.getElementById('screen-explore').style.display='flex';
+  document.getElementById('ex-title').textContent=tree.name;
+  showQuestion();
+  window.scrollTo(0,0);
+}
+
+function goMain(){
+  document.getElementById('screen-explore').style.display='none';
+  document.getElementById('screen-main').style.display='flex';
+  { const mh=document.getElementById('main-halmoni'); if(mh && !mh.innerHTML.trim()) mh.innerHTML=HALMONI_MINI; }
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('tray')?.classList.add('hidden');
+  document.getElementById('tray')?.classList.remove('open');
+  // 저장 버튼 갱신
+  const sl=loadSaved();
+  const ssBtn=document.getElementById('saved-shortcut');
+  if(ssBtn){
+    if(sl.length){ ssBtn.style.display='flex'; document.getElementById('ss-count').textContent=sl.length; }
+    else ssBtn.style.display='none';
+  }
+}
+
+function showQuestion(){
+  selectedThisQ=null;
+  const body=document.getElementById('ex-body');
+  if(qIndex>=questions.length){ showResult(); return; }
+  const q=questions[qIndex];
+  document.getElementById('ex-step').textContent=`${qIndex+1} / ${questions.length}`;
+  const pf=document.getElementById('ex-progress-fill');
+  if(pf) pf.style.width=((qIndex)/questions.length*100)+'%';
+  const cards=q.cardIds.map(id=>APP_DATA.cards[id]).filter(Boolean);
+
+  body.innerHTML=`
+    <div class="question">${q.name||(q.col2?'갈라지는 지선':'자네 손금 고르기')}</div>
+    <div class="q-hint">자네 손금과 닮은 그림이 있거든 골라보렴</div>
+    <div class="q-emph">닮은 게 <b>없으면 「다음」</b>을 누르면 된단다 👇</div>
+    <div class="nav-row nav-top">
+      <button class="nav-btn" onclick="prevQ()" ${qIndex===0?'style="visibility:hidden"':''}>이전</button>
+      <button class="nav-btn primary" onclick="nextQ()">${qIndex===questions.length-1?'결과 보기':'다음 질문 ›'}</button>
+    </div>
+    <div class="choice-grid" id="choice-grid"></div>
+    <div class="nav-row">
+      <button class="nav-btn" onclick="prevQ()" ${qIndex===0?'style="visibility:hidden"':''}>이전</button>
+      <button class="nav-btn primary" id="next-btn" onclick="nextQ()">${qIndex===questions.length-1?'결과 보기':'다음 질문 ›'}</button>
+    </div>`;
+
+  const grid=document.getElementById('choice-grid');
+  cards.forEach((card,i)=>{
+    const el=document.createElement('div');
+    el.className='choice';
+    el.style.animationDelay=(i*.05)+'s';
+    el.innerHTML=`<canvas width="216" height="300"></canvas>
+      <div class="choice-name"><span class="cn-text">${card.name.replace('🔗','')}</span>${(card.specialTags||[]).length?`<div class="choice-special">${(card.specialTags||[]).map(t=>`<span class="csp-badge">★${t}</span>`).join('')}</div>`:''}<div class="choice-check">✓</div></div>`;
+    el.onclick=()=>selectChoice(el,card,q);
+    grid.appendChild(el);
+    const cv=el.querySelector('canvas');
+    requestAnimationFrame(()=>renderCard(cv,card));
+  });
+  window.scrollTo(0,0);
+}
+
+function selectChoice(el,card,q){
+  const grid=document.getElementById('choice-grid');
+  const wasSelected=el.classList.contains('selected');
+  grid.querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'));
+  if(wasSelected){ selectedThisQ=null; }
+  else { el.classList.add('selected'); selectedThisQ={card,question:q.name}; }
+}
+
+function nextQ(){
+  if(selectedThisQ){
+    picked=picked.filter(p=>p.question!==selectedThisQ.question);
+    picked.push(selectedThisQ);
+    updateTray();
+  }
+  qIndex++;
+  showQuestion();
+}
+function prevQ(){ if(qIndex>0){qIndex--; showQuestion();} }
+
+
+// 부제목 추출 (할머니 말투 대응)
+function extractSubtitle(card){
+  const texts=(card.texts||[]).filter(t=>t);
+  if(!texts.length) return null;
+  const firstLine=texts[0].split('\n')[0].trim();
+  // 첫 줄이 짧으면(35자 이하) 부제목으로 사용
+  if(firstLine.length<=35) return firstLine;
+  // 첫 줄이 길면 두 번째 텍스트가 짧을 때 사용
+  if(texts.length>1){
+    const second=texts[1].split('\n')[0].trim();
+    if(second.length<=35) return second;
+  }
+  return null;
+}
+// 부제목 끝 정리 (조사 연결용) — 할머니 말투 어미·접미사 제거
+function cleanSub(s){
+  let r=s.replace(/[.\u3002!?]+$/,'').trim();
+  // 할머니 말투 어미 제거: ~란다, ~이란다, ~단다, ~이지, ~지, ~사람이란다 등
+  r=r.replace(/(이란다|란다|단다|이지|구나|는단다|한단다)$/,'').trim();
+  // 명사형 접미사 제거
+  r=r.replace(/(인\s*사람|한\s*사람|하는\s*사람|좋은\s*사람|이란\s*사람)$/,'').trim();
+  r=r.replace(/(인\s*타입|하는\s*타입|한\s*타입)$/,'').trim();
+  r=r.replace(/(타입|사람|소유자|경향|성격|스타일|기질|편)$/,'').trim();
+  // 끝의 조사 정리
+  r=r.replace(/(이고|이며|하며|하고|이라|으로)$/,'').trim();
+  return r;
+}
+// 부제목을 '~한' 관형형으로 보정 (총평 연결용)
+function toAdnominal(s){
+  // 이미 '~한/는/운/ㄴ' 등으로 끝나면 그대로
+  if(/[는은운한]$/.test(s)) return s;
+  // 동사/형용사 어간으로 끝나는 흔한 경우 보정
+  if(/생각$/.test(s)) return s+'하는';
+  if(/행동$/.test(s)) return s+'하는';
+  if(/[가-힣]$/.test(s)){
+    // 명사로 끝나면 'OO한'이 어색할 수 있어 그대로 두되, 동사성 어휘만 보정
+    return s;
+  }
+  return s;
+}
+// 총평 생성 (할머니 말투)
+function buildSummary(items){
+  const subs=items.map(p=>extractSubtitle(p.card)).filter(Boolean);
+  if(!subs.length) return null;
+  let cleaned=subs.map(cleanSub).filter(s=>s.length>=2);
+  if(!cleaned.length) return null;
+  // 중복 제거
+  const uniq=[...new Set(cleaned)];
+  let body;
+  if(uniq.length===1){
+    body='자네는 '+uniq[0]+' 면모를 지니고 있구나.';
+  } else {
+    const last=uniq[uniq.length-1];
+    const head=uniq.slice(0,-1).join(', ');
+    body='자네는 '+head+', 그리고 '+last+'한 면모를 두루 지니고 있구나. 이런 손금이 함께 있으니 참 흥미로운 사람이란다.';
+  }
+  // '한 면모'가 어색한 경우(이미 '~한/는' 등으로 끝남) 자동 정리
+  body=body.replace(/([는은운한])한 면모/g,'$1 면모');
+  return body;
+}
+
+function showResult(){
+  const body=document.getElementById('ex-body');
+  document.getElementById('ex-step').textContent='완료';
+  const pf=document.getElementById('ex-progress-fill');
+  if(pf) pf.style.width='100%';
+  if(picked.length===0){
+    body.innerHTML=`<div class="question">고른 손금이 없구나</div>
+      <div class="q-hint">처음으로 돌아가 다시 천천히 살펴보렴</div>
+      <div class="nav-row"><button class="nav-btn primary" onclick="restartLine()">다시 보기</button></div>`;
+    return;
+  }
+  const summary=buildSummary(picked);
+  const gaugeHTML=buildGaugeHTML(sumScores(picked.map(p=>p.card)));
+  const specialHTML=buildSpecialHTML(picked.map(p=>p.card));
+  const mbtiHTML=buildMbtiHTML(picked.map(p=>p.card));
+  // 게이지 합산 기반 멘트도 총평에 곁들임
+  const gaugeSummary=buildGaugeSummary(sumScores(picked.map(p=>p.card)));
+  const fullSummary=[gaugeSummary, summary].filter(Boolean).join('<br><br>');
+  body.innerHTML=`<div class="q-head-row">${halmoniMini()}<div class="question" style="margin:0">${curLine.name} 풀이</div></div>
+    <div class="q-hint">자네가 고른 손금이 ${picked.length}가지로구나</div>
+    <div class="result-hand"><canvas id="result-canvas" width="324" height="450"></canvas>
+      <div class="result-hand-label">내가 고른 손금</div></div>
+    <div id="result-list"></div>
+    ${fullSummary?`<div class="summary-box">
+      <div class="summary-title">✦ 할머니의 총평${halmoniMini()}</div>
+      <div class="summary-text">${fullSummary}</div>
+      <div class="summary-keywords" id="summary-keywords"></div>
+    </div>`:''}
+    ${gaugeHTML}
+    ${specialHTML}
+    ${mbtiHTML}
+    <div class="nav-row">
+      <button class="nav-btn" onclick="restartLine()">다시 보기</button>
+      <button class="nav-btn save-btn" onclick="saveResult()">💾 결과 저장</button>
+    </div>
+    <div class="nav-row" style="margin-top:10px;">
+      <button class="nav-btn" onclick="downloadImage()">🖼 이미지로 저장</button>
+      <button class="nav-btn primary" onclick="goMain()">다른 손금 보기</button>
+    </div>`;
+  const rcv=document.getElementById('result-canvas');
+  if(rcv) requestAnimationFrame(()=>renderMerged(rcv, picked.map(p=>({card:p.card, question:p.question}))));
+  const rl=document.getElementById('result-list');
+  picked.forEach((p,pi)=>{
+    const div=document.createElement('div');
+    div.className='result-card';
+    const card=p.card;
+    // 5단 필드 우선, 없으면 옛 texts에서 보완
+    const sub = card.subtitle || extractSubtitle(card);
+    let bodyText = card.body || '';
+    if(!bodyText){
+      // 옛 데이터 호환: texts에서 부제 줄 빼고 본문 구성
+      const texts=(card.texts||[]).filter(t=>t);
+      let bt=texts.slice();
+      if(sub && bt.length && bt[0].split('\n')[0].trim()===sub){
+        const rest=bt[0].split('\n').slice(1).join('\n').trim();
+        bt = rest ? [rest, ...bt.slice(1)] : bt.slice(1);
+      }
+      bodyText = bt.join('\n\n');
+    }
+    const caution = card.caution || '';
+    const advice = card.advice || '';
+    div.innerHTML=`
+      <div class="rc-head">
+        <canvas class="rc-thumb" width="96" height="133"></canvas>
+        <div class="rc-headtext">
+          <div class="rc-q">${p.question||'손금'}</div>
+          <div class="rc-name serif">${card.name.replace('🔗','')}</div>
+          ${sub?`<div class="rc-sub">${sub}</div>`:''}
+          ${(card.specialTags||[]).length?`<div class="rc-special">${(card.specialTags||[]).map(t=>`<span class="rcsp-badge">★ ${t}</span>`).join('')}</div>`:''}
+        </div>
+      </div>
+      ${bodyText?`<div class="rc-body">${bodyText.split('\n\n').map(t=>`<p>${t.replace(/\n/g,'<br>')}</p>`).join('')}</div>`:''}
+      ${(caution||advice)?`<div class="rc-extra">
+        ${caution?`<div class="rc-note rc-caution"><span class="rc-note-label">조심하렴</span>${caution.replace(/\n/g,'<br>')}</div>`:''}
+        ${advice?`<div class="rc-note rc-advice"><span class="rc-note-label">이렇게 해보렴</span>${advice.replace(/\n/g,'<br>')}</div>`:''}
+      </div>`:''}`;
+    rl.appendChild(div);
+    const tcv=div.querySelector('.rc-thumb');
+    if(tcv) requestAnimationFrame(()=>renderCard(tcv,p.card));
+  });
+  // 키워드 칩
+  const kwBox=document.getElementById('summary-keywords');
+  if(kwBox){
+    const subs=picked.map(p=>extractSubtitle(p.card)).filter(Boolean);
+    kwBox.innerHTML=subs.map(s=>`<span class="kw">${cleanSub(s)}</span>`).join('');
+  }
+  // 결과 화면에서는 하단 트레이 숨김 (내용이 이미 다 보이므로)
+  const tray=document.getElementById('tray');
+  tray?.classList.remove('open'); tray?.classList.add('hidden');
+  window.scrollTo(0,0);
+}
+
+function restartLine(){
+  qIndex=0; picked=[]; updateTray();
+  const tray=document.getElementById('tray');
+  tray?.classList.remove('hidden'); tray?.classList.remove('open');
+  showQuestion();
+}
+
+// ===== 트레이 =====
+
+function toggleMenu(){ document.getElementById('menu-overlay').classList.toggle('open'); }
+let savedSelected=new Set(); // 합쳐 보기로 고른 저장 항목 id
+
+function showSaved(){
+  document.getElementById('menu-overlay').classList.remove('open'); // 메뉴가 열려 있으면 닫기 (토글 아님)
+  const list=loadSaved();
+  curLine=null; questions=[]; picked=[];
+  savedSelected=new Set();
+  document.getElementById('screen-main').style.display='none';
+  document.getElementById('topbar').style.display='none';
+  document.getElementById('tray')?.classList.add('hidden');
+  document.getElementById('screen-explore').style.display='flex';
+  document.getElementById('ex-title').textContent='저장한 손금';
+  document.getElementById('ex-step').textContent=list.length+'개';
+  const pf2=document.getElementById('ex-progress-fill');
+  if(pf2) pf2.style.width='0%';
+  const body=document.getElementById('ex-body');
+  if(!list.length){
+    body.innerHTML=`<div class="question">아직 저장한 손금이 없구나</div>
+      <div class="q-hint">손금을 풀이한 뒤 「결과 저장」을 누르면 여기 모인단다</div>
+      <div class="nav-row"><button class="nav-btn primary" onclick="goMain()">손금 보러 가기</button></div>`;
+    window.scrollTo(0,0); return;
+  }
+  body.innerHTML=`<div class="question" style="margin-bottom:6px;">저장한 손금 풀이</div>
+    ${list.length>=2?`<div class="q-hint" style="margin-bottom:14px;">합쳐 보고 싶은 손금을 골라 「합쳐 보기」를 눌러보렴</div>`:''}
+    <div id="saved-list"></div>
+    ${list.length>=2?`<button class="nav-btn save-btn" id="combine-btn" onclick="showCombined()" style="width:100%;margin-bottom:10px;opacity:.5;pointer-events:none;">✦ 고른 손금 합쳐 보기 (0)</button>`:''}
+    <div class="nav-row" style="margin-top:8px;"><button class="nav-btn primary" onclick="goMain()">처음으로</button></div>`;
+  const box=document.getElementById('saved-list');
+  list.forEach(entry=>{
+    const cards=entry.cardIds.map(id=>APP_DATA.cards[id]).filter(Boolean);
+    const d=new Date(entry.date);
+    const dateStr=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+    const totalScores=(entry.scores&&Object.keys(entry.scores).length)?entry.scores:sumScores(cards);
+    const gaugeHTML=buildGaugeHTML(totalScores);
+    const specialHTML=buildSpecialHTML(cards);
+  const mbtiHTML=buildMbtiHTML(cards);
+    const div=document.createElement('div');
+    div.style.cssText='background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;';
+    div.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        ${list.length>=2?`<input type="checkbox" class="saved-cb" data-id="${entry.id}" onchange="toggleSavedSelect('${entry.id}',this)" style="width:18px;height:18px;accent-color:var(--gold);flex-shrink:0;cursor:pointer;">`:''}
+        <div class="serif" style="font-size:15px;font-weight:700;color:var(--gold2);">${entry.line}</div>
+        <div style="font-size:11px;color:var(--text2);">${dateStr}</div>
+        <button class="picked-del" style="margin-left:auto;position:static;" onclick="deleteSaved('${entry.id}')">×</button>
+      </div>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:8px;">
+        ${cards.map(()=>'<canvas width="96" height="133" style="flex-shrink:0;width:72px;aspect-ratio:648/900;background:#e8e2d6;border-radius:8px;border:1px solid var(--line);"></canvas>').join('')}
+      </div>
+      ${entry.summary?`<div style="font-size:12.5px;line-height:1.7;color:var(--text);background:var(--bg3);padding:10px 12px;border-radius:10px;border-left:2px solid var(--gold);margin-bottom:10px;">${entry.summary}</div>`:''}
+      ${gaugeHTML}
+      ${specialHTML}
+      ${mbtiHTML}`;
+    box.appendChild(div);
+    const cvs=div.querySelectorAll('canvas');
+    cards.forEach((c,i)=>{ if(cvs[i]) requestAnimationFrame(()=>renderCard(cvs[i],c)); });
+  });
+  window.scrollTo(0,0);
+}
+
+// 합쳐 보기 선택 토글
+function toggleSavedSelect(id,el){
+  if(el.checked) savedSelected.add(id); else savedSelected.delete(id);
+  const btn=document.getElementById('combine-btn');
+  if(btn){
+    const n=savedSelected.size;
+    btn.textContent=`✦ 고른 손금 합쳐 보기 (${n})`;
+    if(n>=2){ btn.style.opacity='1'; btn.style.pointerEvents='auto'; }
+    else { btn.style.opacity='.5'; btn.style.pointerEvents='none'; }
+  }
+}
+
+// 고른 저장 항목들을 하나로 합쳐 보기
+function showCombined(){
+  const list=loadSaved();
+  const chosen=list.filter(e=>savedSelected.has(e.id));
+  if(chosen.length<2){ alert('두 개 이상 골라야 합칠 수 있단다.'); return; }
+  // 합칠 카드 전부 모으기 (중복 제거)
+  const seen=new Set();
+  const allCardObjs=[];
+  const lineNames=[];
+  chosen.forEach(e=>{
+    lineNames.push(e.line);
+    e.cardIds.forEach(id=>{
+      if(seen.has(id)) return;
+      seen.add(id);
+      const c=APP_DATA.cards[id];
+      if(c) allCardObjs.push(c);
+    });
+  });
+  // 합산 점수
+  const totalScores=sumScores(allCardObjs);
+  const gaugeHTML=buildGaugeHTML(totalScores);
+  // 합친 총평: 게이지 합산 점수의 구간별 할머니 멘트를 조합 (점수가 클수록 의미가 강조됨)
+  const gaugeSummary=buildGaugeSummary(totalScores);
+  // 곁들임: 고른 손금들의 부제 요약(키워드성)도 함께
+  const subSummary=buildSummary(allCardObjs.map(c=>({card:c})));
+  const combinedSummary=[gaugeSummary, subSummary].filter(Boolean).join('<br><br>');
+  const specialHTML=buildSpecialHTML(allCardObjs);
+  const mbtiHTML=buildMbtiHTML(allCardObjs);
+
+  document.getElementById('ex-title').textContent='손금 합쳐 보기';
+  document.getElementById('ex-step').textContent=chosen.length+'개 선';
+  const pf=document.getElementById('ex-progress-fill'); if(pf) pf.style.width='100%';
+  const body=document.getElementById('ex-body');
+  body.innerHTML=`<div class="question">${lineNames.join(' · ')} 합본</div>
+    <div class="q-hint">${chosen.length}가지 손금을 한데 모아 본 게란다 (손금 ${allCardObjs.length}개)</div>
+    <div class="result-hand"><canvas id="combined-canvas" width="324" height="450"></canvas>
+      <div class="result-hand-label">합쳐 본 내 손금</div></div>
+    ${gaugeHTML}
+    ${specialHTML}
+    ${mbtiHTML}
+    ${combinedSummary?`<div class="summary-box">
+      <div class="summary-title">✦ 할머니의 총평${halmoniMini()}</div>
+      <div class="summary-text">${combinedSummary}</div>
+    </div>`:''}
+    <div id="combined-list"></div>
+    <div class="nav-row" style="margin-top:8px;">
+      <button class="nav-btn" onclick="showSaved()">‹ 저장 목록</button>
+      <button class="nav-btn primary" onclick="goMain()">처음으로</button>
+    </div>`;
+  // 손 그림에 전체 카드 겹쳐 그리기
+  const ccv=document.getElementById('combined-canvas');
+  const _qmap={}; chosen.forEach(e=>{ (e.cardIds||[]).forEach((id,i)=>{ if(!(id in _qmap)) _qmap[id]=(e.questions||[])[i]||''; }); });
+  if(ccv) requestAnimationFrame(()=>renderMerged(ccv, allCardObjs.map(c=>({card:c, question:_qmap[c.id]||''}))));
+  // 카드별 풀이 (5단)
+  const cl=document.getElementById('combined-list');
+  allCardObjs.forEach(card=>{
+    const div=document.createElement('div');
+    div.className='result-card';
+    const sub=card.subtitle||extractSubtitle(card);
+    const bodyText=card.body|| (card.texts||[]).filter(t=>t).join('\n\n');
+    div.innerHTML=`
+      <div class="rc-head">
+        <canvas class="rc-thumb" width="96" height="133"></canvas>
+        <div class="rc-headtext">
+          <div class="rc-name serif">${card.name.replace('🔗','')}</div>
+          ${sub?`<div class="rc-sub">${sub}</div>`:''}
+          ${(card.specialTags||[]).length?`<div class="rc-special">${(card.specialTags||[]).map(t=>`<span class="rcsp-badge">★ ${t}</span>`).join('')}</div>`:''}
+        </div>
+      </div>
+      ${bodyText?`<div class="rc-body">${bodyText.split('\n\n').map(t=>`<p>${t.replace(/\n/g,'<br>')}</p>`).join('')}</div>`:''}
+      ${(card.caution||card.advice)?`<div class="rc-extra">
+        ${card.caution?`<div class="rc-note rc-caution"><span class="rc-note-label">조심하렴</span>${card.caution.replace(/\n/g,'<br>')}</div>`:''}
+        ${card.advice?`<div class="rc-note rc-advice"><span class="rc-note-label">이렇게 해보렴</span>${card.advice.replace(/\n/g,'<br>')}</div>`:''}
+      </div>`:''}`;
+    cl.appendChild(div);
+    const tcv=div.querySelector('.rc-thumb');
+    if(tcv) requestAnimationFrame(()=>renderCard(tcv,card));
+  });
+  window.scrollTo(0,0);
+}
+function deleteSaved(id){
+  const list=loadSaved().filter(e=>e.id!==id);
+  persistSaved(list);
+  showSaved();
+}
+function showAbout(){ alert('스스로 찾는 내 손금\n\n자네 손금을 직접 찾아보는 앱이란다.\n자네 손금과 닮은 그림을 골라보면\n할머니가 하나씩 풀이를 들려준단다.'); }
+
+// ===== 트레이 제거됨 (no-op으로 호출부 에러 방지) =====
+function toggleTray(){}
+function updateTray(){}
+function removePicked(i){ if(i>=0) picked.splice(i,1); }
+
+// ===== 팝업 =====
+function openPopup(card){
+  document.getElementById('p-name').textContent=card.name.replace('🔗','');
+  document.getElementById('p-src').textContent=card.source?('p.'+card.source):'';
+  document.getElementById('p-tags').innerHTML='';
+  // 5단 필드 우선, 없으면 옛 texts
+  const sub=card.subtitle||extractSubtitle(card);
+  const bodyT=card.body|| (card.texts||[]).filter(t=>t).join('\n\n');
+  let html='';
+  if(sub) html+=`<div class="p-text">${sub}</div>`;
+  if(bodyT) html+=bodyT.split('\n\n').map(t=>`<div class="p-text sub">${t.replace(/\n/g,'<br>')}</div>`).join('');
+  if(card.caution) html+=`<div class="p-text sub" style="background:rgba(176,106,90,.12);border-left:2px solid #b06a5a;padding:9px 12px;border-radius:10px;margin-top:8px;"><b style="color:#d59585;font-size:11px;">조심하렴</b><br>${card.caution.replace(/\n/g,'<br>')}</div>`;
+  if(card.advice) html+=`<div class="p-text sub" style="background:rgba(212,175,90,.12);border-left:2px solid var(--gold);padding:9px 12px;border-radius:10px;margin-top:8px;"><b style="color:var(--gold2);font-size:11px;">이렇게 해보렴</b><br>${card.advice.replace(/\n/g,'<br>')}</div>`;
+  document.getElementById('p-texts').innerHTML=html;
+  document.getElementById('popup').classList.add('open');
+  const cv=document.getElementById('p-canvas');
+  requestAnimationFrame(()=>renderCard(cv,card));
+}
+function closePopup(){ document.getElementById('popup').classList.remove('open'); }
+
+setTimeout(()=>{ if(document.getElementById('loading').style.display!=='none' && (!APP_DATA.trees||!APP_DATA.trees.length)) loadDataThenInit(); },1800);
+</script>
+<!-- 앱인토스 배너 광고 모듈 (Vite가 import를 번들에 포함) -->
+<script type="module">
+  import { TossAds } from '@apps-in-toss/web-framework';
+
+  // ▼▼▼ 광고 ID 설정 ▼▼▼
+  // 개발/테스트(QR·샌드박스)에서는 반드시 테스트 ID를 쓰세요. 실제 ID로 테스트하면 제재 위험.
+  const TEST_AD_ID = 'ait-ad-test-banner-id';
+  const LIVE_AD_ID = 'ait.v2.live.e0010024060a419a';
+  // 출시 빌드: LIVE ID 사용 (검수 제출용)
+  const AD_GROUP_ID = LIVE_AD_ID;
+  // ▲▲▲ 광고 ID 설정 ▲▲▲
+
+  function showBannerArea(){ document.body.classList.add('ad-on'); }
+  function hideBannerArea(){
+    document.body.classList.remove('ad-on');
+    const el = document.getElementById('ad-banner');
+    if (el) el.style.display = 'none';
+  }
+
+  function initBanner(){
+    const container = document.getElementById('ad-banner');
+    if (!container) return;
+
+    // 지원 환경 확인 (토스앱 5.241.0 미만 / 토스앱 밖이면 미지원)
+    if (!TossAds || typeof TossAds.initialize !== 'function' ||
+        !TossAds.initialize.isSupported || !TossAds.initialize.isSupported()) {
+      hideBannerArea();
+      return;
+    }
+
+    TossAds.initialize({
+      callbacks: {
+        onInitialized: () => {
+          try {
+            const attached = TossAds.attachBanner(AD_GROUP_ID, container, {
+              theme: 'auto',
+              tone: 'blackAndWhite',
+              variant: 'expanded',
+              callbacks: {
+                onAdRendered: () => { showBannerArea(); },
+                onAdImpression: () => {},
+                onNoFill: () => { hideBannerArea(); },
+                onAdFailedToRender: () => { hideBannerArea(); },
+              },
+            });
+            window.__songgeumBanner = attached; // 디버그/정리용
+          } catch (e) {
+            console.error('attachBanner 실패:', e);
+            hideBannerArea();
+          }
+        },
+        onInitializationFailed: (err) => {
+          console.error('TossAds 초기화 실패:', err);
+          hideBannerArea();
+        },
+      },
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBanner);
+  } else {
+    initBanner();
+  }
+</script>
+
+</body>
+</html>
