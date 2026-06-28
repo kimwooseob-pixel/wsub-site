@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>주역 64괘 로또</title>
+<style>
+  :root { --cyan:#00ffff; --purple:#cc00ff; --gold:#ffd700; --green:#00ff00; --bg:#0a0a1a; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; background:var(--bg); }
+  body {
+    font-family:'Courier New',ui-monospace,monospace; color:#fff; min-height:100vh;
+    background:
+      radial-gradient(circle at 50% -10%, rgba(204,0,255,0.10), transparent 45%),
+      radial-gradient(circle at 0% 100%, rgba(0,255,255,0.07), transparent 40%),
+      var(--bg);
+    padding:18px 14px 40px; overflow-x:hidden;
+  }
+  .wrap { max-width:560px; margin:0 auto; }
+  header { text-align:center; margin-bottom:18px; }
+  .eyebrow { font-size:11px; letter-spacing:4px; color:var(--gold); opacity:.85; text-transform:uppercase; }
+  h1 { font-size:25px; margin:6px 0 2px; letter-spacing:1px; text-shadow:0 0 12px var(--gold),0 0 24px rgba(255,215,0,.35); }
+  .sub { font-size:12px; color:#a99; letter-spacing:1px; }
+  .card {
+    background:#0d0d2b; border:1px solid rgba(255,215,0,.22); border-radius:14px; padding:16px; margin-bottom:16px;
+    box-shadow:0 0 18px rgba(204,0,255,.10), inset 0 0 30px rgba(255,215,0,.03);
+  }
+  .label { font-size:12px; letter-spacing:2px; color:var(--gold); margin-bottom:12px; text-transform:uppercase; }
+
+  /* 동전 */
+  .coins { display:flex; justify-content:center; gap:16px; margin:6px 0 16px; height:54px; align-items:center; }
+  .coin {
+    width:46px; height:46px; border-radius:50%; border:2px solid var(--gold);
+    display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:bold;
+    background:radial-gradient(circle at 35% 30%, #2a2a16, #0d0d05); color:var(--gold);
+    box-shadow:0 0 12px rgba(255,215,0,.35);
+  }
+  /* 괘 (아래에서 위로 쌓임) */
+  .hexagram { display:flex; flex-direction:column-reverse; align-items:center; gap:7px; min-height:120px; justify-content:center; }
+  .gline { display:flex; gap:8px; height:11px; opacity:0; transition:opacity .3s; }
+  .gline.show { opacity:1; }
+  .seg { width:60px; height:11px; border-radius:2px; background:var(--cyan); box-shadow:0 0 10px var(--cyan); }
+  .gline.yin .seg { width:26px; }      /* 음: 끊긴 두 막대 */
+  .gline.yang .seg { width:60px; }     /* 양: 이어진 한 막대 (두번째 seg 숨김) */
+  .gline.yang .seg:nth-child(2) { display:none; }
+
+  .throw-btn {
+    width:100%; margin-top:4px; background:linear-gradient(180deg,#241a0a,#140d05);
+    border:1.5px solid var(--gold); color:#fff; border-radius:12px; padding:16px;
+    font-family:inherit; font-size:17px; font-weight:bold; letter-spacing:3px; cursor:pointer;
+    box-shadow:0 0 20px rgba(255,215,0,.3); text-shadow:0 0 10px var(--gold); transition:all .15s;
+  }
+  .throw-btn:active { transform:scale(.98); }
+  .throw-btn:disabled { opacity:.5; cursor:default; box-shadow:none; }
+
+  .hex-name { text-align:center; font-size:22px; color:var(--gold); text-shadow:0 0 12px rgba(255,215,0,.5); letter-spacing:2px; }
+  .hex-hanja { text-align:center; font-size:13px; color:#9ab; margin-top:2px; }
+  .hex-fortune { text-align:center; font-size:14px; color:#dde; line-height:1.7; margin:14px 4px; }
+
+  .balls { display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin:6px 0 4px; }
+  .ball {
+    width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:19px; font-weight:bold; color:var(--bg); background:var(--cyan);
+    box-shadow:0 0 14px var(--cyan); animation:pop .4s ease backwards;
+  }
+  .ball:nth-child(1){animation-delay:.05s}.ball:nth-child(2){animation-delay:.12s}
+  .ball:nth-child(3){animation-delay:.19s}.ball:nth-child(4){animation-delay:.26s}
+  .ball:nth-child(5){animation-delay:.33s}.ball:nth-child(6){animation-delay:.40s}
+  @keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+  .meta { text-align:center; font-size:12px; color:#9ab; letter-spacing:1px; margin-top:4px; }
+  .meta b { color:var(--gold); }
+  .save-btn {
+    width:100%; margin-top:14px; background:#0a0a2e; border:1.5px solid var(--gold); color:var(--gold);
+    border-radius:12px; padding:14px; font-family:inherit; font-size:15px; letter-spacing:2px; cursor:pointer;
+    box-shadow:0 0 16px rgba(255,215,0,.3); text-shadow:0 0 8px rgba(255,215,0,.6); transition:all .15s;
+  }
+  .save-btn:active { transform:scale(.98); }
+  .save-btn.done { border-color:var(--green); color:var(--green); box-shadow:0 0 16px rgba(0,255,0,.3); text-shadow:0 0 8px var(--green); }
+  .hidden { display:none !important; }
+  .toast {
+    position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#0d0d2b;
+    border:1px solid var(--gold); color:#fff; padding:12px 20px; border-radius:10px; font-size:13px;
+    letter-spacing:1px; box-shadow:0 0 18px rgba(255,215,0,.4); opacity:0; transition:opacity .25s; z-index:50;
+  }
+  .toast.show { opacity:1; }
+.ball.power{background:#ff2d55;color:#fff;box-shadow:0 0 14px #ff2d55,0 0 30px rgba(255,45,85,.5);}
+  .plus{color:#ff2d55;font-size:22px;font-weight:bold;align-self:center;text-shadow:0 0 8px #ff2d55;}
+  .balls{align-items:center;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">I Ching · 64 Hexagrams</div>
+      <h1>🀄 주역 64괘 로또</h1>
+      <div class="sub">동전을 여섯 번 던져 괘를 세우고 번호를 얻습니다</div>
+    </header>
+
+    <div class="card">
+      <div class="label">동전점</div>
+      <div class="coins" id="ichCoins"></div>
+      <div class="hexagram" id="ichHex"></div>
+      <button class="throw-btn" id="ichThrowBtn">동전 던지기</button>
+    </div>
+
+    <div class="card hidden" id="ichResultCard">
+      <div class="hex-name" id="ichName">-</div>
+      <div class="hex-hanja" id="ichHanja">-</div>
+      <div class="hex-fortune" id="ichFortune">-</div>
+      <div class="label">추천 번호</div>
+      <div class="balls" id="ichBalls"></div>
+      <div class="meta"><b id="ichRoundTxt">-</b> · 괘 기반 추출</div>
+      <button class="save-btn" id="ichSaveBtn">나의 번호에 저장</button>
+    </div>
+  </div>
+  <div class="toast" id="ichToast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===================================================================
+  // ===== [재사용 영역] 순수 로직 =====================================
+  // ===================================================================
+  var COLORS = { cyan:'#00ffff', purple:'#cc00ff', gold:'#ffd700', green:'#00ff00', bg:'#0a0a1a' };
+  var GAME_KEY = 'iching';
+  var STORAGE_KEY = '@devbrick/saved_lotto_numbers_v1';
+  var MAX_PER_TYPE = 100;
+
+  // binary(0~63) → King Wen 괘번호 (1~64). node로 전단사 검증 완료.
+  var BIN2KW = [2,24,7,19,15,36,46,11,16,51,40,54,62,55,32,34,8,3,29,60,39,63,48,5,45,17,47,58,31,49,28,43,23,27,4,41,52,22,18,26,35,21,64,38,56,30,50,14,20,42,59,61,53,37,57,9,12,25,6,10,33,13,44,1];
+
+  // 괘 데이터: "한글|한자|운세" (King Wen 1~64 순서)
+  var HEX = [
+    "중천건|重天乾|하늘의 기운이 가득하다. 강건하게 나아가면 크게 형통하리라.",
+    "중지곤|重地坤|땅처럼 너그럽게 품으면 만사가 순조롭다. 유순함이 곧 힘이다.",
+    "수뢰둔|水雷屯|시작의 어려움이 있으나 인내하면 싹이 튼다. 서두르지 말라.",
+    "산수몽|山水蒙|아직 어리고 미혹되니 배움을 청하라. 겸손이 길을 연다.",
+    "수천수|水天需|때를 기다리면 길하다. 조급함을 버리고 준비하라.",
+    "천수송|天水訟|다툼이 일어날 조짐이니 한 발 물러서라. 화해가 이롭다.",
+    "지수사|地水師|무리를 이끌 때다. 명분과 질서를 지키면 승리한다.",
+    "수지비|水地比|사람과 가까이하면 복이 온다. 좋은 인연을 맺어라.",
+    "풍천소축|風天小畜|작게 쌓이는 때다. 큰 욕심보다 꾸준함이 결실을 맺는다.",
+    "천택리|天澤履|범의 꼬리를 밟듯 조심히 행하면 위험도 비껴간다.",
+    "지천태|地天泰|하늘과 땅이 통하니 태평하다. 만사가 형통하는 길운이다.",
+    "천지비|天地否|기운이 막혀 답답한 때다. 무리하지 말고 때를 보라.",
+    "천화동인|天火同人|뜻 맞는 사람과 함께하면 큰일을 이룬다. 협력이 길하다.",
+    "화천대유|火天大有|크게 가지는 풍요의 때다. 베풀수록 더욱 빛난다.",
+    "지산겸|地山謙|겸손하면 끝이 좋다. 낮출수록 높아지는 군자의 길.",
+    "뇌지예|雷地豫|기쁨과 즐거움이 따른다. 준비된 자에게 흥이 온다.",
+    "택뢰수|澤雷隨|흐름을 따르면 순조롭다. 고집을 내려놓을 때다.",
+    "산풍고|山風蠱|묵은 일을 바로잡을 때다. 정성껏 고치면 새로워진다.",
+    "지택림|地澤臨|기운이 차오르며 다가오는 길운. 적극적으로 임하라.",
+    "풍지관|風地觀|넓게 살피고 관찰하라. 본보기가 되면 따르는 이가 많다.",
+    "화뢰서합|火雷噬嗑|장애를 깨물어 끊어내야 통한다. 결단이 필요하다.",
+    "산화비|山火賁|꾸미고 빛내는 때다. 내실과 겉모습의 조화가 길하다.",
+    "산지박|山地剝|깎이고 떨어지는 때다. 지키며 봄을 기다려라.",
+    "지뢰복|地雷復|돌아오는 봄, 다시 시작이다. 회복의 기운이 돈다.",
+    "천뢰무망|天雷无妄|꾸밈없이 정직하면 길하다. 헛된 욕심은 화를 부른다.",
+    "산천대축|山天大畜|크게 쌓아 기르는 때다. 실력을 비축하면 크게 쓰인다.",
+    "산뢰이|山雷頤|기르고 먹이는 때다. 말과 음식을 절제하면 복이 온다.",
+    "택풍대과|澤風大過|지나치게 무거우니 균형이 필요하다. 과욕을 경계하라.",
+    "중수감|重水坎|거듭된 험난함이나 진실하면 통한다. 마음을 굳게 가져라.",
+    "중화리|重火離|밝게 빛나는 때다. 바른 데 의지하면 형통하리라.",
+    "택산함|澤山咸|마음이 통하고 감응한다. 진실한 인연이 맺어진다.",
+    "뇌풍항|雷風恒|한결같이 지키면 길하다. 변치 않는 마음이 복을 부른다.",
+    "천산둔|天山遯|물러날 때를 아는 것이 지혜다. 잠시 피하면 이롭다.",
+    "뇌천대장|雷天大壯|기운이 크게 성하다. 바르게 쓰면 거칠 것이 없다.",
+    "화지진|火地晉|해가 떠오르듯 나아간다. 승진과 발전의 길운이다.",
+    "지화명이|地火明夷|밝음이 가려진 때다. 빛을 감추고 안을 다져라.",
+    "풍화가인|風火家人|집안이 화목하면 만사가 풀린다. 가까운 곳부터 살펴라.",
+    "화택규|火澤睽|어긋나고 등지는 때다. 작은 일부터 화합을 도모하라.",
+    "수산건|水山蹇|앞이 막혀 어려우나 도움을 구하면 길하다. 멈춰 살펴라.",
+    "뇌수해|雷水解|얽힌 것이 풀린다. 묵은 근심이 사라지는 해방의 때.",
+    "산택손|山澤損|덜어내면 도리어 채워진다. 비울 줄 아는 지혜가 길하다.",
+    "풍뢰익|風雷益|더하고 보태는 때다. 베풀면 크게 이로워진다.",
+    "택천쾌|澤天夬|결단으로 끊어낼 때다. 미루지 말고 바르게 처리하라.",
+    "천풍구|天風姤|뜻밖의 만남이 있다. 작은 기미를 살펴 대비하라.",
+    "택지췌|澤地萃|사람과 재물이 모인다. 정성으로 모으면 크게 형통한다.",
+    "지풍승|地風升|차근차근 오르는 때다. 꾸준히 나아가면 높이 이른다.",
+    "택수곤|澤水困|곤궁한 때이나 뜻을 지키면 통한다. 말보다 행동으로.",
+    "수풍정|水風井|우물처럼 변함없이 베풀라. 근원을 지키면 마르지 않는다.",
+    "택화혁|澤火革|바꾸고 혁신할 때다. 때에 맞는 변화가 크게 길하다.",
+    "화풍정|火風鼎|새것을 이루는 솥의 때다. 안정 속에 큰일을 이룬다.",
+    "중뢰진|重雷震|우레가 거듭 울린다. 놀라되 정신을 지키면 길하다.",
+    "중산간|重山艮|멈출 때 멈추면 허물이 없다. 고요함 속에 답이 있다.",
+    "풍산점|風山漸|점차 나아가는 때다. 순서를 지키면 끝이 아름답다.",
+    "뇌택귀매|雷澤歸妹|서두른 인연은 탈이 난다. 분수를 지켜 신중하라.",
+    "뇌화풍|雷火豐|풍성하게 가득 찬 때다. 밝을 때 그늘을 대비하라.",
+    "화산려|火山旅|나그네처럼 떠도는 때다. 처신을 바르게 하면 무탈하다.",
+    "중풍손|重風巽|부드럽게 따르고 스며든다. 겸손히 청하면 통한다.",
+    "중택태|重澤兌|기쁨이 거듭되는 때다. 진실한 즐거움이 복을 부른다.",
+    "풍수환|風水渙|흩어진 것을 다시 모은다. 마음을 합치면 위기를 넘는다.",
+    "수택절|水澤節|절제하면 형통한다. 마디를 지켜 지나치지 말라.",
+    "풍택중부|風澤中孚|마음의 믿음이 통한다. 진실하면 멀리까지 미친다.",
+    "뇌산소과|雷山小過|작은 일은 되나 큰일은 무리다. 분수껏 처신하라.",
+    "수화기제|水火既濟|이미 이룬 때다. 방심 말고 끝까지 마무리하라.",
+    "화수미제|火水未濟|아직 이루지 못했으나 가능성은 크다. 신중히 건너라."
+  ];
+
+  // 동전 3개(앞=1) → 효 (양=1, 음=0). 앞면 수가 홀수면 양.
+  function lineFromCoins(coins) {
+    var heads = 0; for (var i = 0; i < coins.length; i++) heads += coins[i] ? 1 : 0;
+    return heads % 2;
+  }
+  // 효 6개(아래→위) → 괘번호(1~64)
+  function hexFromLines(lines) {
+    var lower = lines[0] + lines[1] * 2 + lines[2] * 4;
+    var upper = lines[3] + lines[4] * 2 + lines[5] * 4;
+    return BIN2KW[lower + upper * 8];
+  }
+  // 괘번호 → 데이터 {name, hanja, fortune}
+  function hexInfo(num) {
+    var parts = HEX[num - 1].split('|');
+    return { num: num, name: parts[0], hanja: parts[1], fortune: parts[2] };
+  }
+
+  function makeRng(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s |= 0; s = (s + 0x6D2B79F5) | 0;
+      var t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function pickPowerball(rng) {
+    var wp = {}, white = [];
+    while (white.length < 6) { var n = 1 + Math.floor(rng() * 45); if (!wp[n]) { wp[n] = true; white.push(n); } }
+    white.sort(function (a, b) { return a - b; });
+    return { white: white, power: 0 };
+  }
+  function makeSavedEntry(numbers, powerball, nextRound, nowMs, id) {
+    return { id: id, savedAt: new Date(nowMs).toISOString(), round: nextRound > 0 ? nextRound : 0, numbers: numbers.slice(), powerball: powerball, matchCount: 0, type: GAME_KEY, source: GAME_KEY };
+  }
+  function isDuplicate(savedArr, numbers, powerball, type) {
+    var key = numbers.slice().sort(function (a, b) { return a - b; }).join(',') + '|' + powerball;
+    for (var i = 0; i < savedArr.length; i++) {
+      var e = savedArr[i];
+      if (e && e.type === type && Array.isArray(e.numbers)) {
+        var ek = e.numbers.slice().sort(function (a, b) { return a - b; }).join(',') + '|' + (e.powerball || 0);
+        if (ek === key) return true;
+      }
+    }
+    return false;
+  }
+  function trimSavedByType(arr, maxPerType) {
+    var groups={}; for(var i=0;i<arr.length;i++){var t=arr[i].type||'_';(groups[t]=groups[t]||[]).push(arr[i]);}
+    var out=[]; Object.keys(groups).forEach(function(t){
+      var g=groups[t].slice().sort(function(a,b){return a.savedAt<b.savedAt?-1:(a.savedAt>b.savedAt?1:0);});
+      if(g.length>maxPerType) g=g.slice(g.length-maxPerType); out=out.concat(g); });
+    out.sort(function(a,b){return a.savedAt<b.savedAt?-1:(a.savedAt>b.savedAt?1:0);}); return out;
+  }
+  function parseMaxRound(json) {
+    var mx=0; if(json&&typeof json==='object') Object.keys(json).forEach(function(k){var r=parseInt(k,10);if(!isNaN(r)&&r>mx)mx=r;}); return mx;
+  }
+
+  // ===================================================================
+  // ===== [HTML 전용] 화면/애니메이션/이벤트/저장/fetch ===============
+  // ===================================================================
+  var FIREBASE_URL = 'https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app';
+  var el = {};
+  var state = { lines: [], numbers: [], hex: null, nextRound: 0, finished: false, busy: false };
+
+  function genId(p) { return p + '-' + Date.now() + '_' + Math.random().toString(36).slice(2, 10); }
+
+  function bindElements() {
+    el.coins = document.getElementById('ichCoins');
+    el.hex = document.getElementById('ichHex');
+    el.throwBtn = document.getElementById('ichThrowBtn');
+    el.resultCard = document.getElementById('ichResultCard');
+    el.name = document.getElementById('ichName');
+    el.hanja = document.getElementById('ichHanja');
+    el.fortune = document.getElementById('ichFortune');
+    el.balls = document.getElementById('ichBalls');
+    el.roundTxt = document.getElementById('ichRoundTxt');
+    el.saveBtn = document.getElementById('ichSaveBtn');
+    el.toast = document.getElementById('ichToast');
+  }
+  function showToast(msg) { el.toast.textContent=msg; el.toast.classList.add('show'); setTimeout(function(){el.toast.classList.remove('show');},1800); }
+
+  function buildCoins() {
+    el.coins.innerHTML = '';
+    el.coinEls = [];
+    for (var i = 0; i < 3; i++) {
+      var c = document.createElement('div'); c.className = 'coin'; c.textContent = '?';
+      el.coins.appendChild(c); el.coinEls.push(c);
+    }
+  }
+  function buildHexSlots() {
+    el.hex.innerHTML = '';
+    el.lineEls = [];
+    for (var i = 0; i < 6; i++) {
+      var ln = document.createElement('div'); ln.className = 'gline';
+      ln.innerHTML = '<div class="seg"></div><div class="seg"></div>';
+      el.hex.appendChild(ln); el.lineEls.push(ln);
+    }
+  }
+
+  // 한 효 던지기: 동전 3개 회전 애니메이션 후 효 확정
+  function throwLine(idx, done) {
+    var coins = [Math.random() < 0.5 ? 1 : 0, Math.random() < 0.5 ? 1 : 0, Math.random() < 0.5 ? 1 : 0]; // ← 비순수
+    var start = null, DURATION = 600;
+    function frame(ts) {
+      if (!start) start = ts;
+      var p = Math.min((ts - start) / DURATION, 1);
+      el.coinEls.forEach(function (c, k) {
+        if (p < 1) c.textContent = (Math.floor((ts / 60) + k) % 2) ? '陽' : '陰';
+        else c.textContent = coins[k] ? '陽' : '陰';
+      });
+      if (p < 1) requestAnimationFrame(frame);
+      else {
+        var line = lineFromCoins(coins);            // ← 순수
+        state.lines.push(line);
+        var ln = el.lineEls[idx];
+        ln.classList.add('show', line ? 'yang' : 'yin');
+        done();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function fetchNextRound(cb) {
+    fetch(FIREBASE_URL + '/winningNumbers.json')
+      .then(function (r) { return r.json(); })
+      .then(function (j) { cb(parseMaxRound(j) + 1); })
+      .catch(function () { cb(0); });
+  }
+
+  function finish() {
+    var num = hexFromLines(state.lines);            // ← 순수
+    var info = hexInfo(num);                         // ← 순수
+    var rng = makeRng((num * 2654435761) >>> 0);     // ← 순수 RNG (괘번호 시드)
+    var __pbr = pickPowerball(rng); var numbers = __pbr.white; var power = __pbr.power;                  // ← 순수
+    state.hex = info; state.numbers = numbers; state.power = power; state.finished = true;
+
+    el.name.textContent = info.num + '. ' + info.name;
+    el.hanja.textContent = info.hanja;
+    el.fortune.textContent = info.fortune;
+    el.balls.innerHTML = '';
+    numbers.forEach(function (n) { var d = document.createElement('div'); d.className = 'ball'; d.textContent = n; el.balls.appendChild(d); });
+    el.saveBtn.textContent = '나의 번호에 저장'; el.saveBtn.className = 'save-btn'; el.saveBtn.disabled = false;
+    el.resultCard.classList.remove('hidden');
+    el.throwBtn.disabled = false; el.throwBtn.textContent = '다시 던지기';
+
+    el.roundTxt.textContent = '한국 로또 방식';
+  }
+
+  function startThrow() {
+    if (state.busy) return;
+    state.busy = true; state.lines = []; state.finished = false;
+    el.resultCard.classList.add('hidden');
+    el.throwBtn.disabled = true; el.throwBtn.textContent = '점치는 중...';
+    buildCoins(); buildHexSlots();
+
+    var i = 0;
+    function next() {
+      if (i < 6) { throwLine(i, function () { i++; setTimeout(next, 180); }); }
+      else { state.busy = false; finish(); }
+    }
+    next();
+  }
+
+  function loadSaved() { try { var raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch (e) { return []; } }
+  function saveResult() {
+    if (!state.finished) return;
+    var saved = loadSaved();
+    if (isDuplicate(saved, state.numbers, 0, GAME_KEY)) { showToast('이미 저장된 번호예요'); return; }
+    var entry = makeSavedEntry(state.numbers, 0, state.nextRound, Date.now(), genId(GAME_KEY));
+    saved.push(entry);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimSavedByType(saved, MAX_PER_TYPE)));
+      el.saveBtn.textContent = '✓ 저장 완료'; el.saveBtn.className = 'save-btn done'; el.saveBtn.disabled = true;
+      showToast('나의 번호에 저장했어요');
+    } catch (e) { showToast('저장 공간이 부족해요'); }
+  }
+
+  function startIchingApp() {
+    bindElements(); buildCoins(); buildHexSlots();
+    el.throwBtn.onclick = startThrow;
+    el.saveBtn.onclick = saveResult;
+  }
+  window.startIchingApp = startIchingApp;
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startIchingApp);
+  else startIchingApp();
+})();
+</script>
+</body>
+</html>

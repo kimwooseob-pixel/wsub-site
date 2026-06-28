@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>몬테카를로 파워볼</title>
+<style>
+  :root { --cyan:#00ffff; --purple:#cc00ff; --gold:#ffd700; --green:#00ff00; --red:#ff2d55; --bg:#0a0a1a; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body {
+    font-family: 'Courier New', ui-monospace, monospace; color: #fff; min-height: 100vh;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(0,255,255,0.08), transparent 40%),
+      radial-gradient(circle at 80% 100%, rgba(204,0,255,0.08), transparent 40%),
+      var(--bg);
+    padding: 18px 14px 40px; overflow-x: hidden;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 18px; }
+  .eyebrow { font-size: 11px; letter-spacing: 4px; color: var(--cyan); opacity: 0.8; text-transform: uppercase; }
+  h1 { font-size: 26px; margin: 6px 0 2px; letter-spacing: 1px; color:#fff; text-shadow: 0 0 12px var(--cyan), 0 0 24px rgba(0,255,255,0.4); }
+  .sub { font-size: 12px; color: #8aa; letter-spacing: 1px; }
+  .card { background:#0d0d2b; border:1px solid rgba(0,255,255,0.25); border-radius:14px; padding:16px; margin-bottom:16px; box-shadow: 0 0 18px rgba(0,255,255,0.12), inset 0 0 30px rgba(0,255,255,0.03); }
+  .label { font-size: 12px; letter-spacing: 2px; color: var(--cyan); margin-bottom: 10px; text-transform: uppercase; }
+  .opts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .opt { background:#07071a; border:1px solid rgba(0,255,255,0.3); color:#cdeeee; border-radius:10px; padding:14px 8px; font-family:inherit; font-size:15px; cursor:pointer; transition:all .15s ease; letter-spacing:1px; }
+  .opt .n { display:block; font-size: 11px; color:#789; margin-top:3px; letter-spacing:0; }
+  .opt.active { border-color: var(--cyan); color:#fff; box-shadow: 0 0 14px rgba(0,255,255,0.5), inset 0 0 14px rgba(0,255,255,0.15); text-shadow: 0 0 8px var(--cyan); }
+  .opt:active { transform: scale(0.97); }
+  .run-btn { width:100%; margin-top:14px; background: linear-gradient(180deg,#0a0a2e,#07071a); border:1.5px solid var(--cyan); color:#fff; border-radius:12px; padding:16px; font-family:inherit; font-size:17px; font-weight:bold; letter-spacing:3px; cursor:pointer; box-shadow: 0 0 20px rgba(0,255,255,0.35); text-shadow: 0 0 10px var(--cyan); transition:all .15s ease; }
+  .run-btn:active { transform: scale(0.98); }
+  .run-btn:disabled { opacity:0.5; border-color:#345; box-shadow:none; text-shadow:none; cursor:default; }
+  .prog-wrap { margin-top: 4px; }
+  .prog-info { display:flex; justify-content: space-between; font-size: 12px; color:#9bd; margin-bottom: 8px; letter-spacing:1px; }
+  .prog-info .pct { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); font-weight: bold; }
+  .prog-bar { height: 14px; background:#07071a; border:1px solid rgba(0,255,255,0.25); border-radius: 8px; overflow:hidden; }
+  .prog-fill { height:100%; width:0%; background: linear-gradient(90deg, var(--purple), var(--cyan)); box-shadow: 0 0 16px var(--cyan); transition: width 0.08s linear; }
+  .chart { display:flex; align-items: flex-end; gap: 1px; height: 120px; margin-top: 6px; padding: 6px 4px 0; border-radius: 8px; background: rgba(0,0,0,0.25); }
+  .bar { flex: 1 1 0; background: rgba(0,255,255,0.35); border-radius: 1px 1px 0 0; min-height: 1px; transition: height 0.1s linear; }
+  .bar.top { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+  .chart-cap { font-size: 10px; color:#678; text-align:center; margin-top:6px; letter-spacing:1px; }
+  .balls { display:flex; justify-content: center; align-items:center; flex-wrap: wrap; gap: 9px; margin: 10px 0 4px; }
+  .ball { width: 44px; height: 44px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size: 18px; font-weight: bold; color: var(--bg); background: var(--gold); box-shadow: 0 0 14px var(--gold), 0 0 28px rgba(255,215,0,0.4); animation: pop 0.4s ease backwards; }
+  .ball.power { background: var(--red); color:#fff; box-shadow: 0 0 14px var(--red), 0 0 30px rgba(255,45,85,0.5); }
+  .plus { color: var(--red); font-size: 22px; font-weight: bold; align-self: center; text-shadow: 0 0 8px var(--red); }
+  @keyframes pop { from { transform: scale(0); opacity:0; } to { transform: scale(1); opacity:1; } }
+  .pbcap { text-align:center; font-size:11px; letter-spacing:1px; margin-top:2px; }
+  .pbcap b { color: var(--red); }
+  .meta { text-align:center; font-size:12px; color:#9ab; letter-spacing:1px; margin-top:8px; }
+  .meta b { color: var(--cyan); }
+  .save-btn { width:100%; margin-top:14px; background:#0a0a2e; border:1.5px solid var(--gold); color: var(--gold); border-radius: 12px; padding: 14px; font-family: inherit; font-size: 15px; letter-spacing:2px; cursor:pointer; box-shadow: 0 0 16px rgba(255,215,0,0.3); text-shadow: 0 0 8px rgba(255,215,0,0.6); transition: all 0.15s ease; }
+  .save-btn:active { transform: scale(0.98); }
+  .save-btn.done { border-color: var(--green); color: var(--green); box-shadow: 0 0 16px rgba(0,255,0,0.3); text-shadow:0 0 8px var(--green); }
+  .hidden { display: none !important; }
+  .toast { position: fixed; left:50%; bottom: 28px; transform: translateX(-50%); background:#0d0d2b; border:1px solid var(--cyan); color:#fff; padding: 12px 20px; border-radius: 10px; font-size: 13px; letter-spacing:1px; box-shadow: 0 0 18px rgba(0,255,255,0.4); opacity:0; transition: opacity 0.25s; z-index: 50; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">Monte Carlo Engine</div>
+      <h1>🎲 몬테카를로 파워볼</h1>
+      <div class="sub">수백만 번의 시뮬레이션 · 번호 6개 (1~45)</div>
+    </header>
+
+    <div class="card">
+      <div class="label">시뮬레이션 횟수 선택</div>
+      <div class="opts" id="opts"></div>
+      <button class="run-btn" id="runBtn">시뮬레이션 시작</button>
+    </div>
+
+    <div class="card hidden" id="progCard">
+      <div class="label">시뮬레이션 진행 중</div>
+      <div class="prog-wrap">
+        <div class="prog-info">
+          <span id="progCount">0 / 0</span>
+          <span class="pct" id="progPct">0%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+      </div>
+      <div class="chart" id="chart"></div>
+      <div class="chart-cap">번호 1 → 45 실시간 출현 빈도 (상위 6개 금색)</div>
+    </div>
+
+    <div class="card hidden" id="resultCard">
+      <div class="label">추출된 번호 · 화이트 5 + 파워볼</div>
+      <div class="balls" id="balls"></div>
+      <div class="pbcap">빨간 공 = <b>파워볼</b></div>
+      <div class="meta">총 <b id="totalRuns">0</b>회 시뮬레이션 · <b id="roundTxt">-</b></div>
+      <button class="save-btn" id="saveBtn">나의 번호에 저장</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===================================================================
+  // ===== [재사용 영역] 순수 로직 (한국 로또 방식) ==================
+  //  - 입력 → 출력만. DOM/window/localStorage/fetch 접근 금지
+  //  - 시간/랜덤/id는 인자로 주입. Date.now/Math.random 직접 호출 금지
+  //  - 번호 6개(1~45, 중복없음)
+  // ===================================================================
+
+  var COLORS = { cyan:'#00ffff', purple:'#cc00ff', gold:'#ffd700', green:'#00ff00', red:'#ff2d55', bg:'#0a0a1a' };
+  var GAME_KEY = 'montecarlo';
+  var STORAGE_KEY = '@devbrick/saved_lotto_numbers_v1';
+  var MAX_PER_TYPE = 100;
+  var WHITE_MAX = 45, WHITE_PICK = 6, POWER_MAX = 1;
+
+  // 한 번의 시뮬레이션: 화이트 5개를 wPicked에 표시하고 파워볼 1개를 반환
+  function simulateOne(rng, wPicked) {
+    for (var k = 1; k <= WHITE_MAX; k++) wPicked[k] = false;
+    var c = 0;
+    while (c < WHITE_PICK) {
+      var n = 1 + Math.floor(rng() * WHITE_MAX);
+      if (!wPicked[n]) { wPicked[n] = true; c++; }
+    }
+    return 0;
+  }
+
+  // 배치 실행: whiteCounts(70)/powerCounts(27)에 누적 (순수: 인자만 변형)
+  function runBatch(whiteCounts, powerCounts, batchSize, rng) {
+    var wPicked = new Array(WHITE_MAX + 1);
+    for (var i = 0; i < batchSize; i++) {
+      var pb = simulateOne(rng, wPicked);
+      for (var n = 1; n <= WHITE_MAX; n++) if (wPicked[n]) whiteCounts[n] += 1;
+      powerCounts[pb] += 1;
+    }
+  }
+
+  // 화이트 출현수 → 상위 5개(정렬, 동률은 작은 번호 우선)
+  function getTopWhite(counts) {
+    var arr = [];
+    for (var n = 1; n <= WHITE_MAX; n++) arr.push({ n: n, c: counts[n] });
+    arr.sort(function (a, b) { return b.c - a.c || a.n - b.n; });
+    var out = [];
+    for (var i = 0; i < WHITE_PICK; i++) out.push(arr[i].n);
+    out.sort(function (a, b) { return a - b; });
+    return out;
+  }
+
+  // 파워볼 출현수 → 최다 1개(동률은 작은 번호)
+  function getTopPower(counts) {
+    var best = 1;
+    for (var n = 2; n <= POWER_MAX; n++) if (counts[n] > counts[best]) best = n;
+    return best;
+  }
+
+  // 저장 엔트리 생성 (시간/id 주입). numbers=화이트5, powerball 추가필드
+  function makeSavedEntry(numbers, powerball, nextRound, nowMs, id) {
+    return {
+      id: id,
+      savedAt: new Date(nowMs).toISOString(),
+      round: nextRound > 0 ? nextRound : 0,
+      numbers: numbers.slice(),
+      powerball: powerball,
+      matchCount: 0,
+      type: GAME_KEY,
+      source: GAME_KEY
+    };
+  }
+
+  // 같은 화이트조합 + 같은 파워볼이 이미 저장돼 있는지
+  function isDuplicate(savedArr, numbers, powerball, type) {
+    var key = numbers.slice().sort(function (a, b) { return a - b; }).join(',') + '|' + powerball;
+    for (var i = 0; i < savedArr.length; i++) {
+      var e = savedArr[i];
+      if (e && e.type === type && Array.isArray(e.numbers)) {
+        var ek = e.numbers.slice().sort(function (a, b) { return a - b; }).join(',') + '|' + (e.powerball || 0);
+        if (ek === key) return true;
+      }
+    }
+    return false;
+  }
+
+  // type별 상한 유지(각 maxPerType개, 오래된 것부터 버림)
+  function trimSavedByType(arr, maxPerType) {
+    var groups = {};
+    for (var i = 0; i < arr.length; i++) {
+      var t = arr[i].type || '_';
+      (groups[t] = groups[t] || []).push(arr[i]);
+    }
+    var out = [];
+    Object.keys(groups).forEach(function (t) {
+      var g = groups[t].slice().sort(function (a, b) {
+        return a.savedAt < b.savedAt ? -1 : (a.savedAt > b.savedAt ? 1 : 0);
+      });
+      if (g.length > maxPerType) g = g.slice(g.length - maxPerType);
+      out = out.concat(g);
+    });
+    out.sort(function (a, b) {
+      return a.savedAt < b.savedAt ? -1 : (a.savedAt > b.savedAt ? 1 : 0);
+    });
+    return out;
+  }
+
+  // ===================================================================
+  // ===== [HTML 전용] 화면/이벤트/저장 ===============================
+  // ===================================================================
+
+  var SIM_OPTIONS = [
+    { label: '10만 회', value: 100000 },
+    { label: '100만 회', value: 1000000 },
+    { label: '500만 회', value: 5000000 },
+    { label: '1000만 회', value: 10000000 }
+  ];
+
+  var el = {};
+  var state = {
+    selected: 1000000, running: false, finished: false,
+    whiteCounts: null, powerCounts: null,
+    topWhite: [], topPower: 0, nextRound: 0, bars: []
+  };
+
+  function genId(p) {
+    return p + '-' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+  }
+
+  function bindElements() {
+    el.opts = document.getElementById('opts');
+    el.runBtn = document.getElementById('runBtn');
+    el.progCard = document.getElementById('progCard');
+    el.progCount = document.getElementById('progCount');
+    el.progPct = document.getElementById('progPct');
+    el.progFill = document.getElementById('progFill');
+    el.chart = document.getElementById('chart');
+    el.resultCard = document.getElementById('resultCard');
+    el.balls = document.getElementById('balls');
+    el.totalRuns = document.getElementById('totalRuns');
+    el.roundTxt = document.getElementById('roundTxt');
+    el.saveBtn = document.getElementById('saveBtn');
+    el.toast = document.getElementById('toast');
+  }
+
+  function fmt(n) { return n.toLocaleString('en-US'); }
+
+  function showToast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    setTimeout(function () { el.toast.classList.remove('show'); }, 1800);
+  }
+
+  function renderOptions() {
+    el.opts.innerHTML = '';
+    SIM_OPTIONS.forEach(function (o) {
+      var b = document.createElement('button');
+      b.className = 'opt' + (o.value === state.selected ? ' active' : '');
+      b.innerHTML = o.label + '<span class="n">' + fmt(o.value) + '</span>';
+      b.onclick = function () {
+        if (state.running) return;
+        state.selected = o.value;
+        renderOptions();
+      };
+      el.opts.appendChild(b);
+    });
+  }
+
+  function buildChart() {
+    el.chart.innerHTML = '';
+    state.bars = [];
+    for (var n = 1; n <= WHITE_MAX; n++) {
+      var bar = document.createElement('div');
+      bar.className = 'bar';
+      el.chart.appendChild(bar);
+      state.bars.push(bar);
+    }
+  }
+
+  function renderChart(counts, topSet) {
+    var max = 1;
+    for (var n = 1; n <= WHITE_MAX; n++) if (counts[n] > max) max = counts[n];
+    for (var i = 0; i < WHITE_MAX; i++) {
+      var num = i + 1;
+      var h = Math.round((counts[num] / max) * 100);
+      var bar = state.bars[i];
+      bar.style.height = h + '%';
+      bar.className = topSet[num] ? 'bar top' : 'bar';
+    }
+  }
+
+  function renderResult() {
+    el.balls.innerHTML = '';
+    var delay = 0.05;
+    state.topWhite.forEach(function (n) {
+      var d = document.createElement('div');
+      d.className = 'ball';
+      d.textContent = n;
+      d.style.animationDelay = delay.toFixed(2) + 's';
+      el.balls.appendChild(d);
+      delay += 0.07;
+    });
+
+    el.totalRuns.textContent = fmt(state.selected);
+    el.roundTxt.textContent = '한국 로또 방식';
+    el.saveBtn.textContent = '나의 번호에 저장';
+    el.saveBtn.className = 'save-btn';
+    el.saveBtn.disabled = false;
+    el.resultCard.classList.remove('hidden');
+  }
+
+  function runSimulation() {
+    if (state.running) return;
+    state.running = true;
+    state.finished = false;
+    el.runBtn.disabled = true;
+    el.runBtn.textContent = '준비 중...';
+    el.resultCard.classList.add('hidden');
+    el.progCard.classList.remove('hidden');
+    buildChart();
+
+    var total = state.selected;
+    var whiteCounts = new Array(WHITE_MAX + 1).fill(0);
+    var powerCounts = new Array(POWER_MAX + 1).fill(0);
+    state.whiteCounts = whiteCounts;
+    state.powerCounts = powerCounts;
+    state.nextRound = 0;
+
+    var done = 0;
+    var chunk = Math.min(250000, Math.max(20000, Math.floor(total / 40)));
+    var rng = Math.random; // ← 비순수 rng를 순수 함수에 주입
+
+    el.runBtn.textContent = '시뮬레이션 중...';
+
+    function step() {
+      var thisBatch = Math.min(chunk, total - done);
+      runBatch(whiteCounts, powerCounts, thisBatch, rng); // ← 순수
+      done += thisBatch;
+
+      var pct = Math.floor((done / total) * 100);
+      el.progFill.style.width = pct + '%';
+      el.progPct.textContent = pct + '%';
+      el.progCount.textContent = fmt(done) + ' / ' + fmt(total);
+
+      var topWhite = getTopWhite(whiteCounts); // ← 순수
+      var topSet = {};
+      topWhite.forEach(function (n) { topSet[n] = true; });
+      renderChart(whiteCounts, topSet);
+
+      if (done < total) {
+        requestAnimationFrame(step);
+      } else {
+        state.topWhite = topWhite;
+        state.topPower = 0; // ← 순수
+        state.running = false;
+        state.finished = true;
+        el.runBtn.disabled = false;
+        el.runBtn.textContent = '다시 시뮬레이션';
+        renderResult();
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  function loadSaved() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return []; }
+  }
+
+  function saveResult() {
+    if (!state.finished || !state.topWhite.length) return;
+    var saved = loadSaved();
+    if (isDuplicate(saved, state.topWhite, 0, GAME_KEY)) { // ← 순수
+      showToast('이미 저장된 번호예요');
+      return;
+    }
+    var entry = makeSavedEntry(state.topWhite, 0, state.nextRound, Date.now(), genId(GAME_KEY)); // ← 순수 + 주입
+    saved.push(entry);
+    var trimmed = trimSavedByType(saved, MAX_PER_TYPE); // ← 순수
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
+      el.saveBtn.textContent = '✓ 저장 완료';
+      el.saveBtn.className = 'save-btn done';
+      el.saveBtn.disabled = true;
+      showToast('나의 번호에 저장했어요');
+    } catch (e) {
+      showToast('저장 공간이 부족해요');
+    }
+  }
+
+  function startMonteCarloApp() {
+    bindElements();
+    renderOptions();
+    el.runBtn.onclick = runSimulation;
+    el.saveBtn.onclick = saveResult;
+  }
+
+  window.startMonteCarloApp = startMonteCarloApp;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startMonteCarloApp);
+  } else {
+    startMonteCarloApp();
+  }
+})();
+</script>
+</body>
+</html>

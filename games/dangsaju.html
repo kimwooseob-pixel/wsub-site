@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>당사주 로또</title>
+<style>
+  :root { --cyan:#00ffff; --purple:#cc00ff; --gold:#ffd700; --green:#00ff00; --bg:#0a0a1a; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; padding:0; background:var(--bg); }
+  body {
+    font-family:'Courier New',ui-monospace,monospace; color:#fff; min-height:100vh;
+    background:
+      radial-gradient(circle at 50% -5%, rgba(255,215,0,0.10), transparent 42%),
+      radial-gradient(circle at 0% 100%, rgba(204,0,255,0.07), transparent 40%),
+      var(--bg);
+    padding:18px 14px 40px; overflow-x:hidden;
+  }
+  .wrap { max-width:560px; margin:0 auto; }
+  header { text-align:center; margin-bottom:18px; }
+  .eyebrow { font-size:11px; letter-spacing:4px; color:var(--gold); opacity:.85; text-transform:uppercase; }
+  h1 { font-size:25px; margin:6px 0 2px; letter-spacing:1px; text-shadow:0 0 12px var(--gold),0 0 24px rgba(255,215,0,.35); }
+  .sub { font-size:12px; color:#a99; letter-spacing:1px; }
+  .card {
+    background:#0d0d2b; border:1px solid rgba(255,215,0,.22); border-radius:14px; padding:16px; margin-bottom:16px;
+    box-shadow:0 0 18px rgba(255,215,0,.10), inset 0 0 30px rgba(255,215,0,.03);
+  }
+  .label { font-size:12px; letter-spacing:2px; color:var(--gold); margin-bottom:10px; text-transform:uppercase; }
+  .date-row { display:flex; gap:8px; }
+  .date-row .fld { flex:1; } .date-row .fld.d3 { flex:1.3; }
+  .fld small { display:block; font-size:10px; color:#998; margin-bottom:4px; letter-spacing:1px; }
+  select {
+    width:100%; background:#07071a; border:1px solid rgba(255,215,0,.3); color:#eee2bd; border-radius:9px;
+    padding:11px 8px; font-family:inherit; font-size:15px; appearance:none; text-align:center;
+  }
+  select:focus { outline:none; border-color:var(--gold); box-shadow:0 0 10px rgba(255,215,0,.4); }
+  .run-btn {
+    width:100%; margin-top:14px; background:linear-gradient(180deg,#241a0a,#140d05);
+    border:1.5px solid var(--gold); color:#fff; border-radius:12px; padding:16px;
+    font-family:inherit; font-size:17px; font-weight:bold; letter-spacing:3px; cursor:pointer;
+    box-shadow:0 0 20px rgba(255,215,0,.3); text-shadow:0 0 10px var(--gold); transition:all .15s;
+  }
+  .run-btn:active { transform:scale(.98); }
+
+  .star-emblem {
+    width:110px; height:110px; margin:6px auto 12px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    border:2px solid var(--gold); background:radial-gradient(circle at 40% 35%, #2a2210, #0d0a03);
+    box-shadow:0 0 24px rgba(255,215,0,.3), inset 0 0 24px rgba(255,215,0,.08);
+    animation:reveal .6s ease;
+  }
+  @keyframes reveal { from{transform:scale(.5) rotate(-15deg);opacity:0} to{transform:scale(1) rotate(0);opacity:1} }
+  .star-emblem .hanja { font-size:34px; color:var(--gold); text-shadow:0 0 14px rgba(255,215,0,.6); line-height:1; }
+  .star-name { text-align:center; font-size:21px; color:var(--gold); letter-spacing:2px; text-shadow:0 0 10px rgba(255,215,0,.4); }
+  .star-tag { text-align:center; font-size:12px; color:#9ab; margin-top:3px; letter-spacing:1px; }
+  .star-fortune { text-align:center; font-size:14px; color:#dde; line-height:1.7; margin:14px 6px; }
+
+  .balls { display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin:6px 0 4px; }
+  .ball {
+    width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:19px; font-weight:bold; color:var(--bg); background:var(--gold);
+    box-shadow:0 0 14px var(--gold),0 0 28px rgba(255,215,0,.4); animation:pop .4s ease backwards;
+  }
+  .ball:nth-child(1){animation-delay:.05s}.ball:nth-child(2){animation-delay:.12s}
+  .ball:nth-child(3){animation-delay:.19s}.ball:nth-child(4){animation-delay:.26s}
+  .ball:nth-child(5){animation-delay:.33s}.ball:nth-child(6){animation-delay:.40s}
+  @keyframes pop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+  .meta { text-align:center; font-size:12px; color:#9ab; letter-spacing:1px; margin-top:4px; }
+  .meta b { color:var(--gold); }
+  .save-btn {
+    width:100%; margin-top:14px; background:#0a0a2e; border:1.5px solid var(--gold); color:var(--gold);
+    border-radius:12px; padding:14px; font-family:inherit; font-size:15px; letter-spacing:2px; cursor:pointer;
+    box-shadow:0 0 16px rgba(255,215,0,.3); text-shadow:0 0 8px rgba(255,215,0,.6); transition:all .15s;
+  }
+  .save-btn:active { transform:scale(.98); }
+  .save-btn.done { border-color:var(--green); color:var(--green); box-shadow:0 0 16px rgba(0,255,0,.3); text-shadow:0 0 8px var(--green); }
+  .hidden { display:none !important; }
+  .toast {
+    position:fixed; left:50%; bottom:28px; transform:translateX(-50%); background:#0d0d2b;
+    border:1px solid var(--gold); color:#fff; padding:12px 20px; border-radius:10px; font-size:13px;
+    letter-spacing:1px; box-shadow:0 0 18px rgba(255,215,0,.4); opacity:0; transition:opacity .25s; z-index:50;
+  }
+  .toast.show { opacity:1; }
+.ball.power{background:#ff2d55;color:#fff;box-shadow:0 0 14px #ff2d55,0 0 30px rgba(255,45,85,.5);}
+  .plus{color:#ff2d55;font-size:22px;font-weight:bold;align-self:center;text-shadow:0 0 8px #ff2d55;}
+  .balls{align-items:center;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">Dangsaju · 12 Stars</div>
+      <h1>🎴 당사주 로또</h1>
+      <div class="sub">타고난 별자리(천살)로 운세와 번호를 풀어냅니다</div>
+    </header>
+
+    <div class="card">
+      <div class="label">생년월일 입력</div>
+      <div class="date-row">
+        <div class="fld"><small>년</small><select id="dsYear"></select></div>
+        <div class="fld"><small>월</small><select id="dsMonth"></select></div>
+        <div class="fld d3"><small>일</small><select id="dsDay"></select></div>
+      </div>
+      <button class="run-btn" id="dsRunBtn">당사주 풀이</button>
+    </div>
+
+    <div class="card hidden" id="dsResultCard">
+      <div class="star-emblem"><div class="hanja" id="dsHanja">天</div></div>
+      <div class="star-name" id="dsName">-</div>
+      <div class="star-tag" id="dsTag">-</div>
+      <div class="star-fortune" id="dsFortune">-</div>
+      <div class="label">행운 번호</div>
+      <div class="balls" id="dsBalls"></div>
+      <div class="meta"><b id="dsRoundTxt">-</b> · 천살 기반 추출</div>
+      <button class="save-btn" id="dsSaveBtn">나의 번호에 저장</button>
+    </div>
+  </div>
+  <div class="toast" id="dsToast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===================================================================
+  // ===== [재사용 영역] 순수 로직 =====================================
+  // ===================================================================
+  var COLORS = { cyan:'#00ffff', purple:'#cc00ff', gold:'#ffd700', green:'#00ff00', bg:'#0a0a1a' };
+  var GAME_KEY = 'dangsaju';
+  var STORAGE_KEY = '@devbrick/saved_lotto_numbers_v1';
+  var MAX_PER_TYPE = 100;
+
+  // 당사주 12천살: "한글|한자|한줄태그|운세"
+  var STARS = [
+    "천귀|天貴|귀함의 별|타고난 품격으로 귀하게 쓰일 운명. 명예와 인정이 따릅니다.",
+    "천액|天厄|시련의 별|굽이를 넘으며 단단해지는 운. 견뎌낸 만큼 크게 빛납니다.",
+    "천권|天權|권세의 별|사람을 이끄는 힘을 타고났습니다. 결단할 때 길이 열립니다.",
+    "천파|天破|개혁의 별|낡은 것을 깨고 새로 세우는 운. 변화가 곧 기회입니다.",
+    "천간|天奸|지략의 별|남다른 기지와 재치의 별. 영민함이 위기를 복으로 바꿉니다.",
+    "천문|天文|학문의 별|배움과 예지의 별. 알수록 길이 넓어지고 귀인이 모입니다.",
+    "천복|天福|복록의 별|풍요와 인덕을 타고난 별. 베풀수록 복이 곱절로 돌아옵니다.",
+    "천역|天驛|역마의 별|움직임 속에 기회가 있는 별. 활동하고 떠날수록 운이 트입니다.",
+    "천고|天孤|수양의 별|홀로 깊어지는 별. 고요함 속에서 큰 그릇이 빚어집니다.",
+    "천인|天刃|강인의 별|굳센 의지와 추진력의 별. 정면으로 부딪쳐 길을 냅니다.",
+    "천예|天藝|재예의 별|손재주와 예술의 별. 표현할수록 사람과 복이 따릅니다.",
+    "천수|天壽|장수의 별|건강과 평안을 타고난 별. 꾸준함이 오래가는 복을 만듭니다."
+  ];
+
+  // 띠(지지) 인덱스 0=자(쥐) … 11=해(돼지). (year-4)%12
+  function zodiacOf(year) { return (((year - 4) % 12) + 12) % 12; }
+  // 띠+월+일 조합 → 12천살 인덱스(0~11)
+  function computeStar(y, m, d) {
+    return (zodiacOf(y) + (m - 1) + (d - 1)) % 12;
+  }
+  function starInfo(idx) {
+    var p = STARS[idx].split('|');
+    return { idx: idx, name: p[0], hanja: p[1], tag: p[2], fortune: p[3] };
+  }
+
+  function makeRng(seed) {
+    var s=seed>>>0; return function(){ s|=0; s=(s+0x6D2B79F5)|0; var t=Math.imul(s^(s>>>15),1|s);
+      t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; };
+  }
+  function seedFrom(arr){ var s=2166136261; for(var i=0;i<arr.length;i++){s^=arr[i];s=Math.imul(s,16777619);} return s>>>0; }
+  function pickPowerball(rng) {
+    var wp = {}, white = [];
+    while (white.length < 6) { var n = 1 + Math.floor(rng() * 45); if (!wp[n]) { wp[n] = true; white.push(n); } }
+    white.sort(function (a, b) { return a - b; });
+    return { white: white, power: 0 };
+  }
+  function makeSavedEntry(numbers, powerball, nextRound, nowMs, id) {
+    return { id: id, savedAt: new Date(nowMs).toISOString(), round: nextRound > 0 ? nextRound : 0, numbers: numbers.slice(), powerball: powerball, matchCount: 0, type: GAME_KEY, source: GAME_KEY };
+  }
+  function isDuplicate(savedArr, numbers, powerball, type) {
+    var key = numbers.slice().sort(function (a, b) { return a - b; }).join(',') + '|' + powerball;
+    for (var i = 0; i < savedArr.length; i++) {
+      var e = savedArr[i];
+      if (e && e.type === type && Array.isArray(e.numbers)) {
+        var ek = e.numbers.slice().sort(function (a, b) { return a - b; }).join(',') + '|' + (e.powerball || 0);
+        if (ek === key) return true;
+      }
+    }
+    return false;
+  }
+  function trimSavedByType(arr,maxPerType){ var groups={}; for(var i=0;i<arr.length;i++){var t=arr[i].type||'_';(groups[t]=groups[t]||[]).push(arr[i]);}
+    var out=[]; Object.keys(groups).forEach(function(t){var g=groups[t].slice().sort(function(a,b){return a.savedAt<b.savedAt?-1:(a.savedAt>b.savedAt?1:0);});if(g.length>maxPerType)g=g.slice(g.length-maxPerType);out=out.concat(g);});
+    out.sort(function(a,b){return a.savedAt<b.savedAt?-1:(a.savedAt>b.savedAt?1:0);}); return out; }
+  function parseMaxRound(json){ var mx=0; if(json&&typeof json==='object')Object.keys(json).forEach(function(k){var r=parseInt(k,10);if(!isNaN(r)&&r>mx)mx=r;}); return mx; }
+
+  // ===================================================================
+  // ===== [HTML 전용] 화면/이벤트/저장/fetch ==========================
+  // ===================================================================
+  var FIREBASE_URL = 'https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app';
+  var el = {};
+  var state = { numbers: [], star: null, nextRound: 0, finished: false };
+
+  function genId(p){ return p+'-'+Date.now()+'_'+Math.random().toString(36).slice(2,10); }
+
+  function bindElements() {
+    el.year=document.getElementById('dsYear'); el.month=document.getElementById('dsMonth'); el.day=document.getElementById('dsDay');
+    el.runBtn=document.getElementById('dsRunBtn'); el.resultCard=document.getElementById('dsResultCard');
+    el.hanja=document.getElementById('dsHanja'); el.name=document.getElementById('dsName'); el.tag=document.getElementById('dsTag');
+    el.fortune=document.getElementById('dsFortune'); el.balls=document.getElementById('dsBalls');
+    el.roundTxt=document.getElementById('dsRoundTxt'); el.saveBtn=document.getElementById('dsSaveBtn'); el.toast=document.getElementById('dsToast');
+  }
+  function fillSelect(sel,from,to,pad,selected){ sel.innerHTML='';
+    for(var v=from;v<=to;v++){var o=document.createElement('option');o.value=v;o.textContent=pad?String(v).padStart(2,'0'):v;if(v===selected)o.selected=true;sel.appendChild(o);} }
+  function showToast(msg){ el.toast.textContent=msg; el.toast.classList.add('show'); setTimeout(function(){el.toast.classList.remove('show');},1800); }
+
+  function fetchNextRound(cb){ fetch(FIREBASE_URL+'/winningNumbers.json').then(function(r){return r.json();})
+    .then(function(j){cb(parseMaxRound(j)+1);}).catch(function(){cb(0);}); }
+
+  function calculate() {
+    var y=parseInt(el.year.value,10),m=parseInt(el.month.value,10),d=parseInt(el.day.value,10);
+    var idx=computeStar(y,m,d);                       // ← 순수
+    var info=starInfo(idx);                           // ← 순수
+    var rng=makeRng(seedFrom([y,m,d,idx]));           // ← 순수 RNG
+    var __pbr = pickPowerball(rng); var numbers = __pbr.white; var power = __pbr.power;                     // ← 순수
+    state.numbers = numbers; state.power = power; state.star=info; state.finished=true;
+
+    // 엠블럼 재생성(애니메이션 리트리거)
+    var emblem=el.hanja.parentNode; emblem.style.animation='none'; void emblem.offsetWidth; emblem.style.animation='';
+    el.hanja.textContent=info.hanja;
+    el.name.textContent=info.name+' ('+info.hanja+')';
+    el.tag.textContent=info.tag;
+    el.fortune.textContent=info.fortune;
+    el.balls.innerHTML='';
+    numbers.forEach(function(n){var b=document.createElement('div');b.className='ball';b.textContent=n;el.balls.appendChild(b);});
+    el.saveBtn.textContent='나의 번호에 저장'; el.saveBtn.className='save-btn'; el.saveBtn.disabled=false;
+    el.resultCard.classList.remove('hidden');
+
+    el.roundTxt.textContent = '한국 로또 방식';
+  }
+
+  function loadSaved(){ try{var raw=localStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw):[];}catch(e){return [];} }
+  function saveResult() {
+    if(!state.finished)return;
+    var saved=loadSaved();
+    if(isDuplicate(saved, state.numbers, 0, GAME_KEY)){showToast('이미 저장된 번호예요');return;}
+    var entry=makeSavedEntry(state.numbers, 0, state.nextRound,Date.now(),genId(GAME_KEY));
+    saved.push(entry);
+    try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(trimSavedByType(saved,MAX_PER_TYPE)));
+      el.saveBtn.textContent='✓ 저장 완료'; el.saveBtn.className='save-btn done'; el.saveBtn.disabled=true; showToast('나의 번호에 저장했어요');
+    }catch(e){showToast('저장 공간이 부족해요');}
+  }
+
+  function startDangsajuApp() {
+    bindElements();
+    var nowY=new Date(Date.now()).getFullYear();
+    fillSelect(el.year,1940,nowY,false,1990); fillSelect(el.month,1,12,true,1); fillSelect(el.day,1,31,true,1);
+    el.runBtn.onclick=calculate; el.saveBtn.onclick=saveResult;
+  }
+  window.startDangsajuApp = startDangsajuApp;
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startDangsajuApp);
+  else startDangsajuApp();
+})();
+</script>
+</body>
+</html>
