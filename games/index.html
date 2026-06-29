@@ -150,6 +150,8 @@
   .mynum .txt small { color: var(--muted); font-size: 0.82rem; }
   .mynum .ar { margin-left: auto; color: var(--gold); flex: none; transition: transform 0.2s; }
   .mynum:hover .ar, .mynum:focus-visible .ar { transform: translateX(4px); }
+  .mynum.us .ar { color: var(--red); }
+  .mynum.us:hover, .mynum.us:focus-visible { border-color: var(--line); }
 
   /* footer */
   footer { border-top: 1px solid var(--line-soft); padding: 44px 0 60px; margin-top: 56px; }
@@ -200,8 +202,17 @@
     <a class="mynum" href="/games/mynumbers.html">
       <span class="ico">🗂️</span>
       <span class="txt">
-        <b>내 번호 모아보기</b>
-        <small>저장한 로또 예상 번호를 게임별로 확인</small>
+        <b>로또 번호 모아보기</b>
+        <small>저장한 한국 로또 예상 번호를 게임별로 확인</small>
+      </span>
+      <span class="ar">→</span>
+    </a>
+
+    <a class="mynum us" href="/games/mynumbers_powerball.html">
+      <span class="ico">🎱</span>
+      <span class="txt">
+        <b>파워볼 번호 모아보기</b>
+        <small>저장한 미국 파워볼 예상 번호를 게임별로 확인</small>
       </span>
       <span class="ar">→</span>
     </a>
