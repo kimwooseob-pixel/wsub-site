@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>관리자 · 당첨번호 등록 — Wsub</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root{ --bg:#0d0f1c; --card:#161a2c; --line:rgba(255,255,255,0.08); --text:#f1eee4; --muted:#969cb6; --gold:#e6c068; --red:#f87171; --green:#5ad19a;
+    --display:"Fraunces",Georgia,serif; --sans:"Pretendard",-apple-system,system-ui,sans-serif; }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:520px;margin:0 auto;padding:40px 22px 80px;}
+  h1{font-family:var(--display);font-weight:500;font-size:1.7rem;margin-bottom:6px;}
+  .lead{color:var(--muted);font-size:0.92rem;margin-bottom:28px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px;}
+  label{display:block;font-size:0.85rem;color:var(--muted);margin-bottom:7px;}
+  input{width:100%;padding:12px 13px;border-radius:9px;border:1px solid var(--line);background:#0d0f1c;color:var(--text);font-size:15px;font-family:inherit;}
+  input:focus{outline:none;border-color:var(--gold);}
+  .btn{width:100%;padding:13px;border-radius:9px;border:none;background:var(--gold);color:#1a1505;font-size:15px;font-weight:700;cursor:pointer;margin-top:6px;font-family:inherit;}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted);font-weight:600;}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .field{margin-bottom:14px;}
+  .nums{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+  .nums input{text-align:center;padding:12px 4px;font-weight:700;font-size:16px;}
+  .err{color:var(--red);font-size:0.85rem;margin-top:10px;min-height:18px;}
+  .ok{color:var(--green);font-size:0.9rem;margin-top:10px;}
+  .cur{background:rgba(230,192,104,0.08);border:1px solid rgba(230,192,104,0.25);border-radius:10px;padding:12px 14px;font-size:0.92rem;margin-bottom:18px;}
+  .cur b{color:var(--gold);}
+  .who{font-size:0.85rem;color:var(--muted);}
+  .who b{color:var(--gold);}
+  .hidden{display:none;}
+  .hint{font-size:0.78rem;color:var(--muted);margin-top:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔐 당첨번호 관리</h1>
+  <p class="lead">로또(ai-lottosolutions) 최신 회차 등록 · 관리자 전용</p>
+
+  <!-- 로그인 -->
+  <div class="card" id="loginCard">
+    <div class="field">
+      <label>관리자 이메일</label>
+      <input type="email" id="email" placeholder="utmost@wsub.app" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label>비밀번호</label>
+      <input type="password" id="pw" placeholder="비밀번호" autocomplete="current-password" />
+    </div>
+    <button class="btn" id="loginBtn">로그인</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <!-- 권한 없음 -->
+  <div class="card hidden" id="denyCard">
+    <p>이 계정은 관리자가 아니에요.<br />관리자 계정으로 다시 로그인해 주세요.</p>
+    <button class="btn ghost" id="denyLogout" style="margin-top:14px;">로그아웃</button>
+  </div>
+
+  <!-- 관리자 패널 -->
+  <div class="hidden" id="adminPanel">
+    <div class="card">
+      <div class="row" style="margin-bottom:16px;">
+        <span class="who">로그인: <b id="whoEmail">-</b></span>
+        <button class="btn ghost" id="logoutBtn" style="width:auto;padding:7px 14px;margin:0;">로그아웃</button>
+      </div>
+      <div class="cur" id="curBox">현재 상태를 불러오는 중…</div>
+
+      <div class="field">
+        <label>회차 번호</label>
+        <input type="number" id="round" inputmode="numeric" />
+        <div class="hint">다음 회차가 자동으로 채워져요. 필요하면 수정하세요.</div>
+      </div>
+
+      <div class="field">
+        <label>당첨번호 6개 (1~45)</label>
+        <div class="nums">
+          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
+          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
+          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
+          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
+          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
+          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
+        </div>
+        <div class="hint">순서는 상관없어요. 저장할 때 오름차순으로 정렬됩니다.</div>
+      </div>
+
+      <button class="btn" id="submitBtn">당첨번호 등록</button>
+      <div class="err" id="formErr"></div>
+      <div class="ok hidden" id="formOk"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var ADMIN_UID = "7CqoqswxDsNQzP8yV7yqG75D2V93";
+  var firebaseConfig = {
+    apiKey: "AIzaSyAwh55rLOQkY8ZVCzaC4ZF3iaUVU5Vu0GM",
+    authDomain: "ai-lottosolutions.firebaseapp.com",
+    databaseURL: "https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ai-lottosolutions",
+    storageBucket: "ai-lottosolutions.firebasestorage.app",
+    messagingSenderId: "616782090306",
+    appId: "1:616782090306:web:688c710998dfce8e4d5ddb"
+  };
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var auth = firebase.auth();
+  var db = firebase.database();
+  function $(id){ return document.getElementById(id); }
+  function show(id){ $(id).classList.remove("hidden"); }
+  function hide(id){ $(id).classList.add("hidden"); }
+
+  // ===== 로그인 =====
+  $("loginBtn").addEventListener("click", function(){
+    var email=$("email").value.trim(), pw=$("pw").value;
+    $("loginErr").textContent="";
+    if(!email||!pw){ $("loginErr").textContent="이메일과 비밀번호를 입력해 주세요."; return; }
+    auth.signInWithEmailAndPassword(email, pw).catch(function(e){
+      $("loginErr").textContent = authErr(e);
+    });
+  });
+  $("pw").addEventListener("keydown", function(e){ if(e.key==="Enter") $("loginBtn").click(); });
+  $("logoutBtn").addEventListener("click", function(){ auth.signOut(); });
+  $("denyLogout").addEventListener("click", function(){ auth.signOut(); });
+
+  function authErr(e){
+    var c=(e&&e.code)||"";
+    if(c==="auth/invalid-email") return "이메일 형식이 올바르지 않아요.";
+    if(c==="auth/invalid-credential"||c==="auth/wrong-password"||c==="auth/user-not-found") return "이메일 또는 비밀번호가 올바르지 않아요.";
+    if(c==="auth/too-many-requests") return "잠시 후 다시 시도해 주세요.";
+    return "로그인에 실패했어요. 다시 시도해 주세요.";
+  }
+
+  // ===== 인증 상태 =====
+  auth.onAuthStateChanged(function(user){
+    if(user && user.uid===ADMIN_UID){
+      hide("loginCard"); hide("denyCard"); show("adminPanel");
+      $("whoEmail").textContent = user.email || "관리자";
+      loadCurrent();
+    } else if(user){
+      hide("loginCard"); show("denyCard"); hide("adminPanel");
+    } else {
+      show("loginCard"); hide("denyCard"); hide("adminPanel");
+    }
+  });
+
+  // ===== 현재 상태 불러오기 =====
+  function loadCurrent(){
+    db.ref("drawRange").once("value").then(function(snap){
+      var r = snap.val() || {};
+      var end = parseInt(r.end, 10);
+      var next = parseInt(r.next, 10) || (end ? end+1 : "");
+      $("curBox").innerHTML = "현재 최신 등록 회차: <b>" + (isNaN(end)?"-":end) + "</b>회차 &nbsp;·&nbsp; 다음: <b>" + (next||"-") + "</b>회차";
+      if(next) $("round").value = next;
+    }).catch(function(){
+      $("curBox").textContent = "현재 상태를 불러오지 못했어요. (읽기 권한/네트워크 확인)";
+    });
+  }
+
+  // ===== 등록 =====
+  $("submitBtn").addEventListener("click", function(){
+    $("formErr").textContent=""; hide("formOk");
+    var round = parseInt($("round").value, 10);
+    if(!round || round<1){ $("formErr").textContent="회차 번호를 올바르게 입력해 주세요."; return; }
+
+    var inputs = document.querySelectorAll(".nums .n");
+    var nums=[];
+    for(var i=0;i<inputs.length;i++){
+      var v = parseInt(inputs[i].value, 10);
+      if(isNaN(v)){ $("formErr").textContent="번호 6개를 모두 입력해 주세요."; return; }
+      if(v<1 || v>45){ $("formErr").textContent="번호는 1~45 사이여야 해요. (입력: "+v+")"; return; }
+      nums.push(v);
+    }
+    // 중복 검사
+    var sorted = nums.slice().sort(function(a,b){return a-b;});
+    for(var j=1;j<sorted.length;j++){ if(sorted[j]===sorted[j-1]){ $("formErr").textContent="중복된 번호가 있어요: "+sorted[j]; return; } }
+
+    var btn=$("submitBtn"); btn.disabled=true; btn.textContent="확인 중…";
+
+    // 이미 등록된 회차인지 확인
+    db.ref("winningNumbers/"+round).once("value").then(function(snap){
+      var proceed = true;
+      if(snap.exists()){
+        proceed = window.confirm(round+"회차는 이미 등록돼 있어요.\n기존: ["+ (snap.val()||[]).join(", ") +"]\n새 번호로 덮어쓸까요?");
+      }
+      if(!proceed){ btn.disabled=false; btn.textContent="당첨번호 등록"; return; }
+
+      // 3개 노드 동시 업데이트
+      var updates = {};
+      updates["winningNumbers/"+round] = sorted;
+      updates["currentDraw"] = { drawNumber: round, lastUpdated: Date.now() };
+      updates["drawRange"] = { start: String(round-14), end: String(round), next: String(round+1) };
+
+      return db.ref().update(updates).then(function(){
+        btn.disabled=false; btn.textContent="당첨번호 등록";
+        var ok=$("formOk"); ok.textContent = "✅ "+round+"회차 ["+sorted.join(", ")+"] 등록 완료!";
+        show("formOk");
+        // 입력칸 비우기 + 상태 갱신
+        document.querySelectorAll(".nums .n").forEach(function(el){ el.value=""; });
+        loadCurrent();
+      });
+    }).catch(function(e){
+      btn.disabled=false; btn.textContent="당첨번호 등록";
+      console.error(e);
+      var msg = "등록에 실패했어요.";
+      if(e && (e.code==="PERMISSION_DENIED" || /permission/i.test(e.message||""))){
+        msg = "쓰기 권한이 없어요. 보안규칙에 관리자 UID가 등록됐는지 확인해 주세요.";
+      }
+      $("formErr").textContent = msg;
+    });
+  });
+})();
+</script>
+</body>
+</html>
