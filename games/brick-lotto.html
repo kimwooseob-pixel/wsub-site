@@ -586,19 +586,25 @@ async function fetchWinningNumbers(){
     const res = await fetch(`${FB_URL}/winningNumbers.json`);
     const val = await res.json();
     if(!val || typeof val!=='object') return null;
+    // 회차 값 정규화: admin.html은 [배열], 옛 앱은 {numbers:[배열]} → 둘 다 지원
+    const numsOf = (entry) => {
+      if(Array.isArray(entry)) return entry;
+      if(entry && Array.isArray(entry.numbers)) return entry.numbers;
+      return null;
+    };
     const rounds = Object.keys(val).map(k=>parseInt(k,10)).filter(n=>Number.isFinite(n));
     if(rounds.length===0) return null;
-    const latestRound = Math.max(...rounds);
-    const latestNums = val[String(latestRound)]?.numbers;
-    if(!Array.isArray(latestNums) || latestNums.length!==6) return null;
-    // 최근 20회차 내림차순
-    const sorted = rounds.sort((a,b)=>b-a);
-    const last20 = [];
-    for(const r of sorted.slice(0,20)){
-      const nums = val[String(r)]?.numbers;
-      if(Array.isArray(nums) && nums.length===6) last20.push({round:r, numbers:[...nums]});
+    // 유효한(6개) 회차만 최신순으로 모음 → 최신 유효 회차를 기준으로
+    const validDesc = [];
+    for(const r of rounds.sort((a,b)=>b-a)){
+      const nums = numsOf(val[String(r)]);
+      if(Array.isArray(nums) && nums.length===6) validDesc.push({round:r, numbers:[...nums]});
     }
-    return {latestRound, latestNumbers:[...latestNums], last20};
+    if(validDesc.length===0) return null;
+    const latestRound = validDesc[0].round;
+    const latestNumbers = [...validDesc[0].numbers];
+    const last20 = validDesc.slice(0,20);
+    return {latestRound, latestNumbers, last20};
   }catch(e){ return null; }
 }
 
