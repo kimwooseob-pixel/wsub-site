@@ -142,7 +142,7 @@
   <header class="top">
     <div class="wrap">
       <div class="flag-big">🇰🇷</div>
-      <h1 class="page-title">한국 로또</h1>
+      <h1 class="page-title" id="krTitle">한국 로또</h1>
       <p class="page-sub">1부터 45 중 여섯 개. <span class="accent">운(運)</span>으로 풀어보는 번호.</p>
     </div>
   </header>
@@ -239,6 +239,22 @@
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
+
+    // 관리자 진입: "한국 로또" 제목을 1.2초 안에 5번 연속 탭
+    (function(){
+      var taps = 0, timer = null;
+      var title = document.getElementById("krTitle");
+      if(!title) return;
+      title.style.userSelect = "none";
+      title.style.webkitUserSelect = "none";
+      title.style.cursor = "default";
+      title.addEventListener("click", function(){
+        taps++;
+        if(timer) clearTimeout(timer);
+        timer = setTimeout(function(){ taps = 0; }, 1200);
+        if(taps >= 5){ taps = 0; location.href = "/admin.html"; }
+      });
+    })();
   </script>
 </body>
 </html>
