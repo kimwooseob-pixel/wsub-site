@@ -38,6 +38,15 @@
   .who b{color:var(--gold);}
   .hidden{display:none;}
   .hint{font-size:0.78rem;color:var(--muted);margin-top:6px;}
+  .gsec{margin-top:16px;}
+  .gtitle{font-size:0.95rem;font-weight:700;color:var(--gold);margin-bottom:8px;display:flex;gap:8px;align-items:center;}
+  .gtitle span{font-size:0.8rem;color:var(--muted);font-weight:500;}
+  .grow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#0d0f1c;margin-bottom:6px;flex-wrap:wrap;}
+  .grow .who{font-size:0.75rem;color:var(--muted);min-width:40px;font-family:monospace;}
+  .grow .balls{display:flex;gap:4px;flex-wrap:wrap;flex:1;}
+  .grow .ball{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--gold);color:#1a1505;font-size:12px;font-weight:700;}
+  .grow .date{font-size:0.72rem;color:var(--muted);}
+  .allhead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
 </style>
 </head>
 <body>
@@ -96,6 +105,15 @@
       <button class="btn" id="submitBtn">당첨번호 등록</button>
       <div class="err" id="formErr"></div>
       <div class="ok hidden" id="formOk"></div>
+    </div>
+
+    <div class="card">
+      <div class="allhead">
+        <h2 style="font-size:1rem;color:var(--gold);margin:0;">📋 모두의 저장 번호</h2>
+        <button class="btn ghost" id="loadAllBtn" style="width:auto;padding:8px 14px;margin:0;">불러오기</button>
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;">Firebase에 저장된 게임(사주·흐름예측·벽돌깨기 등)의 모든 저장 번호예요. 관리자만 볼 수 있어요.</div>
+      <div id="allList" style="color:var(--muted);font-size:0.85rem;">불러오기를 눌러 주세요.</div>
     </div>
   </div>
 </div>
@@ -218,6 +236,51 @@
       $("formErr").textContent = msg;
     });
   });
+  // ===== 모두의 저장 번호 (관리자 전용) =====
+  var GAME_NAME = { saju:"🔮 사주 로또", predict:"📊 흐름예측 로또", brick:"🧱 벽돌깨기 로또" };
+  function pad2(n){ return n<10 ? "0"+n : ""+n; }
+  function escTxt(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m]; }); }
+  var allBtn = document.getElementById("loadAllBtn");
+  if(allBtn){
+    allBtn.addEventListener("click", function(){
+      var box = $("allList"); box.textContent = "불러오는 중…";
+      db.ref("wsub_saved").once("value").then(function(snap){
+        var all = snap.val() || {};
+        var byGame = {};
+        Object.keys(all).forEach(function(uid){
+          var recs = all[uid] || {};
+          Object.keys(recs).forEach(function(k){
+            var r = recs[k]; if(!r || !r.numbers) return;
+            var g = r.game || "기타";
+            (byGame[g] = byGame[g] || []).push({
+              numbers: String(r.numbers),
+              savedAt: Number(r.savedAt) || 0,
+              who: r.nick ? r.nick : uid.slice(0,4)
+            });
+          });
+        });
+        var keys = Object.keys(byGame).sort();
+        if(keys.length === 0){ box.textContent = "아직 저장된 번호가 없어요."; return; }
+        var total = 0; keys.forEach(function(g){ total += byGame[g].length; });
+        var html = '<div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">총 ' + total + '건</div>';
+        keys.forEach(function(g){
+          var arr = byGame[g].sort(function(a,b){ return b.savedAt - a.savedAt; });
+          html += '<div class="gsec"><div class="gtitle">' + (GAME_NAME[g] || escTxt(g)) + ' <span>' + arr.length + '개</span></div>';
+          arr.forEach(function(it){
+            var ds = "";
+            if(it.savedAt){ var d = new Date(it.savedAt); ds = d.getFullYear()+"."+pad2(d.getMonth()+1)+"."+pad2(d.getDate()); }
+            var balls = it.numbers.split(",").map(function(n){ return '<span class="ball">'+escTxt(n.trim())+'</span>'; }).join("");
+            html += '<div class="grow"><span class="who">'+escTxt(it.who)+'</span><span class="balls">'+balls+'</span><span class="date">'+ds+'</span></div>';
+          });
+          html += '</div>';
+        });
+        box.innerHTML = html;
+      }).catch(function(e){
+        console.error(e);
+        box.textContent = "불러오지 못했어요. 보안규칙에 관리자 읽기 권한이 있는지 확인해 주세요.";
+      });
+    });
+  }
 })();
 </script>
 </body>
