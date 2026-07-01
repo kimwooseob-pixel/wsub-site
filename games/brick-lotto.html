@@ -16,7 +16,7 @@
     color:var(--txt);
     padding-top:env(safe-area-inset-top);
   }
-  #root{display:flex; flex-direction:column; height:100vh; max-width:520px; margin:0 auto;}
+  #root{display:flex; flex-direction:column; height:calc(100vh - 52px); max-width:520px; margin:0 auto;}
 
   /* HUD */
   .hud{
@@ -213,7 +213,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <style>
-  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#1a1f2e;border-bottom:1px solid rgba(34,211,238,0.25);font-family:inherit;}
+  #wsubAuthBar{height:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#1a1f2e;border-bottom:1px solid rgba(34,211,238,0.25);font-family:inherit;}
   #wsubAuthBar .who{font-size:12.5px;color:#9aa0b4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #wsubAuthBar .who b{color:#cffaff;font-weight:600;}
   #wsubAuthBar .authbtn{flex-shrink:0;padding:7px 14px;border-radius:8px;border:1px solid rgba(34,211,238,0.5);background:transparent;color:#cffaff;font-size:13px;font-weight:600;cursor:pointer;}
