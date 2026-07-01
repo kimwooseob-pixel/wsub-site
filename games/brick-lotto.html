@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>로또 벽돌깨기</title>
+<style>
+  :root{
+    --bg:#050510; --panel:#0a1220; --gold:#d4af37; --cyan:#00e5ff;
+    --blue:#0044cc; --txt:#f5e6c8;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;}
+  html,body{margin:0; padding:0; height:100%; overflow:hidden; background:var(--bg);}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    color:var(--txt);
+    padding-top:env(safe-area-inset-top);
+  }
+  #root{display:flex; flex-direction:column; height:100vh; max-width:520px; margin:0 auto;}
+
+  /* HUD */
+  .hud{
+    padding:6px 10px; height:48px; flex:0 0 48px; display:flex; align-items:center;
+    border-bottom:1px solid rgba(0,229,255,.15); overflow:hidden;
+  }
+  .hud-recent-label{font-size:11px; color:var(--cyan); font-weight:700;}
+  .hud-win-row{display:flex; gap:4px; margin-top:3px;}
+  .hud-badge{
+    min-width:20px; height:20px; padding:0 4px; border-radius:10px;
+    background:rgba(0,229,255,.12); border:1px solid rgba(0,229,255,.5);
+    display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800; color:#cffaff;
+  }
+  .hud-explain{font-size:11px; line-height:16px; color:#cbd5e1;}
+  .hud-anim{transition:opacity .15s; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center;}
+
+  /* game field */
+  .game-field{position:relative; flex:1; min-height:0; overflow:hidden;}
+
+  /* brick zone */
+  .brick-zone{position:absolute; left:0; right:0; top:0;}
+  .dense-row{display:flex; align-items:stretch;}
+  .round-cell{
+    width:28px; flex:0 0 28px; display:flex; align-items:center; justify-content:center;
+  }
+  .round-label{display:flex; align-items:center; gap:1px;}
+  .round-dot{font-size:6px; color:#64748b;}
+  .round-text{font-size:7px; font-weight:700;}
+  .round-text.prediction{color:var(--cyan);}
+  .round-text.normal{color:#64748b;}
+  .bricks-strip{display:flex; flex:1;}
+  .brick{
+    display:flex; align-items:center; justify-content:center; position:relative;
+    border:0.5px solid rgba(0,0,0,.35);
+  }
+  /* 입체 광택: 위쪽 밝고 아래쪽 어둡게 + 안쪽 하이라이트 */
+  .brick:not(.brick-empty)::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,.35) 0%, rgba(255,255,255,.08) 28%, rgba(0,0,0,0) 55%, rgba(0,0,0,.28) 100%);
+  }
+  .brick-empty{background:#0d1420; border-color:rgba(255,255,255,.02);}
+  .brick-dark{background:linear-gradient(180deg,#26324a,#141c2c); box-shadow:inset 0 0 0 0.5px rgba(255,255,255,.04);}
+  .brick-blue{background:linear-gradient(180deg,#1166ff,#0033aa); border:1px solid rgba(0,229,255,.7); box-shadow:inset 0 1px 2px rgba(255,255,255,.4), 0 0 6px rgba(0,150,255,.5);}
+  .brick-red{background:linear-gradient(180deg,#ff4d2e,#b81a00); box-shadow:inset 0 1px 2px rgba(255,255,255,.35);}
+  .brick-orange{background:linear-gradient(180deg,#ff8a2b,#d1500a); box-shadow:inset 0 1px 2px rgba(255,255,255,.35);}
+  .brick-yellow{background:linear-gradient(180deg,#f5c542,#b8820a); box-shadow:inset 0 1px 2px rgba(255,255,255,.4);}
+  .brick-green{background:linear-gradient(180deg,#22c55e,#127434); box-shadow:inset 0 1px 2px rgba(255,255,255,.35);}
+  .brick-num{font-size:7px; font-weight:800; color:#fff; line-height:1; position:relative; z-index:1; text-shadow:0 1px 1px rgba(0,0,0,.5);}
+  .brick-num-stack{display:flex; flex-direction:column; align-items:center; line-height:6px; position:relative; z-index:1;}
+  .brick-num-digit{font-size:6px; font-weight:800; color:#fff; text-shadow:0 1px 1px rgba(0,0,0,.5);}
+
+  /* play area */
+  .play-area{position:absolute; left:0; right:0;}
+  .paddle{
+    position:absolute; background:linear-gradient(180deg,#3b82f6,#1e40af);
+    box-shadow:0 0 8px rgba(59,130,246,.6); display:flex; align-items:center; justify-content:center;
+  }
+  .paddle.invincible{background:linear-gradient(180deg,#fbbf24,#d97706); box-shadow:0 0 14px rgba(251,191,36,.8);}
+  .paddle-inner{width:90%; height:4px; background:rgba(255,255,255,.4);}
+
+  /* ball */
+  .ball{
+    position:absolute; width:8px; height:8px; border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #fff, #00e5ff);
+    box-shadow:0 0 6px rgba(0,229,255,.9);
+  }
+
+  /* bottom buttons */
+  .bottom-bar{
+    display:flex; gap:10px; padding:6px 10px;
+    border-top:1px solid rgba(0,229,255,.15);
+  }
+  .bar-btn{
+    flex:1; padding:11px 0; border-radius:10px; font-size:14px; font-weight:800; cursor:pointer;
+    border:1px solid; background:transparent;
+  }
+  .restart-btn{border-color:rgba(0,229,255,.5); color:var(--cyan);}
+  .god-btn-off{border-color:rgba(148,163,184,.4); color:#94a3b8;}
+  .god-btn-on{border-color:rgba(251,191,36,.8); background:rgba(251,191,36,.15); color:#fde68a;}
+
+  /* hint */
+  .hint-wrap{
+    position:absolute; left:0; right:0; bottom:18%; text-align:center; pointer-events:none;
+  }
+  .hint-text{
+    font-size:24px; font-weight:900; color:var(--cyan);
+    text-shadow:0 0 12px rgba(0,229,255,.9), 0 0 4px rgba(0,229,255,.6);
+  }
+
+  /* loading */
+  .loading{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(5,5,16,.6); font-size:14px; color:var(--cyan); font-weight:700;
+  }
+
+  /* game over */
+  .gameover{
+    position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(5,5,16,.8); gap:16px; z-index:50;
+  }
+  .gameover-title{font-size:28px; font-weight:900; color:#f87171;}
+  .gameover-btn{
+    padding:12px 28px; border-radius:10px; border:2px solid rgba(0,229,255,.6);
+    background:rgba(0,229,255,.12); color:var(--cyan); font-size:15px; font-weight:800; cursor:pointer;
+  }
+
+  /* prediction modal */
+  .modal-backdrop{
+    position:fixed; inset:0; z-index:100; background:rgba(5,5,16,.85);
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .modal-card{
+    max-width:320px; width:100%; background:#0a1430; border:2px solid var(--cyan);
+    border-radius:16px; padding:20px; display:flex; flex-direction:column; gap:12px;
+    box-shadow:0 0 30px rgba(0,229,255,.5); align-items:center;
+  }
+  .modal-title{font-size:20px; font-weight:900; color:var(--gold); text-align:center;}
+  .modal-balls{display:flex; gap:8px; flex-wrap:wrap; justify-content:center;}
+  .modal-ball{
+    width:38px; height:38px; border-radius:19px; border:2px solid rgba(0,229,255,.8);
+    background:rgba(0,229,255,.12); display:flex; align-items:center; justify-content:center;
+    color:#cffaff; font-weight:900; font-size:15px;
+  }
+  .modal-round{font-size:13px; color:#94a3b8;}
+  .modal-btn{
+    width:100%; padding:12px 0; border-radius:10px; font-size:14px; font-weight:900; cursor:pointer; border:2px solid;
+  }
+  .modal-btn-primary{border-color:rgba(0,229,255,.7); background:rgba(0,229,255,.15); color:#cffaff;}
+  .modal-btn-secondary{border-color:rgba(148,163,184,.5); background:transparent; color:#94a3b8;}
+
+  /* saves view */
+  .saves-view{position:absolute; inset:0; background:var(--bg); z-index:60; display:flex; flex-direction:column; padding:12px;}
+  .saves-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
+  .saves-title{font-size:15px; font-weight:800; color:var(--cyan);}
+  .back-link{background:none; border:none; color:#94a3b8; font-size:13px; font-weight:700; cursor:pointer;}
+  #savesList{flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px;}
+  .saves-card{padding:12px; border-radius:12px; border:1px solid rgba(0,229,255,.3); background:var(--panel);}
+  .saves-date{font-size:11px; color:#64748b;}
+  .saves-round{font-size:12px; color:var(--cyan); font-weight:700; margin-top:2px;}
+  .saves-empty{text-align:center; color:#64748b; padding:32px 0;}
+
+  .view-saves-btn{
+    margin:0 10px 8px; padding:10px 0; border-radius:10px; border:1px solid rgba(0,229,255,.4);
+    background:rgba(0,40,60,.5); color:#cffaff; font-weight:800; font-size:13px; cursor:pointer;
+  }
+  .hidden{display:none !important;}
+
+  /* ===== 벽돌 파괴 이펙트 ===== */
+  #fxLayer{position:absolute; inset:0; pointer-events:none; z-index:40; overflow:hidden;}
+  .fx{position:absolute; pointer-events:none;}
+  /* 폭발 링 (빨강/주황) */
+  .fx-ring{
+    border-radius:50%; border:2px solid; transform:translate(-50%,-50%) scale(0.3);
+    animation:fxRing .45s ease-out forwards;
+  }
+  @keyframes fxRing{
+    0%{opacity:.9; transform:translate(-50%,-50%) scale(0.3);}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(1.6);}
+  }
+  /* 불꽃 파편 (빨강/주황) */
+  .fx-spark{
+    width:4px; height:4px; border-radius:50%;
+    transform:translate(-50%,-50%);
+    animation:fxSpark .5s ease-out forwards;
+  }
+  @keyframes fxSpark{
+    0%{opacity:1;}
+    100%{opacity:0;}
+  }
+  /* 분열 반짝이 (노랑/초록) */
+  .fx-star{
+    font-size:14px; transform:translate(-50%,-50%) scale(0.5) rotate(0deg);
+    animation:fxStar .55s ease-out forwards;
+  }
+  @keyframes fxStar{
+    0%{opacity:1; transform:translate(-50%,-50%) scale(.4) rotate(0deg);}
+    60%{opacity:1; transform:translate(-50%,-50%) scale(1.3) rotate(90deg);}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(1.5) rotate(160deg);}
+  }
+  /* 파랑 예측 글로우 */
+  .fx-glow{
+    border-radius:50%; transform:translate(-50%,-50%) scale(0.4);
+    background:radial-gradient(circle, rgba(0,229,255,.7), rgba(0,229,255,0) 70%);
+    animation:fxGlow .5s ease-out forwards;
+  }
+  @keyframes fxGlow{
+    0%{opacity:.9; transform:translate(-50%,-50%) scale(0.4);}
+    100%{opacity:0; transform:translate(-50%,-50%) scale(2);}
+  }
+</style>
+<!-- ===== Wsub 로그인/저장 모듈 (ai-lottosolutions) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#1a1f2e;border-bottom:1px solid rgba(34,211,238,0.25);font-family:inherit;}
+  #wsubAuthBar .who{font-size:12.5px;color:#9aa0b4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #wsubAuthBar .who b{color:#cffaff;font-weight:600;}
+  #wsubAuthBar .authbtn{flex-shrink:0;padding:7px 14px;border-radius:8px;border:1px solid rgba(34,211,238,0.5);background:transparent;color:#cffaff;font-size:13px;font-weight:600;cursor:pointer;}
+  #wsubAuthBar .authbtn.primary{background:#0e9db8;border-color:#0e9db8;color:#fff;}
+  #wsubModal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);padding:20px;}
+  #wsubModal.open{display:flex;}
+  #wsubModal .box{position:relative;width:100%;max-width:340px;background:#252b3d;border:1px solid rgba(34,211,238,0.3);border-radius:16px;padding:26px 22px;font-family:inherit;}
+  #wsubModal h2{font-size:18px;color:#e0fbff;margin:0 0 4px;}
+  #wsubModal .sub{font-size:13px;color:#9aa0b4;margin:0 0 18px;}
+  #wsubModal .field{margin-bottom:10px;}
+  #wsubModal .field input{width:100%;padding:11px 13px;border-radius:9px;border:1px solid rgba(34,211,238,0.3);background:#1a1f2e;color:#e0fbff;font-size:14px;box-sizing:border-box;}
+  #wsubModal .submit{width:100%;padding:12px;border-radius:9px;border:none;background:#0e9db8;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;}
+  #wsubModal .toggle{text-align:center;font-size:12.5px;color:#9aa0b4;margin-top:14px;}
+  #wsubModal .toggle button{background:none;border:none;color:#22d3ee;font-weight:600;cursor:pointer;font-size:12.5px;}
+  #wsubModal .err{color:#f87171;font-size:12.5px;margin-top:8px;min-height:16px;text-align:center;}
+  #wsubModal .close{position:absolute;top:12px;right:14px;background:none;border:none;color:#9aa0b4;font-size:22px;line-height:1;cursor:pointer;}
+  #wsubToast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#0e9db8;color:#fff;padding:11px 20px;border-radius:22px;font-size:13.5px;font-weight:600;z-index:9600;opacity:0;transition:opacity .25s;pointer-events:none;font-family:inherit;}
+  #wsubToast.show{opacity:1;}
+</style>
+</head>
+<body>
+<!-- ===== Wsub 로그인바 / 모달 ===== -->
+<div id="wsubAuthBar">
+  <div class="who" id="wsubWho">로그인하면 번호를 내 계정에 저장할 수 있어요</div>
+  <button class="authbtn primary" id="wsubAuthBtn" onclick="wsubOpenModal()">로그인</button>
+</div>
+<div id="wsubModal">
+  <div class="box">
+    <button class="close" onclick="wsubCloseModal()">&times;</button>
+    <h2 id="wsubModalTitle">로그인</h2>
+    <p class="sub" id="wsubModalSub">이메일과 비밀번호로 로그인하세요</p>
+    <div class="field"><input type="email" id="wsubEmail" placeholder="이메일" autocomplete="email" /></div>
+    <div class="field"><input type="password" id="wsubPw" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" /></div>
+    <button class="submit" id="wsubSubmit" onclick="wsubSubmit()">로그인</button>
+    <div class="toggle" id="wsubToggle">계정이 없으신가요? <button onclick="wsubToggleMode()">회원가입</button></div>
+    <div class="err" id="wsubErr"></div>
+  </div>
+</div>
+<div id="wsubToast"></div>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyAwh55rLOQkY8ZVCzaC4ZF3iaUVU5Vu0GM",
+    authDomain: "ai-lottosolutions.firebaseapp.com",
+    databaseURL: "https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ai-lottosolutions",
+    storageBucket: "ai-lottosolutions.firebasestorage.app",
+    messagingSenderId: "616782090306",
+    appId: "1:616782090306:web:688c710998dfce8e4d5ddb"
+  };
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var wsubAuth = firebase.auth();
+  var wsubDb = firebase.database();
+  var wsubMode = "login";
+  var wsubPendingSaveAction = null;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];}); }
+
+  window.wsubOpenModal = function(){ $("wsubErr").textContent=""; $("wsubModal").classList.add("open"); };
+  window.wsubCloseModal = function(){ $("wsubModal").classList.remove("open"); };
+  window.wsubToggleMode = function(){
+    wsubMode = (wsubMode==="login")?"signup":"login";
+    var s = (wsubMode==="signup");
+    $("wsubModalTitle").textContent = s?"회원가입":"로그인";
+    $("wsubModalSub").textContent = s?"이메일과 비밀번호로 계정을 만드세요":"이메일과 비밀번호로 로그인하세요";
+    $("wsubSubmit").textContent = s?"회원가입":"로그인";
+    $("wsubToggle").innerHTML = s
+      ? '이미 계정이 있으신가요? <button onclick="wsubToggleMode()">로그인</button>'
+      : '계정이 없으신가요? <button onclick="wsubToggleMode()">회원가입</button>';
+    $("wsubErr").textContent = "";
+  };
+  window.wsubSubmit = function(){
+    var email = $("wsubEmail").value.trim(), pw = $("wsubPw").value;
+    $("wsubErr").textContent = "";
+    if(!email||!pw){ $("wsubErr").textContent="이메일과 비밀번호를 입력해 주세요."; return; }
+    var p = (wsubMode==="signup")
+      ? wsubAuth.createUserWithEmailAndPassword(email, pw)
+      : wsubAuth.signInWithEmailAndPassword(email, pw);
+    p.catch(function(e){ $("wsubErr").textContent = wsubAuthErr(e); });
+  };
+  window.wsubLogout = function(){ wsubAuth.signOut(); };
+  function wsubAuthErr(e){
+    var c=(e&&e.code)||"";
+    if(c==="auth/invalid-email") return "이메일 형식이 올바르지 않아요.";
+    if(c==="auth/missing-password"||c==="auth/weak-password") return "비밀번호는 6자 이상이어야 해요.";
+    if(c==="auth/email-already-in-use") return "이미 가입된 이메일이에요. 로그인해 주세요.";
+    if(c==="auth/invalid-credential"||c==="auth/wrong-password"||c==="auth/user-not-found") return "이메일 또는 비밀번호가 올바르지 않아요.";
+    if(c==="auth/too-many-requests") return "잠시 후 다시 시도해 주세요.";
+    return "문제가 발생했어요. 다시 시도해 주세요.";
+  }
+  var toastT=null;
+  window.wsubToast = function(msg){
+    var t=$("wsubToast"); if(!t) return; t.textContent=msg; t.classList.add("show");
+    if(toastT) clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  };
+
+  wsubAuth.onAuthStateChanged(function(user){
+    var who=$("wsubWho"), btn=$("wsubAuthBtn");
+    if(user){
+      who.innerHTML = '<b>'+esc(user.email||"로그인됨")+'</b>';
+      btn.textContent="로그아웃"; btn.classList.remove("primary"); btn.onclick=wsubLogout;
+      wsubCloseModal();
+      if(typeof wsubPendingSaveAction==="function"){ var a=wsubPendingSaveAction; wsubPendingSaveAction=null; a(); }
+    }else{
+      who.textContent="로그인하면 번호를 내 계정에 저장할 수 있어요";
+      btn.textContent="로그인"; btn.classList.add("primary"); btn.onclick=wsubOpenModal;
+    }
+  });
+
+  // numbers: [3,11,18,24,33,42] 배열 / game: 게임키 / onSuccess: 저장 성공 콜백(선택)
+  window.wsubSaveNumbers = function(numbers, game, onSuccess){
+    if(!wsubAuth.currentUser){
+      wsubPendingSaveAction = function(){ window.wsubSaveNumbers(numbers, game, onSuccess); };
+      wsubOpenModal(); return;
+    }
+    var uid = wsubAuth.currentUser.uid;
+    var ref = wsubDb.ref("wsub_saved/"+uid).push();
+    ref.set({
+      numbers: (numbers||[]).slice().sort(function(a,b){return a-b;}).map(String).join(","),
+      game: game,
+      savedAt: Date.now()
+    }).then(function(){ wsubToast("내 계정에 저장했어요"); if(typeof onSuccess==="function") onSuccess(); })
+      .catch(function(e){ console.error(e); wsubToast("저장에 실패했어요. 다시 시도해 주세요."); });
+  };
+  window.wsubIsLoggedIn = function(){ return !!wsubAuth.currentUser; };
+
+  $("wsubModal").addEventListener("click", function(e){ if(e.target===this) wsubCloseModal(); });
+})();
+</script>
+
+<div id="root">
+  <div class="hud" id="hud">
+    <div class="hud-anim" id="hudAnim"></div>
+  </div>
+
+  <div class="game-field" id="gameField">
+    <div class="brick-zone" id="brickZone"></div>
+    <div id="fxLayer"></div>
+    <div class="play-area" id="playArea">
+      <div class="paddle" id="paddle"><div class="paddle-inner"></div></div>
+    </div>
+    <div class="hint-wrap hidden" id="hintWrap"><div class="hint-text">벽돌 영역을 탭해 공 발사</div></div>
+    <div class="loading" id="loading">번호 불러오는 중...</div>
+    <div class="gameover hidden" id="gameover">
+      <div class="gameover-title">게임 오버</div>
+      <button class="gameover-btn" id="gameoverBtn">다시 시작</button>
+    </div>
+  </div>
+
+  <button class="view-saves-btn hidden" id="btnViewSaves">📁 저장한 예측 보기</button>
+
+  <div class="bottom-bar">
+    <button class="bar-btn restart-btn" id="restartBtn">🔄 다시하기</button>
+    <button class="bar-btn god-btn-off" id="godBtn">🛡️ 무적모드</button>
+  </div>
+</div>
+
+<!-- prediction modal -->
+<div class="modal-backdrop hidden" id="predModal">
+  <div class="modal-card">
+    <div class="modal-title">🎉 예측 번호 완성!</div>
+    <div class="modal-round" id="modalRound"></div>
+    <div class="modal-balls" id="modalBalls"></div>
+    <button class="modal-btn modal-btn-primary" id="modalSave">💾 나의 번호에 저장</button>
+    <button class="modal-btn modal-btn-secondary" id="modalRestart">다시 시작</button>
+  </div>
+</div>
+
+<!-- saves view -->
+<div class="saves-view hidden" id="savesView">
+  <div class="saves-head">
+    <span class="saves-title">📁 저장한 예측</span>
+    <button class="back-link" id="savesBack">← 돌아가기</button>
+  </div>
+  <div id="savesList"></div>
+</div>
+
+<script>
+/* =========================================================
+   상수 (앱 game.tsx 그대로)
+========================================================= */
+const PREDICTION_BLUE_COUNT = 6;
+const NUMBERS_1_45 = Array.from({length:45}, (_,i)=>i+1);
+const LABEL_W = 28;
+const H_GAP = 0, V_GAP = 0;
+const BASE_PLAY_AREA_H = 120;
+const GAME_BOTTOM_BUTTON_BAR = 0; // 웹에서는 버튼바가 game-field 밖이므로 0
+const PADDLE_W = 160;
+const PADDLE_H = 20;
+const PADDLE_DOCK_BOTTOM_PAD = 10;
+const BRICK_ROW_HEIGHT_SCALE = 0.7;
+const NUM_BRICK_COLS = 45;
+const MAX_BALLS = 20;
+const BALL_SIZE = 8;
+const BALL_HALF = BALL_SIZE/2;
+const BALL_SPEED = 340;
+const FB_URL = 'https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app';
+const SAVE_KEY = '@devbrick/saved_lotto_numbers_v1';
+
+/* =========================================================
+   데이터/벽돌 생성 (앱 그대로)
+========================================================= */
+function randomSixUniqueDraw(){
+  const s = new Set();
+  while(s.size<6) s.add(1+Math.floor(Math.random()*45));
+  return Array.from(s).sort((a,b)=>a-b);
+}
+function buildRandomFallbackDrawRounds(){
+  return Array.from({length:20}, (_,i)=>({round:1220-i, numbers:randomSixUniqueDraw()}));
+}
+function ensureTwentyDrawRows(latestRound, fetched){
+  const byRound = new Map(fetched.map(d=>[d.round, d.numbers]));
+  return Array.from({length:20}, (_,i)=>{
+    const round = latestRound-i;
+    const nums = byRound.get(round);
+    if(nums && nums.length===6) return {round, numbers:[...nums]};
+    return {round, numbers:randomSixUniqueDraw()};
+  });
+}
+function buildBrickRowsFromRounds(latestRound, lastDraws){
+  const nextRound = latestRound+1;
+  const predictionRow = {round:nextRound, kind:'prediction'};
+  const draws = lastDraws.slice(0,20).map(d=>({round:d.round, kind:'draw', winning:[...d.numbers]}));
+  return [predictionRow, ...draws];
+}
+function pickRedEffect(){
+  const u = Math.random();
+  if(u<0.25) return 'explode3';
+  if(u<0.5) return 'explode2';
+  if(u<0.75) return 'split2';
+  return 'split4';
+}
+function createInitialBricks(rows){
+  return rows.map(row=>
+    NUMBERS_1_45.map(n=>{
+      if(row.kind==='prediction') return {hp:1, kind:'blue'};
+      if(row.kind==='draw' && row.winning.includes(n)) return {hp:1, kind:'red', effect:pickRedEffect()};
+      return {hp:1, kind:'dark'};
+    })
+  );
+}
+function cloneBricks(src){return src.map(row=>row.map(c=>c?{...c}:null));}
+
+/* =========================================================
+   물리 유틸 (앱 그대로)
+========================================================= */
+function rectsOverlap(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax<=bx+bw && ax+aw>=bx && ay<=by+bh && ay+ah>=by;
+}
+function normalize(vx,vy,speed){
+  const len = Math.hypot(vx,vy)||1;
+  return {vx:(vx/len)*speed, vy:(vy/len)*speed};
+}
+function rowTopY(rowIndex,rowH){return rowIndex*(rowH+V_GAP);}
+function brickLeftX(col,brickW){return LABEL_W+col*(brickW+H_GAP);}
+function getPaddleTopY(brickContentH,restartH,playAreaH){
+  const playTop = brickContentH+restartH;
+  return playTop+playAreaH-PADDLE_DOCK_BOTTOM_PAD-PADDLE_H;
+}
+function getFieldBottomY(brickContentH,restartH,playAreaH){
+  return brickContentH+restartH+playAreaH;
+}
+function rotateVec(vx,vy,deg){
+  const rad=(deg*Math.PI)/180, c=Math.cos(rad), s=Math.sin(rad);
+  return {vx:vx*c-vy*s, vy:vx*s+vy*c};
+}
+function pushCircularSplash(queue, centerR, centerC, radius){
+  const ri = Math.ceil(radius);
+  for(let dr=-ri; dr<=ri; dr++){
+    for(let dc=-ri; dc<=ri; dc++){
+      if(dr===0 && dc===0) continue;
+      if(Math.hypot(dr,dc) <= radius+1e-9){
+        queue.push({r:centerR+dr, c:centerC+dc, dmg:1, isDirectHit:false});
+      }
+    }
+  }
+}
+function applyBrickDamage(bricks, hitR, hitC, damage, isDirectHit, ballMotion, numBrickRows){
+  let next = cloneBricks(bricks);
+  let scoreGain = 0;
+  const splitAdds = [];
+  const blueBroken = [];
+  const queue = [{r:hitR, c:hitC, dmg:damage, isDirectHit}];
+
+  const tryDamage = (r,c,dmg,fromDirect)=>{
+    if(r<0 || r>=numBrickRows || c<0 || c>=NUM_BRICK_COLS) return;
+    const cell = next[r][c];
+    if(!cell || dmg<=0) return;
+    if(cell.kind==='blue' && !fromDirect) return;
+    const nh = cell.hp-dmg;
+    if(nh<=0){
+      const kind = cell.kind;
+      const redEffect = kind==='red' ? (cell.effect??'explode3') : undefined;
+      next[r][c] = null;
+      scoreGain += 1;
+      if(kind==='blue') blueBroken.push(c+1);
+      if(kind==='red' && fromDirect){
+        if(redEffect==='explode3') pushCircularSplash(queue,r,c,3);
+        else if(redEffect==='explode2') pushCircularSplash(queue,r,c,2);
+        else if((redEffect==='split2'||redEffect==='split4') && ballMotion){
+          const n = ballMotion.flyingBallCount;
+          if(redEffect==='split2'){
+            if(n<MAX_BALLS) splitAdds.push(normalize(-ballMotion.vx, ballMotion.vy, BALL_SPEED));
+          }else if(n<MAX_BALLS){
+            const {vx:bx, vy:by} = ballMotion;
+            for(const deg of [45,90,135]){
+              if(n+splitAdds.length>=MAX_BALLS) break;
+              const rot = rotateVec(bx,by,deg);
+              splitAdds.push(normalize(rot.vx, rot.vy, BALL_SPEED));
+            }
+          }
+        }
+      }
+    }else{
+      next[r][c] = {...cell, hp:nh};
+    }
+  };
+
+  while(queue.length>0){
+    const job = queue.shift();
+    tryDamage(job.r, job.c, job.dmg, job.isDirectHit);
+  }
+  return {next, scoreGain, splitAdds, blueBroken};
+}
+function resolveBrickCollisionFace(x,y,vx,vy,brLeft,brTop,bw,bh){
+  const ballL=x-BALL_HALF, ballR=x+BALL_HALF, ballT=y-BALL_HALF, ballB=y+BALL_HALF;
+  const brR=brLeft+bw, brB=brTop+bh;
+  const penL=ballR-brLeft, penR=brR-ballL, penT=ballB-brTop, penB=brB-ballT;
+  const faces=[
+    {face:'L', pen:penL, nx:-1, ny:0},
+    {face:'R', pen:penR, nx:1, ny:0},
+    {face:'T', pen:penT, nx:0, ny:-1},
+    {face:'B', pen:penB, nx:0, ny:1},
+  ];
+  const pMin = Math.min(penL,penR,penT,penB);
+  const TIE = 1.2;
+  const candidates = faces.filter(f=>f.pen<=pMin+TIE);
+  if(candidates.length===1){const f=candidates[0]; return {face:f.face, nx:f.nx, ny:f.ny};}
+  let best=candidates[0], bestScore=-Infinity;
+  for(const f of candidates){
+    const into = vx*f.nx + vy*f.ny;
+    const score = -into*100 + (f.face==='L'||f.face==='R'?0.1:0);
+    if(score>bestScore){bestScore=score; best=f;}
+  }
+  return {face:best.face, nx:best.nx, ny:best.ny};
+}
+function applyFaceBounce(face,vx,vy){
+  switch(face){
+    case 'L': case 'R': return {vx:-vx, vy};
+    case 'T': case 'B': return {vx, vy:-vy};
+    default: return {vx,vy};
+  }
+}
+function separateBallFromBrick(face,x,y,brLeft,brTop,bw,bh){
+  switch(face){
+    case 'L': return {x:brLeft-BALL_HALF-0.15, y};
+    case 'R': return {x:brLeft+bw+BALL_HALF+0.15, y};
+    case 'T': return {x, y:brTop-BALL_HALF-0.15};
+    case 'B': return {x, y:brTop+bh+BALL_HALF+0.15};
+    default: return {x,y};
+  }
+}
+function newBallId(){return `b_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;}
+
+/* =========================================================
+   Firebase 읽기 (winningNumbers 한 번 fetch)
+========================================================= */
+async function fetchWinningNumbers(){
+  try{
+    const res = await fetch(`${FB_URL}/winningNumbers.json`);
+    const val = await res.json();
+    if(!val || typeof val!=='object') return null;
+    const rounds = Object.keys(val).map(k=>parseInt(k,10)).filter(n=>Number.isFinite(n));
+    if(rounds.length===0) return null;
+    const latestRound = Math.max(...rounds);
+    const latestNums = val[String(latestRound)]?.numbers;
+    if(!Array.isArray(latestNums) || latestNums.length!==6) return null;
+    // 최근 20회차 내림차순
+    const sorted = rounds.sort((a,b)=>b-a);
+    const last20 = [];
+    for(const r of sorted.slice(0,20)){
+      const nums = val[String(r)]?.numbers;
+      if(Array.isArray(nums) && nums.length===6) last20.push({round:r, numbers:[...nums]});
+    }
+    return {latestRound, latestNumbers:[...latestNums], last20};
+  }catch(e){ return null; }
+}
+
+/* =========================================================
+   저장 (localStorage)
+========================================================= */
+function savePrediction(round, numbers){
+  let list=[];
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(raw){const p=JSON.parse(raw); if(Array.isArray(p)) list=p;}
+  }catch(e){}
+  list.unshift({
+    id:`brick_${Date.now()}_${Math.random().toString(36).slice(2,10)}`,
+    savedAt:new Date().toISOString(),
+    roundLabel:`${round}회`,
+    numbers:[...numbers], matchCount:0, type:'brick',
+    source:'lotto_brick', round, date:Date.now(),
+  });
+  localStorage.setItem(SAVE_KEY, JSON.stringify(list));
+}
+function loadBrickSaves(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw) return [];
+    const p=JSON.parse(raw);
+    if(!Array.isArray(p)) return [];
+    return p.filter(x=>x && (x.type==='brick' || x.source==='lotto_brick'));
+  }catch(e){return [];}
+}
+
+/* =========================================================
+   게임 상태
+========================================================= */
+const G = {
+  brickRows:[], bricks:[], balls:[],
+  ballsLeft:3, gameOver:false, gameWon:false, invincible:false,
+  ballFlying:false, rowsLoading:true,
+  brokenBlueOrder:[],
+  paddleX:0, paddleW:PADDLE_W,
+  // layout
+  fieldW:0, fieldH:0, brickW:0, rowH:0, brickContentH:0, playAreaH:BASE_PLAY_AREA_H,
+  // hud
+  hudShowWinning:true,
+  // raf
+  rafId:0, lastTime:0,
+  predRound:0,
+};
+
+const el = {
+  hud:document.getElementById('hud'),
+  hudAnim:document.getElementById('hudAnim'),
+  gameField:document.getElementById('gameField'),
+  brickZone:document.getElementById('brickZone'),
+  playArea:document.getElementById('playArea'),
+  paddle:document.getElementById('paddle'),
+  fxLayer:document.getElementById('fxLayer'),
+  hintWrap:document.getElementById('hintWrap'),
+  loading:document.getElementById('loading'),
+  gameover:document.getElementById('gameover'),
+  predModal:document.getElementById('predModal'),
+};
+let ballEls = []; // DOM 공 요소 캐시
+
+/* =========================================================
+   레이아웃 계산 (앱 그대로)
+========================================================= */
+function computeLayout(){
+  const fw = el.gameField.clientWidth;
+  const fh = el.gameField.clientHeight;
+  G.fieldW = fw; G.fieldH = fh;
+  const rowCount = G.brickRows.length>0 ? G.brickRows.length : (G.rowsLoading?21:1);
+  const totalVGaps = (rowCount-1)*V_GAP;
+  if(fw<=0 || fh<=0){G.brickW=0; G.rowH=0; G.brickContentH=0; G.playAreaH=BASE_PLAY_AREA_H; return;}
+  const stripW = fw-LABEL_W;
+  const w = (stripW - H_GAP*44)/45;
+  const availableForBrickStack = fh - GAME_BOTTOM_BUTTON_BAR - BASE_PLAY_AREA_H - totalVGaps;
+  if(availableForBrickStack<=0){G.brickW=w; G.rowH=0; G.brickContentH=0; G.playAreaH=BASE_PLAY_AREA_H; return;}
+  const rh = (availableForBrickStack/rowCount)*BRICK_ROW_HEIGHT_SCALE;
+  const bch = rowCount*rh + totalVGaps;
+  const pah = fh - GAME_BOTTOM_BUTTON_BAR - bch;
+  G.brickW = w;
+  G.rowH = Math.max(0, rh);
+  G.brickContentH = bch;
+  G.playAreaH = Math.max(BASE_PLAY_AREA_H, pah);
+}
+
+/* =========================================================
+   벽돌 렌더 (앱 DenseBrickRow / BrickCellView)
+========================================================= */
+function brickClass(brick){
+  if(!brick) return 'brick-empty';
+  if(brick.kind==='red'){
+    switch(brick.effect??'explode3'){
+      case 'explode2': return 'brick-orange';
+      case 'split2': return 'brick-yellow';
+      case 'split4': return 'brick-green';
+      default: return 'brick-red';
+    }
+  }
+  if(brick.kind==='blue') return 'brick-blue';
+  return 'brick-dark';
+}
+function renderBricks(){
+  const bw = G.brickW, rh = G.rowH;
+  el.brickZone.style.height = G.brickContentH+'px';
+  let html='';
+  for(let r=0;r<G.brickRows.length;r++){
+    const row = G.brickRows[r];
+    html += `<div class="dense-row" style="height:${rh}px">`;
+    html += `<div class="round-cell" style="height:${rh}px"><div class="round-label"><span class="round-dot">•</span><span class="round-text ${row.kind==='prediction'?'prediction':'normal'}">${row.round}</span></div></div>`;
+    html += `<div class="bricks-strip" style="height:${rh}px">`;
+    for(let i=0;i<45;i++){
+      const n = i+1;
+      const brick = G.bricks[r]?.[i] ?? null;
+      const cls = brickClass(brick);
+      let inner='';
+      if(brick){
+        const showNum = brick.kind==='red' || (brick.kind==='blue' && n%5===0);
+        if(showNum){
+          if(n>=10){
+            inner = `<div class="brick-num-stack"><span class="brick-num-digit">${String(n)[0]}</span><span class="brick-num-digit">${String(n)[1]}</span></div>`;
+          }else{
+            inner = `<span class="brick-num">${n}</span>`;
+          }
+        }
+      }
+      html += `<div class="brick ${cls}" style="width:${bw}px;height:${rh}px">${inner}</div>`;
+    }
+    html += `</div></div>`;
+  }
+  el.brickZone.innerHTML = html;
+}
+
+/* 벽돌 1개만 DOM에서 제거(전체 리렌더 대신 성능) */
+function clearBrickCell(r,c){
+  const rowEl = el.brickZone.children[r];
+  if(!rowEl) return;
+  const strip = rowEl.children[1];
+  if(!strip) return;
+  const cell = strip.children[c];
+  if(cell){ cell.className='brick brick-empty'; cell.innerHTML=''; }
+}
+
+/* ===== 벽돌 파괴 이펙트 ===== */
+function brickCenterXY(r,c){
+  // 게임필드(브릭존 top=0) 기준 중심 좌표
+  const x = brickLeftX(c, G.brickW) + G.brickW/2;
+  const y = rowTopY(r, G.rowH) + G.rowH/2;
+  return {x,y};
+}
+function addFx(node, ms){
+  el.fxLayer.appendChild(node);
+  setTimeout(()=>{ node.remove(); }, ms);
+}
+function spawnBrickFx(r, c, kind, effect){
+  if(G.brickW<=0 || G.rowH<=0) return;
+  const {x,y} = brickCenterXY(r,c);
+
+  if(kind==='red'){
+    // 폭발 색상
+    const isHeavy = (effect==='explode3' || effect==='explode2');
+    const isSplit = (effect==='split2' || effect==='split4');
+    if(isHeavy){
+      const color = effect==='explode3' ? '#ff5a2e' : '#ff9a3c';
+      const size = effect==='explode3' ? 44 : 32;
+      const ring = document.createElement('div');
+      ring.className = 'fx fx-ring';
+      ring.style.left=x+'px'; ring.style.top=y+'px';
+      ring.style.width=size+'px'; ring.style.height=size+'px';
+      ring.style.borderColor=color;
+      ring.style.boxShadow=`0 0 8px ${color}`;
+      addFx(ring, 450);
+      // 불꽃 파편
+      const sparks = effect==='explode3' ? 8 : 5;
+      for(let i=0;i<sparks;i++){
+        const ang = (Math.PI*2/sparks)*i;
+        const dist = (effect==='explode3'?22:16);
+        const sp = document.createElement('div');
+        sp.className='fx fx-spark';
+        sp.style.left=x+'px'; sp.style.top=y+'px';
+        sp.style.background=color;
+        sp.style.boxShadow=`0 0 4px ${color}`;
+        sp.style.transition='left .5s ease-out, top .5s ease-out';
+        addFx(sp, 500);
+        requestAnimationFrame(()=>{
+          sp.style.left=(x+Math.cos(ang)*dist)+'px';
+          sp.style.top=(y+Math.sin(ang)*dist)+'px';
+        });
+      }
+    }else if(isSplit){
+      // 분열: 반짝이는 별
+      const color = effect==='split2' ? '#f5d142' : '#34d36a';
+      const star = document.createElement('div');
+      star.className='fx fx-star';
+      star.style.left=x+'px'; star.style.top=y+'px';
+      star.style.color=color;
+      star.style.textShadow=`0 0 6px ${color}`;
+      star.textContent='✦';
+      addFx(star, 550);
+      // 작은 파편 2개
+      for(let i=0;i<2;i++){
+        const ang = Math.PI*0.5 + (i?Math.PI:0);
+        const sp=document.createElement('div');
+        sp.className='fx fx-spark';
+        sp.style.left=x+'px'; sp.style.top=y+'px';
+        sp.style.background=color;
+        sp.style.boxShadow=`0 0 4px ${color}`;
+        sp.style.transition='left .5s ease-out, top .5s ease-out';
+        addFx(sp, 500);
+        requestAnimationFrame(()=>{
+          sp.style.left=(x+Math.cos(ang)*14)+'px';
+          sp.style.top=(y+Math.sin(ang)*14)+'px';
+        });
+      }
+    }
+  }else if(kind==='blue'){
+    // 예측 글로우
+    const glow = document.createElement('div');
+    glow.className='fx fx-glow';
+    glow.style.left=x+'px'; glow.style.top=y+'px';
+    glow.style.width='40px'; glow.style.height='40px';
+    addFx(glow, 500);
+  }
+  // dark(비당첨)는 효과 없음
+}
+
+/* =========================================================
+   공/패들 렌더
+========================================================= */
+function syncBalls(){
+  // 공 개수 변화 시 DOM 맞춤
+  while(ballEls.length < G.balls.length){
+    const d = document.createElement('div');
+    d.className = 'ball';
+    el.playArea.appendChild(d);
+    ballEls.push(d);
+  }
+  while(ballEls.length > G.balls.length){
+    const d = ballEls.pop();
+    d.remove();
+  }
+  for(let i=0;i<G.balls.length;i++){
+    const b = G.balls[i];
+    // playArea는 brickContentH 만큼 아래에서 시작하므로 y에서 빼줌
+    ballEls[i].style.left = (b.x - BALL_HALF)+'px';
+    ballEls[i].style.top = (b.y - BALL_HALF - G.brickContentH)+'px';
+  }
+}
+function renderPaddle(){
+  const paddleTop = getPaddleTopY(G.brickContentH, 0, G.playAreaH);
+  el.paddle.style.width = G.paddleW+'px';
+  el.paddle.style.height = PADDLE_H+'px';
+  el.paddle.style.borderRadius = (PADDLE_H/2)+'px';
+  el.paddle.style.left = (G.paddleX - G.paddleW/2)+'px';
+  el.paddle.style.top = (paddleTop - G.brickContentH)+'px';
+  el.paddle.classList.toggle('invincible', G.invincible);
+}
+function layoutPlayArea(){
+  el.playArea.style.top = G.brickContentH+'px';
+  el.playArea.style.height = G.playAreaH+'px';
+}
+
+/* =========================================================
+   공 배치/발사/잃기
+========================================================= */
+function placeBallOnPaddle(){
+  const fw=G.fieldW, bch=G.brickContentH;
+  if(fw<=0 || bch<=0) return;
+  const px = G.paddleX>0 ? G.paddleX : fw/2;
+  const paddleTop = getPaddleTopY(bch, 0, G.playAreaH);
+  const by = paddleTop - BALL_HALF - 6;
+  G.balls = [{id:newBallId(), x:px, y:by, vx:0, vy:0, flying:false}];
+  G.ballFlying = false;
+  syncBalls();
+}
+function launchBall(tapX, tapY){
+  if(G.gameOver || G.gameWon || G.balls.some(b=>b.flying) || (G.ballsLeft<=0 && !G.invincible)) return;
+  if(G.rowsLoading || G.brickRows.length===0) return;
+  const docked = G.balls.find(b=>!b.flying);
+  if(!docked) return;
+
+  let vx, vy;
+  if(typeof tapX==='number' && typeof tapY==='number'){
+    // 탭 지점을 향하는 방향으로 발사
+    let dx = tapX - docked.x;
+    let dy = tapY - docked.y;
+    // 위로 쏘도록 보정: 아래/수평이면 위쪽으로 최소 각도 강제
+    if(dy > -20) dy = -20;
+    const nv = normalize(dx, dy, BALL_SPEED);
+    vx = nv.vx; vy = nv.vy;
+  }else{
+    // 폴백: 랜덤 각도
+    const angle = ((Math.random()*120-60)*Math.PI)/180;
+    vx = BALL_SPEED*Math.sin(angle);
+    vy = -BALL_SPEED*Math.cos(angle);
+  }
+  docked.vx = vx;
+  docked.vy = vy;
+  docked.flying = true;
+  G.ballFlying = true;
+  updateHint();
+  startLoop();
+}
+function loseBall(){
+  G.ballFlying = false;
+  G.ballsLeft -= 1;
+  if(G.ballsLeft<=0){
+    G.gameOver = true;
+    el.gameover.classList.remove('hidden');
+  }
+  placeBallOnPaddle();
+  updateHint();
+}
+
+/* =========================================================
+   게임 루프 (앱 tick 그대로 이식)
+========================================================= */
+function startLoop(){
+  if(G.rafId) return;
+  G.lastTime = performance.now();
+  const tick = (now)=>{
+    if(G.gameOver || G.gameWon){ G.rafId=0; return; }
+    const rawDt = (now - G.lastTime)/1000;
+    G.lastTime = now;
+    const dt = Math.min(rawDt, 0.05);
+
+    const fw=G.fieldW, bch=G.brickContentH, rhRow=G.rowH, bw=G.brickW, pah=G.playAreaH;
+    if(fw<=0||bch<=0||rhRow<=0||bw<=0){ G.rafId=requestAnimationFrame(tick); return; }
+
+    if(!G.balls.some(b=>b.flying)){ G.rafId=0; return; }
+
+    const paddleTop = getPaddleTopY(bch,0,pah);
+    const fieldBottom = getFieldBottomY(bch,0,pah);
+    let paddleCenterX = G.paddleX>0 ? G.paddleX : fw/2;
+
+    let balls = G.balls.map(b=>({...b}));
+    const maxSpeed = balls.reduce((m,b)=> b.flying ? Math.max(m, Math.hypot(b.vx,b.vy)) : m, 0);
+    const substeps = Math.max(1, Math.ceil((((maxSpeed||BALL_SPEED)*dt)/30)*2));
+    const sdt = dt/substeps;
+
+    let currentBricks = G.bricks;
+    let dirty = false;
+    let lost = false;
+    const bluesThisTick = [];
+    const numBrickRows = currentBricks.length;
+    const clearedCells = [];
+
+    for(let s=0; s<substeps && !lost; s++){
+      if(!balls.some(b=>b.flying)) break;
+
+      for(let bi=0; bi<balls.length; bi++){
+        const ball = balls[bi];
+        if(!ball.flying) continue;
+        let stripBall = false;
+        let {x,y,vx,vy} = ball;
+        x += vx*sdt; y += vy*sdt;
+        let bl=x-BALL_HALF, bt=y-BALL_HALF;
+
+        if(bl<LABEL_W){ x=LABEL_W+BALL_HALF; vx=Math.abs(vx); bl=x-BALL_HALF; }
+        if(bl+BALL_SIZE>fw){ x=fw-BALL_HALF; vx=-Math.abs(vx); bl=x-BALL_HALF; }
+        if(bt<0){ y=BALL_HALF; vy=Math.abs(vy); bt=y-BALL_HALF; }
+
+        // 패들 충돌
+        const pw = G.paddleW;
+        const paddleLeft = paddleCenterX - pw/2;
+        if(vy>0 && rectsOverlap(bl,bt,BALL_SIZE,BALL_SIZE,paddleLeft,paddleTop,pw,PADDLE_H)){
+          y = paddleTop-BALL_HALF-0.5;
+          vy = -Math.abs(vy);
+          const hit = (x-paddleCenterX)/(pw/2);
+          const steer = hit*140;
+          const nv = normalize(vx+steer, vy, BALL_SPEED);
+          vx=nv.vx; vy=nv.vy; bt=y-BALL_HALF;
+        }
+
+        // 벽돌 충돌 (가장 가까운 것)
+        let nearestHit=null;
+        for(let r=0;r<numBrickRows;r++){
+          const rowTop = rowTopY(r, rhRow);
+          for(let c=0;c<NUM_BRICK_COLS;c++){
+            if(!currentBricks[r]?.[c]) continue;
+            const brLeft = brickLeftX(c,bw);
+            if(!rectsOverlap(bl,bt,BALL_SIZE,BALL_SIZE,brLeft,rowTop,bw,rhRow)) continue;
+            const cx=brLeft+bw/2, cy=rowTop+rhRow/2;
+            const dist2=(x-cx)*(x-cx)+(y-cy)*(y-cy);
+            if(!nearestHit || dist2<nearestHit.dist2) nearestHit={r,c,brLeft,brTop:rowTop,dist2};
+          }
+        }
+
+        if(nearestHit){
+          const {r,c,brLeft,brTop} = nearestHit;
+          const {face} = resolveBrickCollisionFace(x,y,vx,vy,brLeft,brTop,bw,rhRow);
+          const bounced = applyFaceBounce(face,vx,vy);
+          vx=bounced.vx; vy=bounced.vy;
+          const struckBlueTop = r===0 && currentBricks[r][c]?.kind==='blue';
+          const flyingCount = balls.filter(bb=>bb.flying).length;
+
+          // 충돌 전 벽돌 상태 기록(어떤 칸이 비워질지 비교용)
+          const before = currentBricks;
+          const {next, splitAdds, blueBroken} = applyBrickDamage(currentBricks, r, c, 1, true, {vx,vy,flyingBallCount:flyingCount}, numBrickRows);
+          // 비워진 칸 수집 (효과용으로 kind/effect도 기록)
+          for(let rr=0; rr<numBrickRows; rr++){
+            for(let cc=0; cc<NUM_BRICK_COLS; cc++){
+              if(before[rr]?.[cc] && !next[rr]?.[cc]){
+                clearedCells.push([rr, cc, before[rr][cc].kind, before[rr][cc].effect]);
+              }
+            }
+          }
+          bluesThisTick.push(...blueBroken);
+          currentBricks = next;
+          dirty = true;
+
+          const sep = separateBallFromBrick(face,x,y,brLeft,brTop,bw,rhRow);
+          x=sep.x; y=sep.y; bl=x-BALL_HALF; bt=y-BALL_HALF;
+
+          for(const sa of splitAdds){
+            if(balls.filter(bb=>bb.flying).length>=MAX_BALLS) break;
+            balls.push({id:newBallId(), x:sep.x, y:sep.y, vx:sa.vx, vy:sa.vy, flying:true});
+          }
+          if(struckBlueTop) stripBall = true;
+        }
+
+        if(stripBall){ balls.splice(bi,1); bi--; continue; }
+
+        ball.x=x; ball.y=y; ball.vx=vx; ball.vy=vy;
+
+        if(G.invincible && ball.flying && ball.y-BALL_HALF>fieldBottom){
+          ball.y = fieldBottom+BALL_HALF-0.5;
+          ball.vy = -Math.abs(ball.vy);
+        }
+      }
+
+      const anyFlyingStart = balls.some(b=>b.flying);
+      balls = balls.filter(b=>{
+        if(!b.flying) return true;
+        if(G.invincible) return true;
+        return b.y-BALL_HALF <= fieldBottom;
+      });
+      if(anyFlyingStart && !balls.some(b=>b.flying) && !G.invincible){ lost=true; break; }
+    }
+
+    if(bluesThisTick.length) G.brokenBlueOrder.push(...bluesThisTick);
+
+    G.balls = balls;
+    if(dirty){
+      G.bricks = currentBricks;
+      for(const [rr,cc,kind,effect] of clearedCells){
+        clearBrickCell(rr,cc);
+        spawnBrickFx(rr,cc,kind,effect);
+      }
+    }
+    syncBalls();
+    G.ballFlying = balls.some(b=>b.flying);
+
+    // 예측 완성 체크
+    if(G.brickRows[0]?.kind==='prediction' && !G.gameWon){
+      if(G.brokenBlueOrder.length >= PREDICTION_BLUE_COUNT){
+        G.gameWon = true;
+        G.balls = G.balls.map(b=>({...b, flying:false}));
+        G.ballFlying = false;
+        syncBalls();
+        showPredictionModal();
+        G.rafId = 0;
+        return;
+      }
+    }
+
+    if(lost){ loseBall(); G.rafId=0; return; }
+
+    if(G.balls.some(b=>b.flying) && !G.gameOver && !G.gameWon){
+      G.rafId = requestAnimationFrame(tick);
+    }else{
+      G.rafId = 0;
+    }
+  };
+  G.rafId = requestAnimationFrame(tick);
+}
+
+/* =========================================================
+   패들 이동
+========================================================= */
+function onPlayMove(clientX){
+  const rect = el.gameField.getBoundingClientRect();
+  const locationX = clientX - rect.left;
+  const w = G.fieldW;
+  if(w<=0) return;
+  const half = G.paddleW/2;
+  const nx = Math.max(half, Math.min(w-half, locationX));
+  G.paddleX = nx;
+  if(!G.balls.some(b=>b.flying) && !G.gameOver && !G.gameWon){
+    const paddleTop = getPaddleTopY(G.brickContentH, 0, G.playAreaH);
+    const by = paddleTop - BALL_HALF - 6;
+    G.balls = G.balls.map(b=> b.flying ? b : {...b, x:nx, y:by});
+    syncBalls();
+  }
+  renderPaddle();
+}
+
+/* =========================================================
+   무적모드 (패들 확장 애니메이션)
+========================================================= */
+let paddleAnimId = 0;
+function animatePaddle(){
+  cancelAnimationFrame(paddleAnimId);
+  const targetW = (G.invincible && G.fieldW>0) ? G.fieldW : PADDLE_W;
+  const fromW = G.paddleW;
+  const t0 = performance.now();
+  const dur = 300;
+  const ease = u=>1-(1-u)*(1-u);
+  const step = (now)=>{
+    const u = Math.min(1, (now-t0)/dur);
+    G.paddleW = fromW + (targetW-fromW)*ease(u);
+    renderPaddle();
+    if(u<1){ paddleAnimId = requestAnimationFrame(step); }
+    else{
+      G.paddleW = targetW;
+      const hw = targetW/2;
+      G.paddleX = Math.max(hw, Math.min(G.fieldW-hw, G.paddleX<=0?G.fieldW/2:G.paddleX));
+      renderPaddle();
+      if(!G.ballFlying) placeBallOnPaddle();
+    }
+  };
+  paddleAnimId = requestAnimationFrame(step);
+}
+function toggleInvincible(){
+  G.invincible = !G.invincible;
+  const btn = document.getElementById('godBtn');
+  btn.className = 'bar-btn ' + (G.invincible?'god-btn-on':'god-btn-off');
+  animatePaddle();
+}
+
+/* =========================================================
+   HUD
+========================================================= */
+function updateHud(){
+  const drawRow = G.brickRows[1];
+  const round = drawRow?.kind==='draw' ? drawRow.round : 0;
+  const winning = drawRow?.kind==='draw' ? drawRow.winning : [];
+  if(G.hudShowWinning){
+    el.hudAnim.innerHTML = `<div class="hud-recent-label">🎯 최근 당첨번호 ${round}회차</div>
+      <div class="hud-win-row">${winning.map(n=>`<div class="hud-badge">${n}</div>`).join('')}</div>`;
+  }else{
+    el.hudAnim.innerHTML = `<div class="hud-explain">🐑 각 벽돌은 역대 로또 실제 당첨번호!</div>
+      <div class="hud-explain">🔵 파란벽돌을 깨서 다음 회차를 예측해보세요!</div>`;
+  }
+}
+function startHudCycle(){
+  setInterval(()=>{
+    el.hudAnim.style.opacity = '0';
+    setTimeout(()=>{
+      G.hudShowWinning = !G.hudShowWinning;
+      updateHud();
+      el.hudAnim.style.opacity = '1';
+    }, 150);
+  }, 4000);
+}
+function updateHint(){
+  const show = !G.ballFlying && !G.gameOver && !G.gameWon && G.ballsLeft>0 && !G.rowsLoading;
+  el.hintWrap.classList.toggle('hidden', !show);
+}
+
+/* =========================================================
+   예측 완성 모달
+========================================================= */
+function showPredictionModal(){
+  const top = G.brickRows[0];
+  const round = top?.kind==='prediction' ? top.round : 0;
+  G.predRound = round;
+  const nums = G.brokenBlueOrder.slice(0, PREDICTION_BLUE_COUNT);
+  document.getElementById('modalRound').textContent = `${round}회차 예측번호`;
+  document.getElementById('modalBalls').innerHTML = nums.map(n=>`<div class="modal-ball">${n}</div>`).join('');
+  el.predModal.classList.remove('hidden');
+}
+
+/* =========================================================
+   라운드 로드/리셋
+========================================================= */
+async function loadBrickRows(){
+  G.rowsLoading = true;
+  G.gameWon = false;
+  G.brokenBlueOrder = [];
+  el.loading.classList.remove('hidden');
+  el.predModal.classList.add('hidden');
+
+  const fb = await fetchWinningNumbers();
+  let rows;
+  if(fb && fb.last20.length>0){
+    const last20 = ensureTwentyDrawRows(fb.latestRound, fb.last20);
+    rows = buildBrickRowsFromRounds(fb.latestRound, last20);
+  }else{
+    const rfb = buildRandomFallbackDrawRounds();
+    rows = buildBrickRowsFromRounds(1220, rfb);
+  }
+  G.brickRows = rows;
+  G.bricks = createInitialBricks(rows);
+
+  computeLayout();
+  // game-field 높이가 아직 0이면 다음 프레임에 한 번 더 시도
+  if(G.fieldH<=0 || G.brickContentH<=0){
+    await new Promise(r=>requestAnimationFrame(()=>r()));
+    computeLayout();
+  }
+  renderBricks();
+  layoutPlayArea();
+  if(G.paddleX<=0) G.paddleX = G.fieldW/2;
+  renderPaddle();
+
+  G.rowsLoading = false;
+  el.loading.classList.add('hidden');
+  updateHud();
+  placeBallOnPaddle();
+  renderPaddle();
+  updateHint();
+}
+async function resetRound(){
+  cancelAnimationFrame(G.rafId); G.rafId=0;
+  G.ballsLeft = 3;
+  G.gameOver = false;
+  G.gameWon = false;
+  G.ballFlying = false;
+  el.gameover.classList.add('hidden');
+  await loadBrickRows();
+  refreshSavedButton();
+}
+
+/* =========================================================
+   저장기록
+========================================================= */
+function refreshSavedButton(){
+  const btn = document.getElementById('btnViewSaves');
+  btn.classList.remove('hidden');
+  btn.textContent = '📁 내 저장 번호 보기';
+}
+function renderSavesView(){
+  const saves = loadBrickSaves();
+  const list = document.getElementById('savesList');
+  if(saves.length===0){
+    list.innerHTML = `<div class="saves-empty">아직 저장한 예측이 없어요.</div>`;
+  }else{
+    list.innerHTML = saves.map(s=>{
+      const d = new Date(s.date || s.savedAt);
+      const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      const balls = (s.numbers||[]).map(n=>`<div class="modal-ball" style="width:32px;height:32px;font-size:13px;">${n}</div>`).join('');
+      return `<div class="saves-card">
+        <div class="saves-date">${dateStr}</div>
+        <div class="saves-round">${s.roundLabel || (s.round+'회')} 예측</div>
+        <div class="modal-balls" style="justify-content:flex-start;margin-top:8px;">${balls}</div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('savesView').classList.remove('hidden');
+}
+
+/* =========================================================
+   이벤트
+========================================================= */
+function bindEvents(){
+  // 벽돌 영역 탭 → 탭한 방향으로 발사
+  el.brickZone.addEventListener('click', (e)=>{
+    const rect = el.gameField.getBoundingClientRect();
+    const tapX = e.clientX - rect.left;
+    const tapY = e.clientY - rect.top; // game-field 상단 기준 = 공 좌표계와 동일
+    launchBall(tapX, tapY);
+  });
+
+  // 패들 이동 (플레이 영역 터치/드래그)
+  let dragging = false;
+  const startMove = (e)=>{ dragging=true; const x=e.touches?e.touches[0].clientX:e.clientX; onPlayMove(x); };
+  const moveMove = (e)=>{ if(!dragging)return; const x=e.touches?e.touches[0].clientX:e.clientX; onPlayMove(x); if(e.cancelable)e.preventDefault(); };
+  const endMove = ()=>{ dragging=false; };
+  el.playArea.addEventListener('mousedown', startMove);
+  window.addEventListener('mousemove', moveMove);
+  window.addEventListener('mouseup', endMove);
+  el.playArea.addEventListener('touchstart', startMove, {passive:true});
+  el.playArea.addEventListener('touchmove', moveMove, {passive:false});
+  el.playArea.addEventListener('touchend', endMove);
+
+  // 버튼
+  document.getElementById('restartBtn').addEventListener('click', ()=>void resetRound());
+  document.getElementById('godBtn').addEventListener('click', toggleInvincible);
+  document.getElementById('gameoverBtn').addEventListener('click', ()=>void resetRound());
+
+  // 예측 모달
+  document.getElementById('modalSave').addEventListener('click', ()=>{
+    const nums = G.brokenBlueOrder.slice(0, PREDICTION_BLUE_COUNT);
+    if(!window.wsubSaveNumbers){ alert('저장 기능을 불러오지 못했어요. 새로고침 후 다시 시도해 주세요.'); return; }
+    window.wsubSaveNumbers(nums, 'brick', function(){
+      el.predModal.classList.add('hidden');
+      void resetRound();
+    });
+  });
+  document.getElementById('modalRestart').addEventListener('click', ()=>{
+    el.predModal.classList.add('hidden');
+    void resetRound();
+  });
+
+  // 저장기록
+  document.getElementById('btnViewSaves').addEventListener('click', ()=>{ location.href='/mynumbers.html'; });
+  document.getElementById('savesBack').addEventListener('click', ()=>{
+    document.getElementById('savesView').classList.add('hidden');
+  });
+
+  // 리사이즈 (공통 헬퍼 relayout 사용)
+  let rt;
+  window.addEventListener('resize', ()=>{
+    clearTimeout(rt);
+    rt = setTimeout(relayout, 150);
+  });
+
+  // game-field 자체 크기 변화 감시 (첫 로드 시 높이가 늦게 잡히는 문제 해결)
+  if(window.ResizeObserver){
+    const ro = new ResizeObserver(()=>{ relayout(); });
+    ro.observe(el.gameField);
+  }
+}
+
+/* 레이아웃 재적용: 크기가 잡히거나 바뀔 때마다 호출 */
+function relayout(){
+  if(G.rowsLoading) return;
+  const prevH = G.brickContentH;
+  const prevFW = G.fieldW;
+  computeLayout();
+  if(G.fieldW<=0 || G.brickContentH<=0) return;
+  // 변화 없으면 스킵 (불필요한 리렌더 방지)
+  if(Math.abs(G.brickContentH-prevH)<0.5 && Math.abs(G.fieldW-prevFW)<0.5) return;
+  renderBricks();
+  layoutPlayArea();
+  G.paddleX = Math.max(G.paddleW/2, Math.min(G.fieldW-G.paddleW/2, G.paddleX||G.fieldW/2));
+  renderPaddle();
+  if(!G.ballFlying) placeBallOnPaddle();
+  renderPaddle();
+}
+
+/* =========================================================
+   시작
+========================================================= */
+function waitForLayout(cb){
+  // game-field 높이가 안정화될 때까지 대기 후 시작
+  let tries = 0;
+  let lastH = -1, stableCount = 0;
+  const check = ()=>{
+    const fh = el.gameField.clientHeight;
+    const fw = el.gameField.clientWidth;
+    if(fw>0 && fh>0){
+      // 높이가 두 프레임 연속 같으면 안정화된 것으로 판단
+      if(fh===lastH){ stableCount++; } else { stableCount=0; lastH=fh; }
+      if(stableCount>=2){ cb(); return; }
+    }
+    if(tries++ < 90){ requestAnimationFrame(check); }
+    else { cb(); } // 타임아웃이어도 일단 시작
+  };
+  requestAnimationFrame(check);
+}
+function init(){
+  bindEvents();
+  startHudCycle();
+  waitForLayout(()=>{ resetRound(); });
+}
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
