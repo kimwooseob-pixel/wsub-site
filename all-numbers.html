@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>관리자 · 당첨번호 등록 — Wsub</title>
+<title>모두의 저장 번호 — Wsub</title>
 <meta name="robots" content="noindex, nofollow" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet" />
@@ -51,8 +51,9 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>🔐 당첨번호 관리</h1>
-  <p class="lead">로또(ai-lottosolutions) 최신 회차 등록 · 관리자 전용</p>
+  <h1>📋 모두의 저장 번호</h1>
+  <p class="lead">모든 게임의 저장 번호 · 관리자 전용</p>
+  <a href="/admin.html" style="display:inline-block;margin:-4px 0 8px;color:var(--muted);font-size:0.85rem;text-decoration:none;">← 당첨번호 관리로</a>
 
   <!-- 로그인 -->
   <div class="card" id="loginCard">
@@ -81,33 +82,13 @@
         <span class="who">로그인: <b id="whoEmail">-</b></span>
         <button class="btn ghost" id="logoutBtn" style="width:auto;padding:7px 14px;margin:0;">로그아웃</button>
       </div>
-      <div class="cur" id="curBox">현재 상태를 불러오는 중…</div>
-
-      <div class="field">
-        <label>회차 번호</label>
-        <input type="number" id="round" inputmode="numeric" />
-        <div class="hint">다음 회차가 자동으로 채워져요. 필요하면 수정하세요.</div>
+      <div class="allhead">
+        <h2 style="font-size:1rem;color:var(--gold);margin:0;">📋 모두의 저장 번호</h2>
+        <button class="btn ghost" id="loadAllBtn" style="width:auto;padding:8px 14px;margin:0;">새로고침</button>
       </div>
-
-      <div class="field">
-        <label>당첨번호 6개 (1~45)</label>
-        <div class="nums">
-          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
-          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
-          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
-          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
-          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
-          <input type="number" class="n" inputmode="numeric" min="1" max="45" />
-        </div>
-        <div class="hint">순서는 상관없어요. 저장할 때 오름차순으로 정렬됩니다.</div>
-      </div>
-
-      <button class="btn" id="submitBtn">당첨번호 등록</button>
-      <div class="err" id="formErr"></div>
-      <div class="ok hidden" id="formOk"></div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:6px;">Firebase에 저장된 모든 게임의 저장 번호예요. 관리자만 볼 수 있어요.</div>
+      <div id="allList" style="color:var(--muted);font-size:0.85rem;">불러오는 중…</div>
     </div>
-
-    <a class="btn ghost" href="/all-numbers.html" style="display:block;text-align:center;text-decoration:none;padding:14px;">📋 모두의 저장 번호 보기 →</a>
   </div>
 </div>
 
@@ -156,7 +137,7 @@
     if(user && user.uid===ADMIN_UID){
       hide("loginCard"); hide("denyCard"); show("adminPanel");
       $("whoEmail").textContent = user.email || "관리자";
-      loadCurrent();
+      loadAll();
     } else if(user){
       hide("loginCard"); show("denyCard"); hide("adminPanel");
     } else {
@@ -164,71 +145,50 @@
     }
   });
 
-  // ===== 현재 상태 불러오기 =====
-  function loadCurrent(){
-    db.ref("drawRange").once("value").then(function(snap){
-      var r = snap.val() || {};
-      var end = parseInt(r.end, 10);
-      var next = parseInt(r.next, 10) || (end ? end+1 : "");
-      $("curBox").innerHTML = "현재 최신 등록 회차: <b>" + (isNaN(end)?"-":end) + "</b>회차 &nbsp;·&nbsp; 다음: <b>" + (next||"-") + "</b>회차";
-      if(next) $("round").value = next;
-    }).catch(function(){
-      $("curBox").textContent = "현재 상태를 불러오지 못했어요. (읽기 권한/네트워크 확인)";
-    });
-  }
-
-  // ===== 등록 =====
-  $("submitBtn").addEventListener("click", function(){
-    $("formErr").textContent=""; hide("formOk");
-    var round = parseInt($("round").value, 10);
-    if(!round || round<1){ $("formErr").textContent="회차 번호를 올바르게 입력해 주세요."; return; }
-
-    var inputs = document.querySelectorAll(".nums .n");
-    var nums=[];
-    for(var i=0;i<inputs.length;i++){
-      var v = parseInt(inputs[i].value, 10);
-      if(isNaN(v)){ $("formErr").textContent="번호 6개를 모두 입력해 주세요."; return; }
-      if(v<1 || v>45){ $("formErr").textContent="번호는 1~45 사이여야 해요. (입력: "+v+")"; return; }
-      nums.push(v);
-    }
-    // 중복 검사
-    var sorted = nums.slice().sort(function(a,b){return a-b;});
-    for(var j=1;j<sorted.length;j++){ if(sorted[j]===sorted[j-1]){ $("formErr").textContent="중복된 번호가 있어요: "+sorted[j]; return; } }
-
-    var btn=$("submitBtn"); btn.disabled=true; btn.textContent="확인 중…";
-
-    // 이미 등록된 회차인지 확인
-    db.ref("winningNumbers/"+round).once("value").then(function(snap){
-      var proceed = true;
-      if(snap.exists()){
-        proceed = window.confirm(round+"회차는 이미 등록돼 있어요.\n기존: ["+ (snap.val()||[]).join(", ") +"]\n새 번호로 덮어쓸까요?");
-      }
-      if(!proceed){ btn.disabled=false; btn.textContent="당첨번호 등록"; return; }
-
-      // 3개 노드 동시 업데이트
-      var updates = {};
-      updates["winningNumbers/"+round] = sorted;
-      updates["currentDraw"] = { drawNumber: round, lastUpdated: Date.now() };
-      updates["drawRange"] = { start: String(round-14), end: String(round), next: String(round+1) };
-
-      return db.ref().update(updates).then(function(){
-        btn.disabled=false; btn.textContent="당첨번호 등록";
-        var ok=$("formOk"); ok.textContent = "✅ "+round+"회차 ["+sorted.join(", ")+"] 등록 완료!";
-        show("formOk");
-        // 입력칸 비우기 + 상태 갱신
-        document.querySelectorAll(".nums .n").forEach(function(el){ el.value=""; });
-        loadCurrent();
+  // ===== 모두의 저장 번호 (관리자 전용) =====
+  var GAME_NAME = { saju:"🔮 사주 로또", iching:"🀄 주역 로또", dangsaju:"🎴 당사주 로또", tojeong:"🌙 토정비결 로또", ohaeng:"💑 오행궁합 로또", biorhythm:"📈 바이오리듬 로또", montecarlo:"🎲 몬테카를로 로또", tarot:"🃏 타로 로또", dart:"🎯 원판 다트 로또", spin:"🎡 원판 돌리기 로또", predict:"📊 흐름예측 로또", brick:"🧱 벽돌깨기 로또" };
+  function pad2(n){ return n<10 ? "0"+n : ""+n; }
+  function escTxt(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m]; }); }
+  function loadAll(){
+      var box = $("allList"); box.textContent = "불러오는 중…";
+      db.ref("wsub_saved").once("value").then(function(snap){
+        var all = snap.val() || {};
+        var byGame = {};
+        Object.keys(all).forEach(function(uid){
+          var recs = all[uid] || {};
+          Object.keys(recs).forEach(function(k){
+            var r = recs[k]; if(!r || !r.numbers) return;
+            var g = r.game || "기타";
+            (byGame[g] = byGame[g] || []).push({
+              numbers: String(r.numbers),
+              savedAt: Number(r.savedAt) || 0,
+              who: r.nick ? r.nick : uid.slice(0,4)
+            });
+          });
+        });
+        var keys = Object.keys(byGame).sort();
+        if(keys.length === 0){ box.textContent = "아직 저장된 번호가 없어요."; return; }
+        var total = 0; keys.forEach(function(g){ total += byGame[g].length; });
+        var html = '<div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;">총 ' + total + '건</div>';
+        keys.forEach(function(g){
+          var arr = byGame[g].sort(function(a,b){ return b.savedAt - a.savedAt; });
+          html += '<div class="gsec"><div class="gtitle">' + (GAME_NAME[g] || escTxt(g)) + ' <span>' + arr.length + '개</span></div>';
+          arr.forEach(function(it){
+            var ds = "";
+            if(it.savedAt){ var d = new Date(it.savedAt); ds = d.getFullYear()+"."+pad2(d.getMonth()+1)+"."+pad2(d.getDate()); }
+            var balls = it.numbers.split(",").map(function(n){ return '<span class="ball">'+escTxt(n.trim())+'</span>'; }).join("");
+            html += '<div class="grow"><span class="who">'+escTxt(it.who)+'</span><span class="balls">'+balls+'</span><span class="date">'+ds+'</span></div>';
+          });
+          html += '</div>';
+        });
+        box.innerHTML = html;
+      }).catch(function(e){
+        console.error(e);
+        box.textContent = "불러오지 못했어요. 보안규칙에 관리자 읽기 권한이 있는지 확인해 주세요.";
       });
-    }).catch(function(e){
-      btn.disabled=false; btn.textContent="당첨번호 등록";
-      console.error(e);
-      var msg = "등록에 실패했어요.";
-      if(e && (e.code==="PERMISSION_DENIED" || /permission/i.test(e.message||""))){
-        msg = "쓰기 권한이 없어요. 보안규칙에 관리자 UID가 등록됐는지 확인해 주세요.";
-      }
-      $("formErr").textContent = msg;
-    });
-  });
+  }
+  var allBtn = document.getElementById("loadAllBtn");
+  if(allBtn) allBtn.addEventListener("click", loadAll);
 })();
 </script>
 </body>
