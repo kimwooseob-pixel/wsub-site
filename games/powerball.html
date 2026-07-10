@@ -143,7 +143,7 @@
   <header class="top">
     <div class="wrap">
       <div class="flag-big">🇺🇸</div>
-      <h1 class="page-title">US Powerball</h1>
+      <h1 class="page-title" id="usTitle">US Powerball</h1>
       <p class="page-sub">5 white balls (1–69) and 1 <span class="accent">Powerball</span> (1–26).</p>
     </div>
   </header>
@@ -237,6 +237,22 @@
 
   <script>
     document.getElementById("year").textContent = new Date().getFullYear();
+
+    // 관리자 진입: "US Powerball" 제목을 1.2초 안에 5번 연속 탭 → admin_powerball.html
+    (function(){
+      var taps = 0, timer = null;
+      var title = document.getElementById("usTitle");
+      if(!title) return;
+      title.style.userSelect = "none";
+      title.style.webkitUserSelect = "none";
+      title.style.cursor = "default";
+      title.addEventListener("click", function(){
+        taps++;
+        if(timer) clearTimeout(timer);
+        timer = setTimeout(function(){ taps = 0; }, 1200);
+        if(taps >= 5){ taps = 0; location.href = "/admin_powerball.html"; }
+      });
+    })();
   </script>
 </body>
 </html>
