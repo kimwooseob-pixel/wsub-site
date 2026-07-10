@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>파워볼 당첨번호 관리 — Wsub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --bg:#1a0f12; --bg-raised:#241418; --line:rgba(217,107,107,0.22);
+    --text:#f4eaea; --muted:#b79a9a; --red:#d96b6b; --red-dim:#a85252;
+    --display:"Fraunces", Georgia, serif;
+    --sans:"Pretendard", -apple-system, system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ background:var(--bg); color:var(--text); font-family:var(--sans); line-height:1.6; padding:24px; -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:520px; margin:0 auto; }
+  h1{ font-family:var(--display); font-weight:500; font-size:1.6rem; margin-bottom:4px; }
+  h1 .pb{ color:var(--red); }
+  .sub{ color:var(--muted); font-size:0.9rem; margin-bottom:24px; }
+  .card{ background:var(--bg-raised); border:1px solid var(--line); border-radius:16px; padding:22px; margin-bottom:18px; }
+  label{ display:block; font-size:0.85rem; color:var(--muted); margin:14px 0 6px; }
+  input{ width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--line); background:#180d10; color:var(--text); font-size:1rem; font-family:var(--sans); }
+  input:focus{ outline:2px solid var(--red-dim); outline-offset:1px; }
+  .whiteRow{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .whiteRow input{ text-align:center; padding:12px 4px; }
+  button{ cursor:pointer; border:none; border-radius:12px; font-family:var(--sans); font-weight:600; }
+  .btn-primary{ width:100%; padding:15px; background:var(--red); color:#1a0f12; font-size:1.05rem; margin-top:20px; }
+  .btn-primary:hover{ opacity:0.92; }
+  .btn-primary:disabled{ opacity:0.4; cursor:not-allowed; }
+  .btn-seed{ width:100%; padding:13px; background:transparent; color:var(--red); border:1px solid var(--red-dim); font-size:0.95rem; }
+  .btn-seed:hover{ background:rgba(217,107,107,0.08); }
+  .btn-seed:disabled{ opacity:0.4; cursor:not-allowed; }
+  .msg{ margin-top:14px; padding:12px 14px; border-radius:10px; font-size:0.9rem; display:none; }
+  .msg.ok{ display:block; background:rgba(80,180,120,0.14); color:#8fe0b0; border:1px solid rgba(80,180,120,0.3); }
+  .msg.err{ display:block; background:rgba(217,107,107,0.14); color:#f0a5a5; border:1px solid rgba(217,107,107,0.3); }
+  .info{ font-size:0.85rem; color:var(--muted); margin-top:6px; }
+  .info b{ color:var(--red); }
+  .recent{ font-size:0.85rem; color:var(--muted); }
+  .recent .row{ padding:8px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:10px; }
+  .recent .row:last-child{ border-bottom:none; }
+  .recent .nums{ color:var(--text); }
+  .recent .pbnum{ color:var(--red); font-weight:700; }
+  #loginCard input{ margin-bottom:4px; }
+  #adminArea{ display:none; }
+  .hint{ font-size:0.78rem; color:var(--red-dim); margin-top:4px; }
+  a.back{ color:var(--muted); font-size:0.85rem; text-decoration:none; display:inline-block; margin-bottom:18px; }
+  a.back:hover{ color:var(--red); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="/games/powerball.html">← 파워볼</a>
+    <h1>미국 <span class="pb">파워볼</span> 당첨번호 관리</h1>
+    <p class="sub">관리자 전용 · 화이트볼 5개(1–69) + 파워볼 1개(1–26)</p>
+
+    <!-- 로그인 -->
+    <div class="card" id="loginCard">
+      <label>관리자 이메일</label>
+      <input id="email" type="email" placeholder="utmost@wsub.app" autocomplete="username" />
+      <label>비밀번호</label>
+      <input id="pw" type="password" autocomplete="current-password" />
+      <button class="btn-primary" id="loginBtn">로그인</button>
+      <div class="msg" id="loginMsg"></div>
+    </div>
+
+    <!-- 관리자 영역 -->
+    <div id="adminArea">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span class="info" id="whoami"></span>
+          <button class="btn-seed" id="logoutBtn" style="width:auto; padding:7px 14px;">로그아웃</button>
+        </div>
+      </div>
+
+      <!-- 초기 데이터 심기 -->
+      <div class="card">
+        <div style="font-weight:600; margin-bottom:6px;">초기 데이터 (최초 1회)</div>
+        <p class="info">파일에 내장된 30회분(4/22~7/1)을 Firebase에 넣습니다. 기존 다른 데이터는 건드리지 않아요. 이미 있으면 다시 눌러도 안전합니다.</p>
+        <button class="btn-seed" id="seedBtn">초기 30회 데이터 심기</button>
+        <div class="msg" id="seedMsg"></div>
+      </div>
+
+      <!-- 입력 폼 -->
+      <div class="card">
+        <div style="font-weight:600; margin-bottom:6px;">새 당첨번호 입력</div>
+        <p class="info">다음 회차: <b id="nextRound">–</b> · 마지막 입력: <span id="lastInfo">–</span></p>
+
+        <label>추첨 날짜 <span class="hint">(예: 7/5)</span></label>
+        <input id="date" type="text" placeholder="7/5" inputmode="text" />
+
+        <label>화이트볼 5개 (1–69)</label>
+        <div class="whiteRow">
+          <input class="wb" type="number" min="1" max="69" inputmode="numeric" />
+          <input class="wb" type="number" min="1" max="69" inputmode="numeric" />
+          <input class="wb" type="number" min="1" max="69" inputmode="numeric" />
+          <input class="wb" type="number" min="1" max="69" inputmode="numeric" />
+          <input class="wb" type="number" min="1" max="69" inputmode="numeric" />
+        </div>
+
+        <label>파워볼 1개 (1–26)</label>
+        <input id="pb" type="number" min="1" max="26" inputmode="numeric" />
+
+        <button class="btn-primary" id="saveBtn">이 회차 저장</button>
+        <div class="msg" id="saveMsg"></div>
+      </div>
+
+      <!-- 최근 입력 -->
+      <div class="card">
+        <div style="font-weight:600; margin-bottom:10px;">최근 입력 (최신 8개)</div>
+        <div class="recent" id="recentList">불러오는 중…</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyAwh55rLOQkY8ZVCzaC4ZF3iaUVU5Vu0GM",
+    authDomain: "ai-lottosolutions.firebaseapp.com",
+    databaseURL: "https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ai-lottosolutions",
+    storageBucket: "ai-lottosolutions.firebasestorage.app",
+    messagingSenderId: "616782090306",
+    appId: "1:616782090306:web:688c710998dfce8e4d5ddb"
+  };
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var auth = firebase.auth();
+  var db = firebase.database();
+
+  var ADMIN_UID = "7CqoqswxDsNQzP8yV7yqG75D2V93";
+
+  // 파일 내장 30회분 (심기용)
+  const SEED_DATA = {
+    "1": { white: [8, 20, 34, 48, 62], pb: 16, date: "4/22" },
+    "2": { white: [12, 25, 39, 53, 67], pb: 7, date: "4/25" },
+    "3": { white: [6, 18, 32, 46, 60], pb: 13, date: "4/27" },
+    "4": { white: [10, 23, 37, 51, 65], pb: 19, date: "4/29" },
+    "5": { white: [4, 16, 30, 44, 58], pb: 10, date: "5/2" },
+    "6": { white: [8, 21, 35, 49, 63], pb: 23, date: "5/4" },
+    "7": { white: [2, 15, 28, 42, 56], pb: 17, date: "5/6" },
+    "8": { white: [7, 19, 33, 47, 61], pb: 8, date: "5/9" },
+    "9": { white: [11, 24, 38, 52, 66], pb: 14, date: "5/11" },
+    "10": { white: [5, 18, 32, 46, 60], pb: 21, date: "5/13" },
+    "11": { white: [9, 22, 36, 50, 64], pb: 6, date: "5/16" },
+    "12": { white: [3, 15, 29, 43, 57], pb: 12, date: "5/18" },
+    "13": { white: [7, 20, 34, 48, 62], pb: 18, date: "5/20" },
+    "14": { white: [1, 13, 27, 41, 55], pb: 9, date: "5/23" },
+    "15": { white: [10, 23, 37, 51, 65], pb: 20, date: "5/25" },
+    "16": { white: [4, 16, 29, 43, 57], pb: 15, date: "5/27" },
+    "17": { white: [8, 21, 35, 49, 63], pb: 7, date: "5/30" },
+    "18": { white: [6, 19, 32, 46, 60], pb: 24, date: "6/1" },
+    "19": { white: [2, 14, 28, 42, 55], pb: 11, date: "6/3" },
+    "20": { white: [9, 20, 33, 47, 61], pb: 17, date: "6/6" },
+    "21": { white: [5, 17, 31, 45, 59], pb: 3, date: "6/8" },
+    "22": { white: [11, 24, 36, 48, 62], pb: 22, date: "6/10" },
+    "23": { white: [7, 18, 29, 44, 58], pb: 14, date: "6/13" },
+    "24": { white: [3, 12, 28, 43, 56], pb: 8, date: "6/15" },
+    "25": { white: [14, 22, 34, 44, 53], pb: 19, date: "6/17" },
+    "26": { white: [8, 15, 21, 40, 53], pb: 6, date: "6/20" },
+    "27": { white: [6, 11, 26, 38, 42], pb: 11, date: "6/22" },
+    "28": { white: [13, 21, 24, 34, 47], pb: 16, date: "6/24" },
+    "29": { white: [16, 26, 32, 41, 55], pb: 26, date: "6/27" },
+    "30": { white: [16, 19, 35, 51, 59], pb: 6, date: "7/1" }
+  };
+
+  var el = {};
+  ["email","pw","loginBtn","loginMsg","loginCard","adminArea","whoami","logoutBtn",
+   "seedBtn","seedMsg","nextRound","lastInfo","date","pb","saveBtn","saveMsg","recentList"]
+   .forEach(function(id){ el[id] = document.getElementById(id); });
+
+  function showMsg(node, text, ok){
+    node.className = "msg " + (ok ? "ok" : "err");
+    node.textContent = text;
+  }
+
+  // ---- 로그인 ----
+  el.loginBtn.addEventListener("click", function(){
+    var email = el.email.value.trim(), pw = el.pw.value;
+    if(!email || !pw){ showMsg(el.loginMsg, "이메일과 비밀번호를 입력하세요.", false); return; }
+    el.loginBtn.disabled = true;
+    auth.signInWithEmailAndPassword(email, pw)
+      .catch(function(e){ showMsg(el.loginMsg, "로그인 실패: " + (e.message||e.code), false); })
+      .finally(function(){ el.loginBtn.disabled = false; });
+  });
+  el.pw.addEventListener("keydown", function(e){ if(e.key==="Enter") el.loginBtn.click(); });
+
+  el.logoutBtn.addEventListener("click", function(){ auth.signOut(); });
+
+  auth.onAuthStateChanged(function(user){
+    if(user && user.uid === ADMIN_UID){
+      el.loginCard.style.display = "none";
+      el.adminArea.style.display = "block";
+      el.whoami.textContent = "관리자: " + (user.email || user.uid.slice(0,8));
+      refresh();
+    } else if(user){
+      // 로그인은 됐지만 관리자가 아님
+      showMsg(el.loginMsg, "이 계정은 관리자 권한이 없습니다.", false);
+      el.loginCard.style.display = "block";
+      el.adminArea.style.display = "none";
+      auth.signOut();
+    } else {
+      el.loginCard.style.display = "block";
+      el.adminArea.style.display = "none";
+    }
+  });
+
+  // ---- 현재 데이터 읽어 다음 회차/최근목록 갱신 ----
+  var currentMax = 0;
+  function refresh(){
+    db.ref("powerballNumbers").once("value").then(function(snap){
+      var val = snap.val() || {};
+      var keys = Object.keys(val).map(Number).filter(function(n){return !isNaN(n);}).sort(function(a,b){return a-b;});
+      currentMax = keys.length ? keys[keys.length-1] : 0;
+      el.nextRound.textContent = (currentMax + 1);
+      if(currentMax > 0){
+        var last = val[String(currentMax)];
+        el.lastInfo.textContent = currentMax + "회 (" + (last.date||"?") + ")";
+      } else {
+        el.lastInfo.textContent = "없음 — 초기 데이터를 먼저 심으세요";
+      }
+      // 최근 8개
+      var recent = keys.slice(-8).reverse();
+      if(recent.length === 0){ el.recentList.textContent = "아직 입력된 데이터가 없습니다."; return; }
+      var html = "";
+      recent.forEach(function(k){
+        var d = val[String(k)];
+        var w = (d.white||[]).join(", ");
+        html += '<div class="row"><span>' + k + '회 · ' + (d.date||"?") + '</span>'
+              + '<span class="nums">' + w + ' <span class="pbnum">+' + d.pb + '</span></span></div>';
+      });
+      el.recentList.innerHTML = html;
+    }).catch(function(e){
+      el.recentList.textContent = "읽기 오류: " + (e.message||e.code);
+    });
+  }
+
+  // ---- 초기 데이터 심기 ----
+  el.seedBtn.addEventListener("click", function(){
+    el.seedBtn.disabled = true;
+    // update: SEED_DATA의 키(1~30)만 씀. 다른 데이터/새 회차는 안 건드림.
+    db.ref("powerballNumbers").update(SEED_DATA)
+      .then(function(){ showMsg(el.seedMsg, "초기 30회 데이터를 넣었습니다.", true); refresh(); })
+      .catch(function(e){ showMsg(el.seedMsg, "실패: " + (e.message||e.code), false); })
+      .finally(function(){ el.seedBtn.disabled = false; });
+  });
+
+  // ---- 새 당첨번호 저장 ----
+  el.saveBtn.addEventListener("click", function(){
+    var date = el.date.value.trim();
+    var whites = Array.prototype.map.call(document.querySelectorAll(".wb"), function(i){ return parseInt(i.value,10); });
+    var pb = parseInt(el.pb.value, 10);
+
+    // 검증
+    if(!date){ showMsg(el.saveMsg, "추첨 날짜를 입력하세요.", false); return; }
+    if(date.length > 10){ showMsg(el.saveMsg, "날짜는 10자 이내로.", false); return; }
+    if(whites.some(function(n){ return isNaN(n) || n<1 || n>69; })){
+      showMsg(el.saveMsg, "화이트볼 5개를 각각 1~69로 입력하세요.", false); return;
+    }
+    var uniq = whites.filter(function(v,i,a){ return a.indexOf(v)===i; });
+    if(uniq.length !== 5){ showMsg(el.saveMsg, "화이트볼에 중복이 있습니다.", false); return; }
+    if(isNaN(pb) || pb<1 || pb>26){ showMsg(el.saveMsg, "파워볼을 1~26으로 입력하세요.", false); return; }
+
+    var round = currentMax + 1;
+    var entry = { white: whites.slice().sort(function(a,b){return a-b;}), pb: pb, date: date };
+
+    el.saveBtn.disabled = true;
+    db.ref("powerballNumbers/" + round).set(entry)
+      .then(function(){
+        showMsg(el.saveMsg, round + "회 저장 완료: " + entry.white.join(", ") + " + " + pb, true);
+        el.date.value = ""; el.pb.value = "";
+        document.querySelectorAll(".wb").forEach(function(i){ i.value = ""; });
+        refresh();
+      })
+      .catch(function(e){ showMsg(el.saveMsg, "저장 실패: " + (e.message||e.code), false); })
+      .finally(function(){ el.saveBtn.disabled = false; });
+  });
+
+})();
+</script>
+</body>
+</html>
