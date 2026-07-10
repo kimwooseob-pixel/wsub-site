@@ -1,0 +1,1311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Powerball Flow Predict</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { background:#1a1f2e; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif; color:#fff; min-height:100vh; }
+  #predict-root { max-width:480px; margin:0 auto; padding-bottom:120px; position:relative; }
+
+  .titleWrap { padding:12px 16px 4px; text-align:center; }
+  .predictTitle { font-size:24px; font-weight:900; color:#e9d5ff; letter-spacing:1.5px; text-shadow:0 0 14px rgba(192,132,252,0.85); }
+
+  .hintRow { display:flex; gap:4px; padding:6px 8px; }
+  .hintBtn { flex:1 1 0; min-width:0; padding:8px 2px; border-radius:16px; color:#fff; font-weight:800; font-size:12px; text-align:center; cursor:pointer; border:2px solid transparent; white-space:nowrap; }
+  .hintBtn.active { border-color:#fff; }
+
+  .turnBox { background:#252b3d; margin:8px; padding:12px; border-radius:8px; position:relative; }
+  .dateText { color:#3498db; font-size:12px; font-weight:bold; letter-spacing:1px; text-align:center; margin-bottom:6px; }
+  .turnInfoRow { display:flex; justify-content:space-between; align-items:center; }
+  .turnText { color:#fff; font-size:20px; font-weight:bold; }
+  .checkText { color:#ff4444; font-size:13px; font-weight:bold; animation:blink 1s infinite; transform:translateY(-12px); }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+  .floatArrow { position:absolute; right:12px; top:54px; color:#ffcc00; font-size:40px; animation:floaty 1.4s ease-in-out infinite; }
+  @keyframes floaty { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-8px);} }
+
+  .gridScroll { overflow-x:auto; overflow-y:hidden; background:#000; }
+  #gridSvg { display:block; }
+
+  .btnRow { padding:12px 16px; }
+  .saveBtn { width:100%; padding:14px 0; border-radius:10px; background:#3b2f5c; border:2px solid rgba(192,132,252,0.75); color:#f5e8ff; font-weight:900; font-size:15px; cursor:pointer; text-align:center; }
+  .saveBtn.dim { opacity:.4; pointer-events:none; }
+  .savedViewBtn { display:none; margin:0 16px; padding:11px 0; border-radius:10px; border:1px solid rgba(192,132,252,0.4); background:rgba(192,132,252,0.12); color:#e9d5ff; font-weight:800; font-size:13px; cursor:pointer; text-align:center; }
+  .savedViewBtn.is-shown { display:block; }
+
+  /* 사이버펑크 SHOOT FAB */
+  .shootFab { position:fixed; left:50%; transform:translateX(-50%); bottom:28px; z-index:40; display:none; gap:8px; }
+  .shootFab.is-shown { display:flex; }
+  .saveShotBtn { padding:12px 16px; border-radius:2px; border:2px solid #ffd700; background:#0a0e14; color:#ffd700; font-size:13px; font-weight:900; letter-spacing:2px; cursor:pointer; box-shadow:0 0 12px rgba(255,215,0,0.45); }
+  .shootBtn { padding:12px 32px; border-radius:2px; border:2px solid #00f3ff; background:#0a0e14; color:#00f3ff; font-size:15px; font-weight:900; letter-spacing:6px; cursor:pointer; box-shadow:0 0 12px rgba(0,243,255,0.55); }
+  .shootBtn.violet { border-color:#8000ff; color:#cc66ff; box-shadow:0 0 12px rgba(128,0,255,0.55); }
+  .shootBtn.yellow { border-color:#ffcc00; color:#ffcc00; box-shadow:0 0 12px rgba(255,204,0,0.55); }
+
+  .loading { display:flex; align-items:center; justify-content:center; height:70vh; color:#fff; font-size:16px; }
+
+  .mask { position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:50; display:none; align-items:center; justify-content:center; padding:24px; }
+  .mask.is-shown { display:flex; }
+  .popup { background:#252b3d; border-radius:20px; padding:28px; width:100%; max-width:360px; text-align:center; border:1px solid #3498db; }
+  .popup .emoji { font-size:52px; margin-bottom:8px; }
+  .popup .ptitle { font-size:22px; font-weight:bold; margin-bottom:20px; }
+  .msgRow { display:flex; align-items:center; gap:10px; background:#1a1f2e; padding:12px; border-radius:10px; margin-bottom:12px; text-align:left; }
+  .msgRow .ic { font-size:22px; } .msgRow .tx { font-size:15px; font-weight:500; }
+  .startBtn { width:100%; background:#3498db; padding:12px 0; border-radius:25px; color:#fff; font-weight:bold; font-size:16px; cursor:pointer; border:none; margin-top:8px; }
+
+  .savesBox { width:100%; max-width:360px; max-height:76vh; overflow-y:auto; background:#252b3d; border:1px solid #3498db; border-radius:16px; padding:18px; }
+  .savesTitle { font-size:16px; font-weight:900; color:#e9d5ff; margin-bottom:12px; }
+  .saveItem { background:#1a1f2e; border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+  .saveRound { font-size:11px; color:#3498db; font-weight:700; margin-bottom:6px; }
+  .saveNums { display:flex; gap:5px; flex-wrap:wrap; }
+  .sn { width:26px; height:26px; border-radius:13px; background:rgba(192,132,252,0.2); border:1px solid rgba(192,132,252,0.6); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#e9d5ff; }
+  .savesEmpty { color:rgba(255,255,255,0.4); text-align:center; padding:18px 0; }
+  .closeBtn { width:100%; margin-top:8px; padding:11px 0; border-radius:10px; border:1px solid rgba(192,132,252,0.4); background:rgba(192,132,252,0.14); color:#e9d5ff; font-weight:800; cursor:pointer; }
+  /* 파워볼(1~26) 선택줄 */
+  .pbLabel { font-size:11px; font-weight:800; letter-spacing:1px; color:#ff8fa3; margin:10px 16px 4px; }
+  .sn.pb { background:#ff3b5c; border-color:#fff; color:#fff; }
+  .slotSec { margin-bottom:12px; }
+  .slotHead { font-size:12px; font-weight:800; margin-bottom:6px; }
+  .slotHead.pos { color:#2ecc71; } .slotHead.ex { color:#e74c3c; }
+  .chips { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
+  .chip { min-width:22px; padding:2px 7px; border-radius:12px; text-align:center; font-weight:800; border:1px solid #3a4468; }
+  .myItem { background:#0f1424; border-radius:8px; padding:8px 10px; margin-bottom:6px; font-size:12px; }
+  @keyframes rainbowGlow {
+    0%{ box-shadow:0 0 14px 3px #ff004c; border-color:#ff004c; }
+    17%{ box-shadow:0 0 14px 3px #ff9a00; border-color:#ff9a00; }
+    34%{ box-shadow:0 0 14px 3px #ffee00; border-color:#ffee00; }
+    50%{ box-shadow:0 0 14px 3px #00e676; border-color:#00e676; }
+    67%{ box-shadow:0 0 14px 3px #00b0ff; border-color:#00b0ff; }
+    84%{ box-shadow:0 0 14px 3px #7c4dff; border-color:#7c4dff; }
+    100%{ box-shadow:0 0 14px 3px #d500f9; border-color:#d500f9; }
+  }
+  .myFinal { background:#10152a; border:2px solid #fff; border-radius:14px; padding:16px; margin-bottom:12px; animation:rainbowGlow 3s linear infinite; }
+  .myFinal .mfLabel { font-size:11px; color:#9fb0d0; font-weight:800; letter-spacing:1.5px; margin-bottom:3px; }
+  .myFinal .mfW { font-size:20px; font-weight:900; color:#eaf2ff; line-height:1.5; text-shadow:0 0 8px rgba(255,255,255,0.35); }
+  .myFinal .mfP { font-size:20px; font-weight:900; color:#ff8fa3; line-height:1.5; text-shadow:0 0 8px rgba(255,59,92,0.5); }
+</style>
+<!-- ===== Wsub login/save module (ai-lottosolutions) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  #wsubAuthBar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;background:#1a1f2e;border-bottom:1px solid rgba(192,132,252,0.25);font-family:inherit;}
+  #wsubAuthBar .who{font-size:12.5px;color:#9aa0b4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #wsubAuthBar .who b{color:#e9d5ff;font-weight:600;}
+  #wsubAuthBar .authbtn{flex-shrink:0;padding:7px 14px;border-radius:8px;border:1px solid rgba(192,132,252,0.5);background:transparent;color:#e9d5ff;font-size:13px;font-weight:600;cursor:pointer;}
+  #wsubAuthBar .authbtn.primary{background:#a855f7;border-color:#a855f7;color:#fff;}
+  #wsubModal{position:fixed;inset:0;z-index:9500;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);padding:20px;}
+  #wsubModal.open{display:flex;}
+  #wsubModal .box{position:relative;width:100%;max-width:340px;background:#252b3d;border:1px solid rgba(192,132,252,0.3);border-radius:16px;padding:26px 22px;font-family:inherit;}
+  #wsubModal h2{font-size:18px;color:#f3e8ff;margin:0 0 4px;}
+  #wsubModal .sub{font-size:13px;color:#9aa0b4;margin:0 0 18px;}
+  #wsubModal .field{margin-bottom:10px;}
+  #wsubModal .field input{width:100%;padding:11px 13px;border-radius:9px;border:1px solid rgba(192,132,252,0.3);background:#1a1f2e;color:#f3e8ff;font-size:14px;box-sizing:border-box;}
+  #wsubModal .submit{width:100%;padding:12px;border-radius:9px;border:none;background:#a855f7;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:6px;}
+  #wsubModal .toggle{text-align:center;font-size:12.5px;color:#9aa0b4;margin-top:14px;}
+  #wsubModal .toggle button{background:none;border:none;color:#c084fc;font-weight:600;cursor:pointer;font-size:12.5px;}
+  #wsubModal .err{color:#f87171;font-size:12.5px;margin-top:8px;min-height:16px;text-align:center;}
+  #wsubModal .close{position:absolute;top:12px;right:14px;background:none;border:none;color:#9aa0b4;font-size:22px;line-height:1;cursor:pointer;}
+  #wsubToast{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);background:#a855f7;color:#fff;padding:11px 20px;border-radius:22px;font-size:13.5px;font-weight:600;z-index:9600;opacity:0;transition:opacity .25s;pointer-events:none;font-family:inherit;}
+  #wsubToast.show{opacity:1;}
+</style>
+</head>
+<body>
+<!-- ===== Wsub login bar / modal ===== -->
+<div id="wsubAuthBar">
+  <div class="who" id="wsubWho">Log in to save your numbers to your account</div>
+  <button class="authbtn primary" id="wsubAuthBtn" onclick="wsubOpenModal()">Log in</button>
+</div>
+<div id="wsubModal">
+  <div class="box">
+    <button class="close" onclick="wsubCloseModal()">&times;</button>
+    <h2 id="wsubModalTitle">Log in</h2>
+    <p class="sub" id="wsubModalSub">Log in with your email and password</p>
+    <div class="field"><input type="email" id="wsubEmail" placeholder="Email" autocomplete="email" /></div>
+    <div class="field"><input type="password" id="wsubPw" placeholder="Password (6+ characters)" autocomplete="current-password" /></div>
+    <button class="submit" id="wsubSubmit" onclick="wsubSubmit()">Log in</button>
+    <div class="toggle" id="wsubToggle">Don't have an account? <button onclick="wsubToggleMode()">Sign up</button></div>
+    <div class="err" id="wsubErr"></div>
+  </div>
+</div>
+<div id="wsubToast"></div>
+<script>
+(function(){
+  var firebaseConfig = {
+    apiKey: "AIzaSyAwh55rLOQkY8ZVCzaC4ZF3iaUVU5Vu0GM",
+    authDomain: "ai-lottosolutions.firebaseapp.com",
+    databaseURL: "https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ai-lottosolutions",
+    storageBucket: "ai-lottosolutions.firebasestorage.app",
+    messagingSenderId: "616782090306",
+    appId: "1:616782090306:web:688c710998dfce8e4d5ddb"
+  };
+  if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  var wsubAuth = firebase.auth();
+  var wsubDb = firebase.database();
+  var wsubMode = "login";
+  var wsubPendingSaveAction = null;
+  function $(id){ return document.getElementById(id); }
+  function esc(s){ return String(s).replace(/[&<>"']/g,function(m){return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[m];}); }
+
+  window.wsubOpenModal = function(){ $("wsubErr").textContent=""; $("wsubModal").classList.add("open"); };
+  window.wsubCloseModal = function(){ $("wsubModal").classList.remove("open"); };
+  window.wsubToggleMode = function(){
+    wsubMode = (wsubMode==="login")?"signup":"login";
+    var s = (wsubMode==="signup");
+    $("wsubModalTitle").textContent = s?"Sign up":"Log in";
+    $("wsubModalSub").textContent = s?"Create an account with email and password":"Log in with your email and password";
+    $("wsubSubmit").textContent = s?"Sign up":"Log in";
+    $("wsubToggle").innerHTML = s
+      ? 'Already have an account? <button onclick="wsubToggleMode()">Log in</button>'
+      : 'Don\'t have an account? <button onclick="wsubToggleMode()">Sign up</button>';
+    $("wsubErr").textContent = "";
+  };
+  window.wsubSubmit = function(){
+    var email = $("wsubEmail").value.trim(), pw = $("wsubPw").value;
+    $("wsubErr").textContent = "";
+    if(!email||!pw){ $("wsubErr").textContent="Please enter your email and password."; return; }
+    var p = (wsubMode==="signup")
+      ? wsubAuth.createUserWithEmailAndPassword(email, pw)
+      : wsubAuth.signInWithEmailAndPassword(email, pw);
+    p.catch(function(e){ $("wsubErr").textContent = wsubAuthErr(e); });
+  };
+  window.wsubLogout = function(){ wsubAuth.signOut(); };
+  function wsubAuthErr(e){
+    var c=(e&&e.code)||"";
+    if(c==="auth/invalid-email") return "Invalid email format.";
+    if(c==="auth/missing-password"||c==="auth/weak-password") return "Password must be at least 6 characters.";
+    if(c==="auth/email-already-in-use") return "This email is already registered. Please log in.";
+    if(c==="auth/invalid-credential"||c==="auth/wrong-password"||c==="auth/user-not-found") return "Incorrect email or password.";
+    if(c==="auth/too-many-requests") return "Too many attempts. Please try again later.";
+    return "Something went wrong. Please try again.";
+  }
+  var toastT=null;
+  window.wsubToast = function(msg){
+    var t=$("wsubToast"); if(!t) return; t.textContent=msg; t.classList.add("show");
+    if(toastT) clearTimeout(toastT); toastT=setTimeout(function(){ t.classList.remove("show"); }, 2200);
+  };
+
+  wsubAuth.onAuthStateChanged(function(user){
+    var who=$("wsubWho"), btn=$("wsubAuthBtn");
+    if(user){
+      who.innerHTML = '<b>'+esc(user.email||"Logged in")+'</b>';
+      btn.textContent="Log out"; btn.classList.remove("primary"); btn.onclick=wsubLogout;
+      wsubCloseModal();
+      if(typeof wsubPendingSaveAction==="function"){ var a=wsubPendingSaveAction; wsubPendingSaveAction=null; a(); }
+    }else{
+      who.textContent="Log in to save your numbers to your account";
+      btn.textContent="Log in"; btn.classList.add("primary"); btn.onclick=wsubOpenModal;
+    }
+  });
+
+  // payload: {game, white:[5개], powerball:숫자, round, drawDate}
+  window.wsubSaveNumbers = function(payload){
+    if(!wsubAuth.currentUser){
+      wsubPendingSaveAction = function(){ window.wsubSaveNumbers(payload); };
+      wsubOpenModal(); return;
+    }
+    var white = (payload.white||[]).slice().sort(function(a,b){return a-b;});
+    var whiteStr = white.map(String).join(",");
+    var pb = Number(payload.powerball);
+    var uid = wsubAuth.currentUser.uid;
+    var ref = wsubDb.ref("wsub_saved/"+uid).push();
+    ref.set({
+      numbers: whiteStr,                    // ai-lottosolutions 규칙 통과용
+      white: whiteStr,                      // mynumbers_powerball 표시용
+      powerball: pb,                        // mynumbers_powerball 표시용
+      game: payload.game || "powerball-flow",
+      savedAt: Date.now()
+    }).then(function(){ wsubToast("Saved to your account"); })
+      .catch(function(e){ console.error(e); wsubToast("Save failed. Please try again."); });
+  };
+  window.wsubIsLoggedIn = function(){ return !!wsubAuth.currentUser; };
+
+  $("wsubModal").addEventListener("click", function(e){ if(e.target===this) wsubCloseModal(); });
+})();
+</script>
+
+  <div id="predict-root">
+    <div class="loading" id="loading">Loading draws…</div>
+    <div id="main" style="display:none;">
+      <div class="titleWrap"><div class="predictTitle">POWERBALL FLOW</div></div>
+      <div class="hintRow" id="hintRow"></div>
+      <div class="turnBox">
+        <div class="dateText" id="dateText"></div>
+        <div class="turnInfoRow">
+          <div class="turnText" id="turnText"></div>
+          <div class="checkText">Pick your numbers!</div>
+        </div>
+        <div class="floatArrow">⬇</div>
+      </div>
+      <div class="gridScroll" id="gridScroll"><svg id="gridSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="pbLabel">POWERBALL · 1–26</div>
+      <div class="gridScroll" id="pbGridScroll"><svg id="pbGridSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="btnRow"><div class="saveBtn dim" id="saveBtn">MY CHOICE SAVE</div></div>
+      <div class="savedViewBtn" id="savedViewBtn">View Saved</div>
+      <div class="savedViewBtn is-shown" id="slotViewBtn" style="border-color:rgba(255,215,0,0.4);background:rgba(255,215,0,0.1);color:#ffd700">Collected / Merge</div>
+    </div>
+    <div class="shootFab" id="shootFab"><button class="saveShotBtn" id="shootSaveBtn">SHOOT + SAVE</button></div>
+  </div>
+
+  <div class="mask" id="introMask">
+    <div class="popup">
+      <div class="emoji">🦊</div>
+      <div class="ptitle">Predict the Next Draw</div>
+      <div class="msgRow"><span class="ic">👆</span><span class="tx">Pick 5 white balls + 1 Powerball</span></div>
+      <div class="msgRow"><span class="ic">🔥</span><span class="tx">Predict the real upcoming numbers</span></div>
+      <button class="startBtn" id="introStart">Start →</button>
+    </div>
+  </div>
+
+  <div class="mask" id="savesMask">
+    <div class="savesBox">
+      <div class="savesTitle">Saved Predictions</div>
+      <div id="savesList"></div>
+      <div class="closeBtn" id="savesClose">Close</div>
+    </div>
+  </div>
+
+  <div class="mask" id="slotMask">
+    <div class="savesBox">
+      <div class="savesTitle">Collected Numbers (Positive − Excluded)</div>
+      <div id="slotBody"></div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <div class="closeBtn" id="slotMerge" style="flex:1; background:#7c3aed; color:#fff; border-color:#7c3aed;">Merge → Save to My Numbers</div>
+        <div class="closeBtn" id="slotReset" style="max-width:80px; color:#ff9aa8;">Reset</div>
+      </div>
+      <div class="closeBtn" id="slotClose">Close</div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =======================================================================
+   * [재사용 영역] 순수 로직 (DOM/window/localStorage/fetch/시간·랜덤 직접호출 금지)
+   * ===================================================================== */
+
+var COLORS = { cyan:'#00ffff', purple:'#cc00ff', gold:'#ffd700', green:'#00ff00', bg:'#0a0a1a' };
+  var HINTS = [
+    { key:'hint1', label:'HINT 1', color:'#2ecc71' },
+    { key:'hint2', label:'HINT 2', color:'#e74c3c' },
+    { key:'hint3', label:'HINT 3', color:'#f39c12' },
+    { key:'hint4', label:'HINT 4', color:'#1abc9c' },
+    { key:'hint5', label:'HINT 5', color:'#9b59b6' }
+  ];
+  var ROWS = 69, MAX_SELECT = 5;
+
+  // Firebase 응답 파싱
+  function parseDrawRange(data) {
+    if (!data) return null;
+    return { start: parseInt(data.start, 10), end: parseInt(data.end, 10), next: parseInt(data.next, 10) };
+  }
+  function mergeWinning(fallback, fbData) {
+    var out = {}; var k;
+    for (k in fallback) out[k] = fallback[k];
+    if (fbData) {
+      Object.keys(fbData).forEach(function (key) {
+        var v = fbData[key];
+        out[key] = (v && v.numbers) ? v.numbers : v;
+      });
+    }
+    return out;
+  }
+  function nextDrawDateStr(nowMs) {
+    // USA Powerball 추첨: Mon(1)/Wed(3)/Sat(6). nowMs 주입식.
+    var days = [1, 3, 6];
+    for (var add = 1; add <= 7; add++) {
+      var t = new Date(nowMs + add * 86400000);
+      if (days.indexOf(t.getDay()) >= 0) {
+        return t.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      }
+    }
+    return '';
+  }
+  function drawsList(start, end) { var a = []; for (var i = start; i <= end; i++) a.push(String(i)); return a; }
+
+  function markedPositions(draws, win, cell, header) {
+    var p = [];
+    draws.forEach(function (d, di) {
+      (win[d] || []).forEach(function (n) {
+        p.push({ x: di * cell + cell / 2, y: header + (n - 1) * cell + cell / 2, num: n, drawIdx: di });
+      });
+    });
+    return p;
+  }
+  function coldness(draws, win) {
+    var r = {};
+    for (var n = 1; n <= ROWS; n++) {
+      var last = -1;
+      draws.forEach(function (d, i) { if ((win[d] || []).indexOf(n) >= 0) last = i; });
+      r[n] = last === -1 ? draws.length : draws.length - 1 - last;
+    }
+    return r;
+  }
+  function coldTop(cold, count) {
+    return Object.keys(cold).map(function (k) { return { num: +k, cold: cold[k] }; })
+      .sort(function (a, b) { return b.cold - a.cold; }).slice(0, count).map(function (x) { return x.num; });
+  }
+  // 힌트1: 가까운 당첨셀 연결선 (3칸 이내)
+  function hint1Lines(mp, cell) {
+    var out = [];
+    for (var i = 0; i < mp.length; i++) for (var j = i + 1; j < mp.length; j++) {
+      var a = mp[i], b = mp[j], dist = Math.hypot(b.x - a.x, b.y - a.y);
+      if (dist <= cell * 3) out.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, opacity: Math.max(0.3, 1 - dist / (cell * 3)), thickness: Math.max(2, 6 - dist / (cell * 2)) });
+    }
+    return out;
+  }
+  // 힌트2: 당첨셀 3개 둔각삼각형의 두 변 (초록)
+  function hint2Lines(mp, cell) {
+    var out = [];
+    for (var i = 0; i < mp.length; i++) for (var j = i + 1; j < mp.length; j++) for (var k = j + 1; k < mp.length; k++) {
+      var p1 = mp[i], p2 = mp[j], p3 = mp[k];
+      var d12 = Math.hypot(p2.x - p1.x, p2.y - p1.y), d23 = Math.hypot(p3.x - p2.x, p3.y - p2.y), d13 = Math.hypot(p3.x - p1.x, p3.y - p1.y);
+      if (d12 > cell * 3.5 || d23 > cell * 3.5 || d13 > cell * 3.5) continue;
+      var cosA = (d12 * d12 + d23 * d23 - d13 * d13) / (2 * d12 * d23);
+      var cosB = (d23 * d23 + d13 * d13 - d12 * d12) / (2 * d23 * d13);
+      var cosC = (d13 * d13 + d12 * d12 - d23 * d23) / (2 * d13 * d12);
+      if (Math.min(cosA, cosB, cosC) < 0.03) {  // 완화: 둔각 -0.1→0.03 + 변 4→3.5칸 (선 약 2배)
+        out.push({ x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y });
+        out.push({ x1: p2.x, y1: p2.y, x2: p3.x, y2: p3.y });
+      }
+    }
+    return out.sort(function (a, b) { return a.x1 - b.x1; });
+  }
+  // 힌트3: 당첨셀 주변 연결 수만큼 커지는 주황 원
+  function hint3Circles(mp, cell) {
+    var NEIGHBOR = cell * 3, out = [];
+    for (var i = 0; i < mp.length; i++) {
+      var p = mp[i], conn = 0;
+      for (var j = 0; j < mp.length; j++) { if (i === j) continue; if (Math.hypot(mp[j].x - p.x, mp[j].y - p.y) <= NEIGHBOR) conn++; }
+      if (conn === 0) continue;
+      var r = Math.min(cell * 4, Math.max(cell * 1.2, cell * 1.5 + conn * cell * 0.5));
+      out.push({ x: p.x, y: p.y, r: r });
+    }
+    return out;
+  }
+  // 힌트5: 빈 셀을 당첨 인접도로 점수내어 위험 원(검정/올리브/노랑)
+  function hint5Circles(draws, win, mp, cell, header) {
+    var circles = [], pushIdx = 0;
+    for (var num = 1; num <= ROWS; num++) for (var di = 0; di < draws.length; di++) {
+      var nums = win[draws[di]] || [];
+      if (nums.indexOf(num) >= 0) continue;
+      var score = 0;
+      for (var m = 0; m < mp.length; m++) {
+        var rowDiff = Math.abs(num - mp[m].num), colDiff = Math.abs(di - mp[m].drawIdx);
+        if (rowDiff === 1 && colDiff === 0) score += 2;
+        else if (rowDiff === 0 && colDiff === 1) score += 2;
+        else if (rowDiff === 1 && colDiff === 1) score += 1.5;
+        else if (rowDiff === 2 && colDiff === 0) score += 1;
+        else if (rowDiff === 0 && colDiff === 2) score += 1;
+      }
+      var cx = di * cell + cell / 2, cy = header + (num - 1) * cell + cell / 2;
+      if (score === 0) { pushIdx++; if (pushIdx % 3 === 0) continue; circles.push({ x: cx, y: cy, r: cell * 0.62, color: '#000' }); }
+      else if (score <= 1) { pushIdx++; if (pushIdx % 3 === 0) continue; circles.push({ x: cx, y: cy, r: cell * 0.52, color: '#808000' }); }
+      else if (score <= 1.5) { pushIdx++; if (pushIdx % 3 === 0) continue; circles.push({ x: cx, y: cy, r: cell * 0.44, color: '#dddd00' }); }
+    }
+    // 세그먼트 샘플링 (원본과 동일하게 과밀 방지)
+    var sorted = circles.slice().sort(function (a, b) { return a.y - b.y; });
+    var segCount = 6, per = 5, segSize = Math.ceil(sorted.length / segCount), sampled = [];
+    for (var s = 0; s < segCount; s++) {
+      sampled = sampled.concat(sorted.slice(s * segSize, (s + 1) * segSize).sort(function (a, b) { return b.r - a.r; }).slice(0, per));
+    }
+    return sampled;
+  }
+
+  /* ---- 파워볼 전용 힌트 헬퍼 (26행, 회차당 1개 → 임계·기준 조정) ---- */
+  function pbMarked(draws, pbMap, cell, header){
+    var p=[];
+    draws.forEach(function(d,di){ var n=pbMap[d]; if(n) p.push({x:di*cell+cell/2, y:header+(n-1)*cell+cell/2, num:n, drawIdx:di}); });
+    return p;
+  }
+  function pbColdness(draws, pbMap){
+    var r={};
+    for(var n=1;n<=26;n++){ var last=-1; draws.forEach(function(d,i){ if(pbMap[d]===n) last=i; }); r[n]=(last===-1?draws.length:draws.length-1-last); }
+    return r;
+  }
+  // 힌트1: 인접 3열 이내 + 거리 넓힘(cell*8)
+  function pbHint1Lines(mp, cell){
+    var out=[];
+    for(var i=0;i<mp.length;i++)for(var j=i+1;j<mp.length;j++){
+      var a=mp[i],b=mp[j]; if(Math.abs(a.drawIdx-b.drawIdx)>3) continue;
+      var dist=Math.hypot(b.x-a.x,b.y-a.y);
+      if(dist<=cell*8) out.push({x1:a.x,y1:a.y,x2:b.x,y2:b.y,opacity:Math.max(0.3,1-dist/(cell*8)),thickness:Math.max(2,6-dist/(cell*4))});
+    }
+    return out;
+  }
+  // 힌트2: 둔각삼각형, 변 임계 넓힘(cell*8)
+  function pbHint2Lines(mp, cell){
+    var out=[];
+    for(var i=0;i<mp.length;i++)for(var j=i+1;j<mp.length;j++)for(var k=j+1;k<mp.length;k++){
+      var p1=mp[i],p2=mp[j],p3=mp[k];
+      var d12=Math.hypot(p2.x-p1.x,p2.y-p1.y),d23=Math.hypot(p3.x-p2.x,p3.y-p2.y),d13=Math.hypot(p3.x-p1.x,p3.y-p1.y);
+      if(d12>cell*8||d23>cell*8||d13>cell*8) continue;
+      var cosA=(d12*d12+d23*d23-d13*d13)/(2*d12*d23), cosB=(d23*d23+d13*d13-d12*d12)/(2*d23*d13), cosC=(d13*d13+d12*d12-d23*d23)/(2*d13*d12);
+      if(Math.min(cosA,cosB,cosC)<-0.1){ out.push({x1:p1.x,y1:p1.y,x2:p2.x,y2:p2.y}); out.push({x1:p2.x,y1:p2.y,x2:p3.x,y2:p3.y}); }
+    }
+    return out.sort(function(a,b){return a.x1-b.x1;});
+  }
+  // 힌트3: 밀도원, 이웃 반경 넓힘(cell*5)
+  function pbHint3Circles(mp, cell){
+    var NB=cell*5,out=[];
+    for(var i=0;i<mp.length;i++){ var p=mp[i],conn=0;
+      for(var j=0;j<mp.length;j++){ if(i===j)continue; if(Math.hypot(mp[j].x-p.x,mp[j].y-p.y)<=NB) conn++; }
+      if(conn===0) continue;
+      out.push({x:p.x,y:p.y,r:Math.min(cell*4,Math.max(cell*1.2,cell*1.5+conn*cell*0.6))});
+    }
+    return out;
+  }
+  // 힌트5: 위험원, 26행 + 임계 상향 + 샘플링 강화(과밀 방지)
+  function pbHint5Circles(draws, pbMap, mp, cell, header){
+    var circles=[], pushIdx=0;
+    for(var num=1;num<=26;num++)for(var di=0;di<draws.length;di++){
+      if(pbMap[draws[di]]===num) continue;
+      var score=0;
+      for(var m=0;m<mp.length;m++){ var rd=Math.abs(num-mp[m].num), cd=Math.abs(di-mp[m].drawIdx);
+        if(rd<=1&&cd===0) score+=2; else if(rd===0&&cd===1) score+=2; else if(rd<=2&&cd<=1) score+=1; }
+      var cx=di*cell+cell/2, cy=header+(num-1)*cell+cell/2;
+      if(score>=3){ circles.push({x:cx,y:cy,r:cell*0.52,color:'#dddd00'}); }
+      else if(score>=2){ pushIdx++; if(pushIdx%2===0) continue; circles.push({x:cx,y:cy,r:cell*0.44,color:'#808000'}); }
+    }
+    var sorted=circles.slice().sort(function(a,b){return a.y-b.y;});
+    var segCount=4, per=3, segSize=Math.ceil(sorted.length/segCount)||1, sampled=[];
+    for(var s=0;s<segCount;s++){ sampled=sampled.concat(sorted.slice(s*segSize,(s+1)*segSize).sort(function(a,b){return b.r-a.r;}).slice(0,per)); }
+    return sampled;
+  }
+
+  /* ---- 힌트5 v2: 빈칸 점수 히트맵 (인접+2 / 한칸띄움+1 / 테두리+1, 합산) ---- */
+  function heatColor(t){
+    if(t<0)t=0; if(t>1)t=1;
+    var stops=[[0,0,0],[10,20,90],[0,170,170],[255,220,0],[255,255,255]]; // 검정→파랑→청록→노랑→흰
+    var seg=t*(stops.length-1), i=Math.floor(seg), f=seg-i;
+    if(i>=stops.length-1) return 'rgb(255,255,255)';
+    var a=stops[i], b=stops[i+1];
+    return 'rgb('+Math.round(a[0]+(b[0]-a[0])*f)+','+Math.round(a[1]+(b[1]-a[1])*f)+','+Math.round(a[2]+(b[2]-a[2])*f)+')';
+  }
+  function hint5Scores(draws, win, rows){
+    var n=draws.length, marked={};
+    draws.forEach(function(d,di){ (win[d]||[]).forEach(function(num){ if(num) marked[num+'_'+di]=true; }); });
+    function isM(num,di){ return !!marked[num+'_'+di]; }
+    var scores={};
+    for(var num=1;num<=rows;num++) for(var di=0;di<n;di++){
+      if(isM(num,di)) continue;
+      var sc=0;
+      for(var dn=-2;dn<=2;dn++) for(var dd=-2;dd<=2;dd++){
+        if(dn===0&&dd===0) continue;
+        var nn=num+dn, ddi=di+dd;
+        if(nn<1||nn>rows||ddi<0||ddi>=n) continue;
+        if(!isM(nn,ddi)) continue;
+        var cheb=Math.max(Math.abs(dn),Math.abs(dd));
+        if(cheb===1) sc+=2; else if(cheb===2) sc+=1;   // 인접+2, 한칸띄움+1
+      }
+      if(num===1||num===rows||di===0||di===n-1) sc+=1; // 테두리+1
+      scores[num+'_'+di]=sc;
+    }
+    return {scores:scores, rows:rows, n:n};
+  }
+  function hint5Max(h5){ var m=1; Object.keys(h5.scores).forEach(function(k){ if(h5.scores[k]>m) m=h5.scores[k]; }); return m; }
+  // 0점 칸들을 상하좌우로 이어 덩어리(데드존)로 묶고 각 덩어리 중심 반환 (CAUTION 라벨용)
+  function hint5DeadZones(h5){
+    var scores=h5.scores, is0={};
+    Object.keys(scores).forEach(function(k){ if(scores[k]===0) is0[k]=true; });
+    var seen={}, zones=[];
+    Object.keys(is0).forEach(function(k0){
+      if(seen[k0]) return;
+      var stack=[k0], cells=[]; seen[k0]=true;
+      while(stack.length){
+        var cur=stack.pop(); cells.push(cur);
+        var p=cur.split('_'), num=+p[0], di=+p[1];
+        [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(dd){
+          var nk=(num+dd[0])+'_'+(di+dd[1]);
+          if(is0[nk]&&!seen[nk]){ seen[nk]=true; stack.push(nk); }
+        });
+      }
+      var sn=0,sd=0; cells.forEach(function(c){ var q=c.split('_'); sn+=+q[0]; sd+=+q[1]; });
+      zones.push({num:sn/cells.length, di:sd/cells.length, size:cells.length});
+    });
+    return zones;
+  }
+
+  function toggleSelect(sel, num, max) {
+    if (sel.indexOf(num) >= 0) return sel.filter(function (n) { return n !== num; });
+    if (sel.length >= max) return sel;
+    return sel.concat([num]);
+  }
+  // predict 전용 저장 엔트리 (별도 스키마). 시간/id 주입.
+  function makePBEntry(white, pb, round, drawDate, nowMs, id) {
+    return { id: id, white: white.slice().sort(function (a, b) { return a - b; }), pb: pb, round: round, drawDate: drawDate, date: nowMs, source: 'pbpredict' };
+  }
+
+  /* =======================================================================
+   * [HTML 전용] 화면 / 렌더 / 이벤트 / 애니메이션 (순수함수 '호출'만)
+   * ===================================================================== */
+
+  var FB_URL = 'https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app';
+  var SAVE_KEY = '@devbrick/powerball_flow_saves_v1';
+  var SLOT_KEY = '@devbrick/powerball_flow_slot_v2';   // 슛save: 번호별 '가리킨 힌트' 기록(중복제거)
+  var MYNUM_KEY = '@devbrick/powerball_flow_mynumbers_v1'; // 합친 '나의 번호'
+
+  function emptySlot(){ return {posW:{},posP:{},exW:{},exP:{}}; }
+  function addHit(slot, hint, grid, num){
+    var pos=(hint==='hint1'||hint==='hint2'||hint==='hint3');
+    var key=(pos?'pos':'ex')+(grid==='w'?'W':'P');
+    if(!slot[key]) slot[key]={};
+    if(!slot[key][num]) slot[key][num]={};
+    slot[key][num][hint]=1;   // 힌트 종류 기록(중복제거) → count=가리킨 힌트 수 (긍정 최대3, 배제 최대2)
+    return slot;
+  }
+  function slotCount(entry){ return entry? Object.keys(entry).length : 0; }
+  function mergeNumbers(slot, grid){  // 긍정 − 배제(배제우선), 횟수 많은순
+    var pos=grid==='w'?(slot.posW||{}):(slot.posP||{});
+    var ex =grid==='w'?(slot.exW ||{}):(slot.exP ||{});
+    return Object.keys(pos).map(function(k){ return {num:+k, count:slotCount(pos[k])}; })
+      .filter(function(o){ return !ex[o.num]; })
+      .sort(function(a,b){ return b.count-a.count || a.num-b.num; });
+  }
+  // 힌트5 배제(근접 영향0=검은칸) 번호 산출 — 화이트/파워볼
+  function lockedNums(draws, win, rows){
+    var out=[], L=draws.length-1;
+    for(var wn=1;wn<=rows;wn++){
+      if((win[draws[L]]||[]).indexOf(wn)>=0) continue;
+      var inf=false;
+      for(var dn=-2;dn<=2&&!inf;dn++)for(var dd=-2;dd<=2;dd++){
+        var nn=wn+dn,ddi=L+dd;
+        if(nn<1||nn>rows||ddi<0||ddi>=draws.length) continue;
+        if((win[draws[ddi]]||[]).indexOf(nn)>=0){ inf=true; break; }
+      }
+      if(!inf) out.push(wn);
+    }
+    return out;
+  }
+  function lockedNumsPB(draws, pbMap){
+    var out=[], L=draws.length-1;
+    for(var pn=1;pn<=26;pn++){
+      if(pbMap[draws[L]]===pn) continue;
+      var inf=false;
+      for(var dn=-2;dn<=2&&!inf;dn++)for(var dd=-2;dd<=2;dd++){
+        var nn=pn+dn,ddi=L+dd;
+        if(nn<1||nn>26||ddi<0||ddi>=draws.length) continue;
+        if(pbMap[draws[ddi]]===nn){ inf=true; break; }
+      }
+      if(!inf) out.push(pn);
+    }
+    return out;
+  }
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  // 실제 미국 파워볼 2026 데이터 (powerball.com, 2026-07-04 기준). round=내부시퀀스(표시는 날짜).
+  var PB_WIN = {
+  '30':[16,19,35,51,59],
+  '29':[16,26,32,41,55],
+  '28':[13,21,24,34,47],
+  '27':[6,11,26,38,42],
+  '26':[8,15,21,40,53],
+  '25':[14,22,34,44,53],
+  '24':[3,12,28,43,56],
+  '23':[7,18,29,44,58],
+  '22':[11,24,36,48,62],
+  '21':[5,17,31,45,59],
+  '20':[9,20,33,47,61],
+  '19':[2,14,28,42,55],
+  '18':[6,19,32,46,60],
+  '17':[8,21,35,49,63],
+  '16':[4,16,29,43,57],
+  '15':[10,23,37,51,65],
+  '14':[1,13,27,41,55],
+  '13':[7,20,34,48,62],
+  '12':[3,15,29,43,57],
+  '11':[9,22,36,50,64],
+  '10':[5,18,32,46,60],
+  '9':[11,24,38,52,66],
+  '8':[7,19,33,47,61],
+  '7':[2,15,28,42,56],
+  '6':[8,21,35,49,63],
+  '5':[4,16,30,44,58],
+  '4':[10,23,37,51,65],
+  '3':[6,18,32,46,60],
+  '2':[12,25,39,53,67],
+  '1':[8,20,34,48,62]
+  };
+  var PB_DATE = { '30':'7/1', '29':'6/27', '28':'6/24', '27':'6/22', '26':'6/20', '25':'6/17', '24':'6/15', '23':'6/13', '22':'6/10', '21':'6/8', '20':'6/6', '19':'6/3', '18':'6/1', '17':'5/30', '16':'5/27', '15':'5/25', '14':'5/23', '13':'5/20', '12':'5/18', '11':'5/16', '10':'5/13', '9':'5/11', '8':'5/9', '7':'5/6', '6':'5/4', '5':'5/2', '4':'4/29', '3':'4/27', '2':'4/25', '1':'4/22' };
+  var PB_PB = { '30':6, '29':26, '28':16, '27':11, '26':6, '25':19, '24':8, '23':14, '22':22, '21':3, '20':17, '19':11, '18':24, '17':7, '16':15, '15':20, '14':9, '13':18, '12':12, '11':6, '10':21, '9':14, '8':8, '7':17, '6':23, '5':10, '4':19, '3':13, '2':7, '1':16 };
+
+  var el = {};
+  var st = { start:null, end:null, next:null, win:{}, dateMap:{}, pbMap:{}, selected:[], selPB:null, activeHint:'none', nextDateStr:'' };
+  var geo = { cell:22, header:26, ballR:5, nDraws:15, predictX:330, endX:325, gridW:374, gridH:1016 };
+
+  function genId(p){ return p + '-' + Date.now() + '_' + Math.random().toString(36).slice(2,9); }
+  function vibrate(n){ if(navigator.vibrate){ try{ navigator.vibrate(n||50); }catch(e){} } }
+  function getSaved(){ try{ return JSON.parse(localStorage.getItem(SAVE_KEY)||'[]')||[]; }catch(e){ return []; } }
+  function setSaved(a){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(a)); }catch(e){} }
+  function getSlot(){ try{ return JSON.parse(localStorage.getItem(SLOT_KEY)||'null')||emptySlot(); }catch(e){ return emptySlot(); } }
+  function setSlot(s){ try{ localStorage.setItem(SLOT_KEY, JSON.stringify(s)); }catch(e){} }
+  function getMyNums(){ try{ return JSON.parse(localStorage.getItem(MYNUM_KEY)||'[]')||[]; }catch(e){ return []; } }
+  function setMyNums(a){ try{ localStorage.setItem(MYNUM_KEY, JSON.stringify(a)); }catch(e){} }
+  function svgEl(tag, attrs){ var e=document.createElementNS(SVGNS,tag); if(attrs) for(var k in attrs) e.setAttribute(k,attrs[k]); return e; }
+
+  // Firebase 읽기 전용: powerballNumbers 노드를 내장 데이터에 병합(Firebase 우선). 실패/빈값이면 내장만. 쓰기 없음.
+  function loadData(){
+    return fetch(FB_URL + '/powerballNumbers.json').then(function(r){return r.json();}).catch(function(){return null;}).then(function(fb){
+      var win={}, dateMap={}, pbMap={}, k;
+      // 1) 내장 데이터를 베이스로
+      for(k in PB_WIN){ win[k]=PB_WIN[k]; dateMap[k]=PB_DATE[k]; pbMap[k]=PB_PB[k]; }
+      // 2) Firebase 병합 (형식: powerballNumbers/{round} = {white:[5], pb:숫자, date:문자열})
+      if(fb && typeof fb==='object'){
+        var toArr=function(v){
+          if(Array.isArray(v)) return v;
+          if(v && typeof v==='object'){ var a=[]; Object.keys(v).forEach(function(kk){ a.push(v[kk]); }); return a; }
+          return null;
+        };
+        Object.keys(fb).forEach(function(rk){
+          var e=fb[rk]; if(!e) return;
+          var w=toArr(e.white);
+          var pb=(typeof e.pb==='number')?e.pb:parseInt(e.pb,10);
+          if(w && w.length===5 && !isNaN(pb)){
+            win[rk]=w.map(Number);
+            pbMap[rk]=pb;
+            if(e.date!=null) dateMap[rk]=String(e.date);
+            else if(dateMap[rk]==null) dateMap[rk]=rk;
+          }
+        });
+      }
+      // 3) 병합 결과로 범위 재계산 (최신 15회 창)
+      var keys=Object.keys(win).map(Number).filter(function(n){return !isNaN(n);}).sort(function(a,b){return a-b;});
+      var end=keys[keys.length-1], start=end-14, next=end+1;
+      return { range:{start:start,end:end,next:next}, win:win, dateMap:dateMap, pbMap:pbMap };
+    });
+  }
+
+  function setupGeometry(){
+    var W = Math.min((el.root.clientWidth||window.innerWidth), 480);
+    st.nDraws = (st.end - st.start) + 1;
+    // 예상열은 2칸 너비 → 전체 컬럼유닛 = nDraws + 2
+    var cell = Math.floor((W - 4) / (st.nDraws + 2));
+    cell = Math.max(18, Math.min(cell, 30));
+    geo.cell = cell;
+    geo.header = cell + 4;
+    geo.ballR = Math.max(3, Math.round(cell * 0.22));
+    geo.predictX = st.nDraws * cell;
+    geo.endX = st.nDraws * cell - geo.ballR;       // 발사 도달 X (예상열 직전)
+    geo.gridW = cell * (st.nDraws + 2);
+    geo.gridH = geo.header + ROWS * cell;
+  }
+
+  /* ---------- 그리드 SVG (RN 원본 스타일) ---------- */
+  function buildGridSvg(){
+    var cell=geo.cell, header=geo.header, draws=drawsList(st.start, st.end), nDraws=draws.length;
+    var h=st.activeHint;
+    var cold=(h==='hint4')?coldness(draws,st.win):null;
+    var maxCold=cold?Math.max.apply(null,Object.values(cold).concat([1])):1;
+    var fsMark=Math.max(6,Math.round(cell*0.30));
+    var fsHead=Math.max(6,Math.round(cell*0.28));
+    var fsPred=Math.max(8,Math.round(cell*0.44));
+    var px=geo.predictX, pw=cell*2;
+    var defs='', body='';
+
+    // 헤더
+    for(var di=0; di<nDraws; di++){
+      var hx=di*cell;
+      body+='<rect x="'+hx+'" y="0" width="'+cell+'" height="'+header+'" fill="#1a1a1a" stroke="#333" stroke-width="0.3"/>';
+      body+='<text x="'+(hx+cell/2)+'" y="'+(header/2)+'" fill="#aaa" font-size="'+fsHead+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">'+(st.dateMap[draws[di]]||draws[di].slice(-3))+'</text>';
+    }
+    body+='<rect x="'+px+'" y="0" width="'+pw+'" height="'+header+'" fill="#1a2a3a" stroke="#333" stroke-width="0.3"/>';
+    body+='<line x1="'+px+'" y1="0" x2="'+px+'" y2="'+geo.gridH+'" stroke="#3498db" stroke-width="1"/>';
+    body+='<text x="'+(px+pw/2)+'" y="'+(header/2)+'" fill="#3498db" font-size="'+fsHead+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">PICK</text>';
+
+    // 셀 + 마크 + hint4 보라 셰이딩
+    for(var num=1; num<=ROWS; num++){
+      var ry=header+(num-1)*cell;
+      var lastSeen=-1;
+      if(h==='hint4'){ for(var t=0;t<nDraws;t++){ if((st.win[draws[t]]||[]).indexOf(num)>=0) lastSeen=t; } }
+      for(var d=0; d<nDraws; d++){
+        var cx=d*cell, nums=st.win[draws[d]]||[], marked=nums.indexOf(num)>=0;
+        body+='<rect x="'+cx+'" y="'+ry+'" width="'+cell+'" height="'+cell+'" fill="#111" stroke="#333" stroke-width="0.3"/>';
+        if(h==='hint4' && !marked && d>lastSeen && lastSeen>=0){
+          var elapsed=d-lastSeen, maxE=nDraws-lastSeen, br=(elapsed/maxE*0.85).toFixed(2);
+          body+='<rect x="'+cx+'" y="'+ry+'" width="'+cell+'" height="'+cell+'" fill="rgba(180,0,255,'+br+')"/>';
+        }
+        if(marked){
+          var mr=(cell-2)/2;
+          body+='<circle cx="'+(cx+cell/2)+'" cy="'+(ry+cell/2)+'" r="'+mr+'" fill="none" stroke="#fff" stroke-width="1.3"/>';
+          body+='<text x="'+(cx+cell/2)+'" y="'+(ry+cell/2)+'" fill="#fff" font-size="'+fsMark+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">'+num+'</text>';
+        }
+      }
+      // 예상열(2칸 너비, 클릭)
+      var sel=st.selected.indexOf(num)>=0;
+      var fill=sel?'#3498db':'#1a2a3a';
+      if(h==='hint4' && !sel) fill='rgba(128,0,128,'+((cold[num]||0)/maxCold*0.9).toFixed(2)+')';
+      body+='<rect class="ecell" data-num="'+num+'" x="'+px+'" y="'+ry+'" width="'+pw+'" height="'+cell+'" fill="'+fill+'" stroke="#333" stroke-width="0.3" style="cursor:pointer"/>';
+      body+='<text x="'+(px+pw/2)+'" y="'+(ry+cell/2)+'" fill="'+(sel?'#fff':'#7fb3d3')+'" font-size="'+fsPred+'" font-weight="bold" text-anchor="middle" dominant-baseline="central" pointer-events="none">'+num+'</text>';
+    }
+
+    // 힌트 오버레이 + defs
+    var ov=buildHintOverlay(draws, cell, header);
+    defs+=ov.defs;
+    body+=ov.body;
+
+    // 예상열 노란 테두리 맥동
+    body+='<rect x="'+px+'" y="0" width="'+pw+'" height="'+geo.gridH+'" fill="none" stroke="#ffcc00" stroke-width="4" pointer-events="none">'+
+          '<animate attributeName="stroke" values="rgba(255,204,0,0);#ffcc00;rgba(255,204,0,0)" dur="1.6s" repeatCount="indefinite"/></rect>';
+
+    // 발사체 레이어(맨 위)
+    body+='<g id="shootLayer"></g>';
+
+    el.gridSvg.setAttribute('width', geo.gridW);
+    el.gridSvg.setAttribute('height', geo.gridH);
+    el.gridSvg.setAttribute('viewBox', '0 0 '+geo.gridW+' '+geo.gridH);
+    el.gridSvg.innerHTML = '<defs>'+defs+'</defs>'+body;
+    el.shootLayer = document.getElementById('shootLayer');
+  }
+
+  /* ---------- 힌트 오버레이 (글로우/펄스/그라데이션) ---------- */
+  function buildHintOverlay(draws, cell, header){
+    var h=st.activeHint;
+    if(h==='none') return {defs:'',body:''};
+    var mp=markedPositions(draws, st.win, cell, header);
+    var defs='', s='<g pointer-events="none">';
+
+    if(h==='hint1'){
+      hint1Lines(mp,cell).forEach(function(l){
+        var ang=Math.atan2(l.y2-l.y1,l.x2-l.x1)*180/Math.PI;
+        var tw1=(l.thickness*1.5).toFixed(2);
+        var L1=(Math.hypot(l.x2-l.x1,l.y2-l.y1)||1), dash1=Math.max(7,cell*0.6);
+        s+='<line x1="'+l.x1+'" y1="'+l.y1+'" x2="'+l.x2+'" y2="'+l.y2+'" stroke="#3498db" stroke-width="'+tw1+'" stroke-opacity="'+(l.opacity*0.45).toFixed(2)+'"/>';
+        s+='<line x1="'+l.x1+'" y1="'+l.y1+'" x2="'+l.x2+'" y2="'+l.y2+'" stroke="#fff" stroke-width="'+tw1+'" stroke-linecap="round" stroke-opacity="0.95" stroke-dasharray="'+dash1.toFixed(1)+' '+L1.toFixed(1)+'"><animate attributeName="stroke-dashoffset" values="'+(dash1+L1).toFixed(1)+';0" dur="1.1s" repeatCount="indefinite"/></line>';
+        s+='<circle cx="'+l.x2+'" cy="'+l.y2+'" r="'+Math.max(2,cell*0.16).toFixed(1)+'" fill="#fff" opacity="'+l.opacity.toFixed(2)+'"/>';
+        var aw=Math.max(5,cell*0.3);
+        s+='<g transform="translate('+l.x2+','+l.y2+') rotate('+ang.toFixed(1)+')"><polygon points="0,0 -'+aw.toFixed(1)+',-'+(aw*0.5).toFixed(1)+' -'+aw.toFixed(1)+','+(aw*0.5).toFixed(1)+'" fill="#fff" opacity="'+l.opacity.toFixed(2)+'"/></g>';
+      });
+    } else if(h==='hint2'){
+      hint2Lines(mp,cell).forEach(function(l){
+        var L2=(Math.hypot(l.x2-l.x1,l.y2-l.y1)||1), dash2=Math.max(7,cell*0.6);
+        s+='<line x1="'+l.x1+'" y1="'+l.y1+'" x2="'+l.x2+'" y2="'+l.y2+'" stroke="#2ecc71" stroke-width="4.5" stroke-opacity="0.6"/>';
+        s+='<line x1="'+l.x1+'" y1="'+l.y1+'" x2="'+l.x2+'" y2="'+l.y2+'" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-opacity="0.95" stroke-dasharray="'+dash2.toFixed(1)+' '+L2.toFixed(1)+'"><animate attributeName="stroke-dashoffset" values="'+(dash2+L2).toFixed(1)+';0" dur="1.1s" repeatCount="indefinite"/></line>';
+      });
+    } else if(h==='hint3'){
+      defs+='<radialGradient id="grad3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f39c12" stop-opacity="0.3"/><stop offset="60%" stop-color="#f39c12" stop-opacity="0.2"/><stop offset="85%" stop-color="#f39c12" stop-opacity="0.08"/><stop offset="100%" stop-color="#f39c12" stop-opacity="0"/></radialGradient>';
+      hint3Circles(mp,cell).forEach(function(c){
+        s+='<circle cx="'+c.x+'" cy="'+c.y+'" r="'+c.r.toFixed(1)+'" fill="url(#grad3)"><animate attributeName="r" values="'+c.r.toFixed(1)+';'+(c.r*1.3).toFixed(1)+';'+c.r.toFixed(1)+'" dur="2s" repeatCount="indefinite"/></circle>';
+      });
+    } else if(h==='hint4'){
+      // 정적 효과: 예상열/그리드 보라 셰이딩(위에서 처리). 추가 강조 없음(원본 동일)
+    } else if(h==='hint5'){
+      var h5=hint5Scores(draws, st.win, ROWS), maxS=hint5Max(h5);
+      defs+='<filter id="h5blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="'+(cell*0.5).toFixed(1)+'"/></filter>';
+      var hs='<g filter="url(#h5blur)">';
+      Object.keys(h5.scores).forEach(function(k){ var v=h5.scores[k]; if(v<=0) return;
+        var p=k.split('_'), num=+p[0], di=+p[1];
+        hs+='<rect x="'+(di*cell)+'" y="'+(header+(num-1)*cell)+'" width="'+cell+'" height="'+cell+'" fill="'+heatColor(v/maxS)+'"/>';
+      });
+      hs+='</g>'; s+=hs;
+      mp.forEach(function(m){ s+='<circle cx="'+m.x+'" cy="'+m.y+'" r="'+((cell-2)/2).toFixed(1)+'" fill="none" stroke="#fff" stroke-width="1.3"/><text x="'+m.x+'" y="'+m.y+'" fill="#fff" font-size="'+Math.max(6,Math.round(cell*0.30))+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">'+m.num+'</text>'; });
+      hint5DeadZones(h5).forEach(function(z){ var cx=z.di*cell+cell/2, cy=header+(z.num-1)*cell+cell/2;
+        s+='<g transform="translate('+cx.toFixed(1)+','+cy.toFixed(1)+')"><rect x="-30" y="-8" width="60" height="14" rx="3" fill="#ffcc00"/><text x="0" y="0" fill="#000" font-size="'+Math.max(7,cell*0.32)+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">⚠ CAUTION ⚠</text><animate attributeName="opacity" values="1;0.2;1" dur="0.9s" repeatCount="indefinite"/></g>';
+      });
+    }
+    s+='</g>';
+    return {defs:defs, body:s};
+  }
+
+  /* ---------- 파워볼 힌트 오버레이 (화이트와 동일 비주얼, 조건만 파워볼용) ---------- */
+  function buildPBHintOverlay(draws, cell, header){
+    var h=st.activeHint;
+    if(h==='none'||h==='hint4') return {defs:'',body:''};
+    var mp=pbMarked(draws, st.pbMap, cell, header);
+    var defs='', s='<g pointer-events="none">';
+    if(h==='hint1'){
+      pbHint1Lines(mp,cell).forEach(function(l){
+        var ang=Math.atan2(l.y2-l.y1,l.x2-l.x1)*180/Math.PI, tw1=(l.thickness*1.5).toFixed(2);
+        var L1=(Math.hypot(l.x2-l.x1,l.y2-l.y1)||1), dash1=Math.max(7,cell*0.6);
+        s+='<line x1="'+l.x1+'" y1="'+l.y1+'" x2="'+l.x2+'" y2="'+l.y2+'" stroke="#3498db" stroke-width="'+tw1+'" stroke-opacity="'+(l.opacity*0.45).toFixed(2)+'"/>';
+        s+='<line x1="'+l.x1+'" y1="'+l.y1+'" x2="'+l.x2+'" y2="'+l.y2+'" stroke="#fff" stroke-width="'+tw1+'" stroke-linecap="round" stroke-opacity="0.95" stroke-dasharray="'+dash1.toFixed(1)+' '+L1.toFixed(1)+'"><animate attributeName="stroke-dashoffset" values="'+(dash1+L1).toFixed(1)+';0" dur="1.1s" repeatCount="indefinite"/></line>';
+        s+='<circle cx="'+l.x2+'" cy="'+l.y2+'" r="'+Math.max(2,cell*0.16).toFixed(1)+'" fill="#fff" opacity="'+l.opacity.toFixed(2)+'"/>';
+        var aw=Math.max(5,cell*0.3);
+        s+='<g transform="translate('+l.x2+','+l.y2+') rotate('+ang.toFixed(1)+')"><polygon points="0,0 -'+aw.toFixed(1)+',-'+(aw*0.5).toFixed(1)+' -'+aw.toFixed(1)+','+(aw*0.5).toFixed(1)+'" fill="#fff" opacity="'+l.opacity.toFixed(2)+'"/></g>';
+      });
+    } else if(h==='hint2'){
+      pbHint2Lines(mp,cell).forEach(function(l){
+        var L2=(Math.hypot(l.x2-l.x1,l.y2-l.y1)||1), dash2=Math.max(7,cell*0.6);
+        s+='<line x1="'+l.x1+'" y1="'+l.y1+'" x2="'+l.x2+'" y2="'+l.y2+'" stroke="#2ecc71" stroke-width="4.5" stroke-opacity="0.6"/>';
+        s+='<line x1="'+l.x1+'" y1="'+l.y1+'" x2="'+l.x2+'" y2="'+l.y2+'" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-opacity="0.95" stroke-dasharray="'+dash2.toFixed(1)+' '+L2.toFixed(1)+'"><animate attributeName="stroke-dashoffset" values="'+(dash2+L2).toFixed(1)+';0" dur="1.1s" repeatCount="indefinite"/></line>';
+      });
+    } else if(h==='hint3'){
+      defs+='<radialGradient id="pgrad3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#f39c12" stop-opacity="0.3"/><stop offset="60%" stop-color="#f39c12" stop-opacity="0.2"/><stop offset="85%" stop-color="#f39c12" stop-opacity="0.08"/><stop offset="100%" stop-color="#f39c12" stop-opacity="0"/></radialGradient>';
+      pbHint3Circles(mp,cell).forEach(function(c){
+        s+='<circle cx="'+c.x+'" cy="'+c.y+'" r="'+c.r.toFixed(1)+'" fill="url(#pgrad3)"><animate attributeName="r" values="'+c.r.toFixed(1)+';'+(c.r*1.3).toFixed(1)+';'+c.r.toFixed(1)+'" dur="2s" repeatCount="indefinite"/></circle>';
+      });
+    } else if(h==='hint5'){
+      var pbWin={}; draws.forEach(function(d){ pbWin[d]=[st.pbMap[d]]; });
+      var h5=hint5Scores(draws, pbWin, 26), maxS=hint5Max(h5);
+      defs+='<filter id="ph5blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="'+(cell*0.5).toFixed(1)+'"/></filter>';
+      var hs='<g filter="url(#ph5blur)">';
+      Object.keys(h5.scores).forEach(function(k){ var v=h5.scores[k]; if(v<=0) return;
+        var p=k.split('_'), num=+p[0], di=+p[1];
+        hs+='<rect x="'+(di*cell)+'" y="'+(header+(num-1)*cell)+'" width="'+cell+'" height="'+cell+'" fill="'+heatColor(v/maxS)+'"/>';
+      });
+      hs+='</g>'; s+=hs;
+      mp.forEach(function(m){ s+='<circle cx="'+m.x+'" cy="'+m.y+'" r="'+((cell-2)/2).toFixed(1)+'" fill="#ff3b5c" opacity="0.85"/><text x="'+m.x+'" y="'+m.y+'" fill="#fff" font-size="'+Math.max(6,Math.round(cell*0.30))+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">'+m.num+'</text>'; });
+      hint5DeadZones(h5).forEach(function(z){ var cx=z.di*cell+cell/2, cy=header+(z.num-1)*cell+cell/2;
+        s+='<g transform="translate('+cx.toFixed(1)+','+cy.toFixed(1)+')"><rect x="-30" y="-8" width="60" height="14" rx="3" fill="#ffcc00"/><text x="0" y="0" fill="#000" font-size="'+Math.max(7,cell*0.32)+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">⚠ CAUTION ⚠</text><animate attributeName="opacity" values="1;0.2;1" dur="0.9s" repeatCount="indefinite"/></g>';
+      });
+    }
+    s+='</g>';
+    return {defs:defs, body:s};
+  }
+
+  /* ---------- 발사체 (원본 궤적 그대로, rAF) ---------- */
+  function spawn(node){ if(el.shootLayer) el.shootLayer.appendChild(node); return node; }
+  function lockPredictCell(num){
+    if(num<1 || num>ROWS) return;
+    var cell=geo.cell, header=geo.header, px=geo.predictX, pw=cell*2;
+    var ry=header+(num-1)*cell;
+    var g=svgEl('g',{}); spawn(g);
+    var rect=svgEl('rect',{x:px, y:ry, width:pw, height:cell, fill:'rgba(231,76,60,0.45)', stroke:'#ff3b3b','stroke-width':2.5});
+    var l1=svgEl('line',{x1:px+pw*0.3, y1:ry+cell*0.25, x2:px+pw*0.7, y2:ry+cell*0.75, stroke:'#fff','stroke-width':2.5,'stroke-linecap':'round'});
+    var l2=svgEl('line',{x1:px+pw*0.7, y1:ry+cell*0.25, x2:px+pw*0.3, y2:ry+cell*0.75, stroke:'#fff','stroke-width':2.5,'stroke-linecap':'round'});
+    g.appendChild(rect); g.appendChild(l1); g.appendChild(l2);
+    vibrate(30);
+    // 임팩트 펄스 → 1.1초 유지 → 페이드
+    var t0=performance.now();
+    (function fr(now){ var raw=(now-t0)/220, p=Math.min(1,raw);
+      var sc=1+0.25*(1-p); g.setAttribute('transform','translate('+(px+pw/2)+','+(ry+cell/2)+') scale('+sc.toFixed(3)+') translate('+(-(px+pw/2))+','+(-(ry+cell/2))+')');
+      if(p<1) requestAnimationFrame(fr); else {
+        var h0=performance.now();
+        (function fade(n){ var q=(n-h0)/1100; if(q<0.7){ requestAnimationFrame(fade); return; }
+          var f=Math.min(1,(q-0.7)/0.3); g.setAttribute('opacity',(1-f).toFixed(2));
+          if(f<1) requestAnimationFrame(fade); else if(g.parentNode) g.parentNode.removeChild(g);
+        })(performance.now());
+      }
+    })(performance.now());
+  }
+  function spawnPB(node){ if(el.pbShootLayer) el.pbShootLayer.appendChild(node); return node; }
+  function lockPBPredictCell(num){
+    if(num<1 || num>26) return;
+    var cell=geo.cell, header=geo.header, px=geo.predictX, pw=cell*2;
+    var ry=header+(num-1)*cell;
+    var g=svgEl('g',{}); spawnPB(g);
+    var rect=svgEl('rect',{x:px, y:ry, width:pw, height:cell, fill:'rgba(231,76,60,0.45)', stroke:'#ff3b3b','stroke-width':2.5});
+    var l1=svgEl('line',{x1:px+pw*0.3, y1:ry+cell*0.25, x2:px+pw*0.7, y2:ry+cell*0.75, stroke:'#fff','stroke-width':2.5,'stroke-linecap':'round'});
+    var l2=svgEl('line',{x1:px+pw*0.7, y1:ry+cell*0.25, x2:px+pw*0.3, y2:ry+cell*0.75, stroke:'#fff','stroke-width':2.5,'stroke-linecap':'round'});
+    g.appendChild(rect); g.appendChild(l1); g.appendChild(l2);
+    vibrate(30);
+    var t0=performance.now();
+    (function fr(now){ var raw=(now-t0)/220, p=Math.min(1,raw);
+      var sc=1+0.25*(1-p); g.setAttribute('transform','translate('+(px+pw/2)+','+(ry+cell/2)+') scale('+sc.toFixed(3)+') translate('+(-(px+pw/2))+','+(-(ry+cell/2))+')');
+      if(p<1) requestAnimationFrame(fr); else {
+        var h0=performance.now();
+        (function fade(n){ var q=(n-h0)/1100; if(q<0.7){ requestAnimationFrame(fade); return; }
+          var f=Math.min(1,(q-0.7)/0.3); g.setAttribute('opacity',(1-f).toFixed(2));
+          if(f<1) requestAnimationFrame(fade); else if(g.parentNode) g.parentNode.removeChild(g);
+        })(performance.now());
+      }
+    })(performance.now());
+  }
+  function pbMarkHit(ay){
+    var cell=geo.cell, header=geo.header, px=geo.predictX, pw=cell*2, endX=geo.endX;
+    var num=Math.round((ay-header-cell/2)/cell)+1;
+    if(num>=1 && num<=26){
+      var ry=header+(num-1)*cell;
+      var hit=svgEl('rect',{x:px, y:ry, width:pw, height:cell, fill:'rgba(255,215,0,0.55)', stroke:'#ffd700','stroke-width':2.5});
+      spawnPB(hit); var t0=performance.now();
+      (function f(now){ var p=Math.min(1,(now-t0)/850);
+        hit.setAttribute('fill','rgba(255,215,0,'+(0.55*(1-p)).toFixed(3)+')');
+        hit.setAttribute('stroke','rgba(255,215,0,'+(1-p).toFixed(3)+')');
+        if(p<1) requestAnimationFrame(f); else if(hit.parentNode) hit.parentNode.removeChild(hit);
+      })(performance.now());
+    }
+    var spark=svgEl('circle',{cx:endX, cy:ay, r:Math.max(2,cell*0.16), fill:'#fff'});
+    spawnPB(spark); var s0=performance.now();
+    (function f(now){ var p=Math.min(1,(now-s0)/500);
+      spark.setAttribute('r',(Math.max(2,cell*0.16)*(1+p*1.6)).toFixed(1));
+      spark.setAttribute('opacity',(1-p).toFixed(2));
+      if(p<1) requestAnimationFrame(f); else if(spark.parentNode) spark.parentNode.removeChild(spark);
+    })(performance.now());
+  }
+  function pbAnimateTranslate(node, sx, sy, tx, ty, dur, blink){
+    var t0=performance.now();
+    function fr(now){
+      var p=Math.min(1,(now-t0)/dur);
+      node.setAttribute('transform','translate('+(tx*p).toFixed(1)+','+(ty*p).toFixed(1)+')'+(node.__flip?' scale(-1,1)':''));
+      if(blink){ node.setAttribute('opacity',(0.3+0.7*Math.abs(Math.sin((now-t0)/400*Math.PI))).toFixed(2)); }
+      if(p<1) requestAnimationFrame(fr);
+      else { pbMarkHit(sy+ty); node.setAttribute('opacity','1');
+        var h0=performance.now();
+        (function fade(now){ var q=Math.min(1,(now-h0)/260); node.setAttribute('opacity',(1-q).toFixed(2));
+          if(q<1) requestAnimationFrame(fade); else if(node.parentNode) node.parentNode.removeChild(node); })(performance.now());
+      }
+    }
+    requestAnimationFrame(fr);
+  }
+  function markHit(ay){
+    var cell=geo.cell, header=geo.header, px=geo.predictX, pw=cell*2, endX=geo.endX;
+    var num=Math.round((ay-header-cell/2)/cell)+1;
+    if(num>=1 && num<=ROWS){
+      var ry=header+(num-1)*cell;
+      // 예상칸 황금 번쩍 (확장+페이드)
+      var hit=svgEl('rect',{x:px, y:ry, width:pw, height:cell, fill:'rgba(255,215,0,0.55)', stroke:'#ffd700','stroke-width':2.5});
+      spawn(hit);
+      var t0=performance.now();
+      (function f(now){ var p=Math.min(1,(now-t0)/850);
+        hit.setAttribute('fill','rgba(255,215,0,'+(0.55*(1-p)).toFixed(3)+')');
+        hit.setAttribute('stroke','rgba(255,215,0,'+(1-p).toFixed(3)+')');
+        if(p<1) requestAnimationFrame(f); else if(hit.parentNode) hit.parentNode.removeChild(hit);
+      })(performance.now());
+    }
+    // 가장자리 임팩트 점
+    var spark=svgEl('circle',{cx:endX, cy:ay, r:Math.max(2,cell*0.16), fill:'#fff'});
+    spawn(spark); var s0=performance.now();
+    (function f(now){ var p=Math.min(1,(now-s0)/500);
+      spark.setAttribute('r', (Math.max(2,cell*0.16)*(1+p*1.6)).toFixed(1));
+      spark.setAttribute('opacity', (1-p).toFixed(2));
+      if(p<1) requestAnimationFrame(f); else if(spark.parentNode) spark.parentNode.removeChild(spark);
+    })(performance.now());
+  }
+  function animateTranslate(node, sx, sy, tx, ty, dur, blink){
+    var t0=performance.now();
+    function fr(now){
+      var p=Math.min(1, (now-t0)/dur);
+      node.setAttribute('transform','translate('+(tx*p).toFixed(1)+','+(ty*p).toFixed(1)+')'+(node.__flip?' scale(-1,1)':''));
+      if(blink){ node.setAttribute('opacity', (0.3+0.7*Math.abs(Math.sin((now-t0)/400*Math.PI))).toFixed(2)); }
+      if(p<1) requestAnimationFrame(fr);
+      else {
+        markHit(sy+ty);                       // 예상열 도착 지점 = 맞은 번호 표시
+        node.setAttribute('opacity','1');
+        var h0=performance.now();             // 짧게 머문 뒤 페이드아웃
+        (function fade(now){ var q=Math.min(1,(now-h0)/260);
+          node.setAttribute('opacity', (1-q).toFixed(2));
+          if(q<1) requestAnimationFrame(fade); else if(node.parentNode) node.parentNode.removeChild(node);
+        })(performance.now());
+      }
+    }
+    requestAnimationFrame(fr);
+  }
+  // 선 방향으로 endX까지 도달하는 (tx,ty) — 원본 수식
+  function alongTo(sx, sy, x1, y1, x2, y2, endX){
+    var dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy)||1, ux=dx/len, uy=dy/len;
+    var tx=endX-sx, ty=0;
+    if(Math.abs(ux)>1e-4){ var s=(endX-sx)/ux; if(s>=0){ tx=s*ux; ty=s*uy; } }
+    return {tx:tx, ty:ty, dur:Math.min(1200,Math.max(280,Math.hypot(tx,ty)*1.1))};
+  }
+  function runShoot(){
+    vibrate(50);
+    if(!el.shootLayer) return;
+    var draws=drawsList(st.start, st.end), cell=geo.cell, header=geo.header, endX=geo.endX;
+    var mp=markedPositions(draws, st.win, cell, header), h=st.activeHint, br=geo.ballR;
+    if(h==='hint1'){
+      var lines=hint1Lines(mp,cell);
+      lines.forEach(function(l,i){ if(i%2!==0) return;
+        var c=svgEl('circle',{cx:l.x2, cy:l.y2, r:br, fill:'#fff'});
+        spawn(c); var m=alongTo(l.x2,l.y2,l.x1,l.y1,l.x2,l.y2,endX); animateTranslate(c,l.x2,l.y2,m.tx,m.ty,m.dur,false);
+      });
+      if(el.pbShootLayer){ var pbmp1=pbMarked(draws, st.pbMap, cell, header);
+        pbHint1Lines(pbmp1,cell).forEach(function(l,i){ if(i%2!==0) return;
+          var pc=svgEl('circle',{cx:l.x2, cy:l.y2, r:br, fill:'#fff'}); spawnPB(pc);
+          var pm=alongTo(l.x2,l.y2,l.x1,l.y1,l.x2,l.y2,endX); pbAnimateTranslate(pc,l.x2,l.y2,pm.tx,pm.ty,pm.dur,false);
+        });
+      }
+    } else if(h==='hint2'){
+      hint2Lines(mp,cell).slice(0,40).forEach(function(l){
+        var mx=(l.x1+l.x2)/2, my=(l.y1+l.y2)/2;
+        var t=svgEl('text',{x:mx, y:my, 'font-size':Math.max(10,cell*0.6), 'text-anchor':'middle','dominant-baseline':'central'}); t.textContent='💫';
+        spawn(t); var m=alongTo(mx,my,l.x1,l.y1,l.x2,l.y2,endX); animateTranslate(t,mx,my,m.tx,m.ty,m.dur,false);
+      });
+      if(el.pbShootLayer){ var pbmp2=pbMarked(draws, st.pbMap, cell, header);
+        pbHint2Lines(pbmp2,cell).slice(0,40).forEach(function(l){
+          var mx2=(l.x1+l.x2)/2, my2=(l.y1+l.y2)/2;
+          var pt=svgEl('text',{x:mx2, y:my2, 'font-size':Math.max(10,cell*0.6), 'text-anchor':'middle','dominant-baseline':'central'}); pt.textContent='💫';
+          spawnPB(pt); var pm=alongTo(mx2,my2,l.x1,l.y1,l.x2,l.y2,endX); pbAnimateTranslate(pt,mx2,my2,pm.tx,pm.ty,pm.dur,false);
+        });
+      }
+    } else if(h==='hint3'){
+      hint3Circles(mp,cell).sort(function(a,b){return b.r-a.r;}).slice(0,30).forEach(function(c){
+        var t=svgEl('text',{x:c.x, y:c.y, 'font-size':Math.max(12,cell*0.8), 'text-anchor':'middle','dominant-baseline':'central'}); t.textContent='🦕'; t.__flip=true;
+        t.setAttribute('transform','scale(-1,1)'); spawn(t); animateTranslate(t, c.x, c.y, endX-c.x, 0, 5000, true);
+      });
+      if(el.pbShootLayer){ var pbmp3=pbMarked(draws, st.pbMap, cell, header);
+        pbHint3Circles(pbmp3,cell).sort(function(a,b){return b.r-a.r;}).slice(0,30).forEach(function(c){
+          var pt=svgEl('text',{x:c.x, y:c.y, 'font-size':Math.max(12,cell*0.8), 'text-anchor':'middle','dominant-baseline':'central'}); pt.textContent='🦕'; pt.__flip=true;
+          pt.setAttribute('transform','scale(-1,1)'); spawnPB(pt); pbAnimateTranslate(pt, c.x, c.y, endX-c.x, 0, 5000, true);
+        });
+      }
+    } else if(h==='hint4'){
+      coldTop(coldness(draws,st.win),15).forEach(function(num){
+        var cy=header+(num-1)*cell+cell/2;
+        var t=svgEl('text',{x:0, y:cy, 'font-size':Math.max(12,cell*0.8), 'text-anchor':'middle','dominant-baseline':'central'}); t.textContent='🦖'; t.__flip=true;
+        t.setAttribute('transform','scale(-1,1)'); spawn(t); animateTranslate(t, 0, cy, endX-0, 0, 4000, true);
+      });
+      coldTop(coldness(draws,st.win),15).forEach(function(num){ lockPredictCell(num); });   // 힌트4 예상칸 ✕
+      if(el.pbShootLayer){
+        coldTop(pbColdness(draws, st.pbMap),15).forEach(function(num){ lockPBPredictCell(num); });   // 파워볼 ✕
+        coldTop(pbColdness(draws, st.pbMap),15).forEach(function(num){
+          var cy4=header+(num-1)*cell+cell/2;
+          var pt=svgEl('text',{x:0, y:cy4, 'font-size':Math.max(12,cell*0.8), 'text-anchor':'middle','dominant-baseline':'central'}); pt.textContent='🦖'; pt.__flip=true;
+          pt.setAttribute('transform','scale(-1,1)'); spawnPB(pt); pbAnimateTranslate(pt, 0, cy4, endX-0, 0, 4000, true);
+        });
+      }
+    } else if(h==='hint5'){
+      // 차단/봉인: 위험 번호(주의 원이 걸린 행) → 예상칸으로 🚫 날아가 ✕ 잠금
+      var rows=lockedNums(draws, st.win, ROWS);  // 화이트 배제(검은칸) 번호
+      // 붉은 화면 점멸
+      var flash=svgEl('rect',{x:0,y:0,width:geo.gridW,height:geo.gridH,fill:'rgba(255,40,40,0.14)'});
+      spawn(flash); var t0=performance.now();
+      (function fr(now){ var p=Math.min(1,(now-t0)/420); flash.setAttribute('opacity',(1-p).toFixed(2)); if(p<1) requestAnimationFrame(fr); else if(flash.parentNode) flash.parentNode.removeChild(flash); })(performance.now());
+      // 각 위험 행: 🚫가 왼쪽에서 예상칸까지 날아가 박힘
+      rows.forEach(function(num, i){
+        var cy=header+(num-1)*cell+cell/2;
+        var t=svgEl('text',{x:0, y:cy, 'font-size':Math.max(12,cell*0.8), 'text-anchor':'middle','dominant-baseline':'central'}); t.textContent='🚫';
+        spawn(t);
+        var t0b=performance.now()+i*40, DUR=620, sx=0;
+        (function fr(now){ var raw=Math.min(1,Math.max(0,(now-t0b)/DUR)), p=1-Math.pow(1-raw,3);
+          t.setAttribute('transform','translate('+((endX-sx)*p).toFixed(1)+',0)');
+          if(raw<1) requestAnimationFrame(fr); else { lockPredictCell(num); var h0=performance.now();
+            (function fade(n){ var q=Math.min(1,(n-h0)/240); t.setAttribute('opacity',(1-q).toFixed(2)); if(q<1) requestAnimationFrame(fade); else if(t.parentNode) t.parentNode.removeChild(t); })(performance.now()); }
+        })(performance.now());
+      });
+      // ── 파워볼 예측칸 잠금: 마지막 열(최근 회차)에서 그 번호 근처(체비쇼프2)에
+      //    당첨 파워볼이 하나도 없으면(당첨영향 0 = 죽은 자리) ✕. (테두리 보너스는 제외)
+      if(el.pbShootLayer){
+        var pbEndX=geo.endX, pbRows=lockedNumsPB(draws, st.pbMap);  // 파워볼 배제(검은칸)
+        pbRows.forEach(function(num, i){
+          var cy2=header+(num-1)*cell+cell/2;
+          var tk=svgEl('text',{x:0, y:cy2, 'font-size':Math.max(12,cell*0.8), 'text-anchor':'middle','dominant-baseline':'central'}); tk.textContent='🚫';
+          spawnPB(tk);
+          var tb=performance.now()+i*40, DR=620;
+          (function fr(now){ var raw=Math.min(1,Math.max(0,(now-tb)/DR)), p=1-Math.pow(1-raw,3);
+            tk.setAttribute('transform','translate('+(pbEndX*p).toFixed(1)+',0)');
+            if(raw<1) requestAnimationFrame(fr); else { lockPBPredictCell(num); var hh=performance.now();
+              (function fade(n){ var q=Math.min(1,(n-hh)/240); tk.setAttribute('opacity',(1-q).toFixed(2)); if(q<1) requestAnimationFrame(fade); else if(tk.parentNode) tk.parentNode.removeChild(tk); })(performance.now()); }
+          })(performance.now());
+        });
+      }
+    }
+  }
+
+  /* ---------- UI 갱신 ---------- */
+  function renderHintButtons(){
+    var s='';
+    HINTS.forEach(function(hh){ s+='<div class="hintBtn'+(st.activeHint===hh.key?' active':'')+'" data-hint="'+hh.key+'" style="background:'+hh.color+'">'+hh.label+'</div>'; });
+    el.hintRow.innerHTML=s;
+  }
+  function buildPBGrid(){
+    var cell=geo.cell, header=geo.header, draws=drawsList(st.start, st.end), nDraws=draws.length;
+    var h=st.activeHint;
+    var cold=(h==='hint4')?pbColdness(draws,st.pbMap):null;
+    var maxCold=cold?Math.max.apply(null,Object.values(cold).concat([1])):1;
+    var fsMark=Math.max(6,Math.round(cell*0.30)), fsHead=Math.max(6,Math.round(cell*0.28)), fsPred=Math.max(8,Math.round(cell*0.44));
+    var px=geo.predictX, pw=cell*2, PBROWS=26, gridH=header+PBROWS*cell, defs='', body='';
+    for(var di=0; di<nDraws; di++){
+      var hx=di*cell;
+      body+='<rect x="'+hx+'" y="0" width="'+cell+'" height="'+header+'" fill="#1a1a1a" stroke="#333" stroke-width="0.3"/>';
+      body+='<text x="'+(hx+cell/2)+'" y="'+(header/2)+'" fill="#aaa" font-size="'+fsHead+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">'+(st.dateMap[draws[di]]||draws[di].slice(-3))+'</text>';
+    }
+    body+='<rect x="'+px+'" y="0" width="'+pw+'" height="'+header+'" fill="#2a1520" stroke="#333" stroke-width="0.3"/>';
+    body+='<line x1="'+px+'" y1="0" x2="'+px+'" y2="'+gridH+'" stroke="#ff3b5c" stroke-width="1"/>';
+    body+='<text x="'+(px+pw/2)+'" y="'+(header/2)+'" fill="#ff8fa3" font-size="'+fsHead+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">PICK</text>';
+    for(var num=1; num<=PBROWS; num++){
+      var ry=header+(num-1)*cell;
+      var lastSeen=-1;
+      if(h==='hint4'){ for(var t=0;t<nDraws;t++){ if(st.pbMap[draws[t]]===num) lastSeen=t; } }
+      for(var d=0; d<nDraws; d++){
+        var cx=d*cell, isMark=(st.pbMap[draws[d]]===num);
+        body+='<rect x="'+cx+'" y="'+ry+'" width="'+cell+'" height="'+cell+'" fill="#111" stroke="#333" stroke-width="0.3"/>';
+        if(h==='hint4' && !isMark && d>lastSeen && lastSeen>=0){
+          var elapsed=d-lastSeen, maxE=nDraws-lastSeen, br=(elapsed/maxE*0.85).toFixed(2);
+          body+='<rect x="'+cx+'" y="'+ry+'" width="'+cell+'" height="'+cell+'" fill="rgba(180,0,255,'+br+')"/>';
+        }
+        if(isMark){
+          var mr=(cell-2)/2;
+          body+='<circle cx="'+(cx+cell/2)+'" cy="'+(ry+cell/2)+'" r="'+mr+'" fill="#ff3b5c" opacity="0.85"/>';
+          body+='<text x="'+(cx+cell/2)+'" y="'+(ry+cell/2)+'" fill="#fff" font-size="'+fsMark+'" font-weight="bold" text-anchor="middle" dominant-baseline="central">'+num+'</text>';
+        }
+      }
+      var sel=(st.selPB===num), fill=sel?'#ff3b5c':'#2a1520';
+      if(h==='hint4' && !sel) fill='rgba(128,0,128,'+((cold[num]||0)/maxCold*0.9).toFixed(2)+')';
+      body+='<rect class="pbcell" data-num="'+num+'" x="'+px+'" y="'+ry+'" width="'+pw+'" height="'+cell+'" fill="'+fill+'" stroke="#333" stroke-width="0.3" style="cursor:pointer"/>';
+      body+='<text x="'+(px+pw/2)+'" y="'+(ry+cell/2)+'" fill="'+(sel?'#fff':'#ff8fa3')+'" font-size="'+fsPred+'" font-weight="bold" text-anchor="middle" dominant-baseline="central" pointer-events="none">'+num+'</text>';
+    }
+    var ov=buildPBHintOverlay(draws, cell, header); defs+=ov.defs; body+=ov.body;
+    body+='<rect x="'+px+'" y="0" width="'+pw+'" height="'+gridH+'" fill="none" stroke="#ff3b5c" stroke-width="4" pointer-events="none"><animate attributeName="stroke" values="rgba(255,59,92,0);#ff3b5c;rgba(255,59,92,0)" dur="1.6s" repeatCount="indefinite"/></rect>';
+    body+='<g id="pbShootLayer"></g>';
+    el.pbGridSvg.setAttribute('width', geo.gridW);
+    el.pbGridSvg.setAttribute('height', gridH);
+    el.pbGridSvg.setAttribute('viewBox','0 0 '+geo.gridW+' '+gridH);
+    el.pbGridSvg.innerHTML='<defs>'+defs+'</defs>'+body;
+    el.pbShootLayer=document.getElementById('pbShootLayer');
+  }
+  function selectPB(num){ st.selPB=(st.selPB===num?null:num); buildPBGrid(); updateSaveBtn(); }
+  function updateSaveBtn(){ var can=st.selected.length===MAX_SELECT && st.selPB!=null && st.end!=null; el.saveBtn.classList.toggle('dim', !can); }
+  function updateShootBtn(){
+    var on=st.activeHint!=='none';
+    el.shootFab.classList.toggle('is-shown', on);
+  }
+  function refreshSavedBtn(){
+    var n=getSaved().filter(function(e){return e.source==='pbpredict';}).length;
+    el.savedViewBtn.classList.toggle('is-shown', n>0);
+    el.savedViewBtn.textContent='View Saved ('+n+')';
+  }
+  function selectNumber(num){ st.selected=toggleSelect(st.selected, num, MAX_SELECT); buildGridSvg(); updateSaveBtn(); }
+  function setHint(key){ st.activeHint=(st.activeHint===key)?'none':key; renderHintButtons(); updateShootBtn(); buildGridSvg(); buildPBGrid(); }
+  // 슛 도착 번호 수집 (힌트별, 화이트/파워볼 따로)
+  function collectShotNumbers(){
+    var draws=drawsList(st.start,st.end), cell=geo.cell, header=geo.header, endX=geo.endX, h=st.activeHint;
+    var wmp=markedPositions(draws,st.win,cell,header), pmp=pbMarked(draws,st.pbMap,cell,header), W={}, P={};
+    function arr(ay,rows,set){ var n=Math.round((ay-header-cell/2)/cell)+1; if(n>=1&&n<=rows) set[n]=1; }
+    if(h==='hint1'){
+      hint1Lines(wmp,cell).forEach(function(l,i){ if(i%2!==0) return; var m=alongTo(l.x2,l.y2,l.x1,l.y1,l.x2,l.y2,endX); arr(l.y2+m.ty,ROWS,W); });
+      pbHint1Lines(pmp,cell).forEach(function(l,i){ if(i%2!==0) return; var m=alongTo(l.x2,l.y2,l.x1,l.y1,l.x2,l.y2,endX); arr(l.y2+m.ty,26,P); });
+    } else if(h==='hint2'){
+      hint2Lines(wmp,cell).slice(0,40).forEach(function(l){ var mx=(l.x1+l.x2)/2,my=(l.y1+l.y2)/2,m=alongTo(mx,my,l.x1,l.y1,l.x2,l.y2,endX); arr(my+m.ty,ROWS,W); });
+      pbHint2Lines(pmp,cell).slice(0,40).forEach(function(l){ var mx=(l.x1+l.x2)/2,my=(l.y1+l.y2)/2,m=alongTo(mx,my,l.x1,l.y1,l.x2,l.y2,endX); arr(my+m.ty,26,P); });
+    } else if(h==='hint3'){
+      hint3Circles(wmp,cell).slice(0,30).forEach(function(c){ arr(c.y,ROWS,W); });
+      pbHint3Circles(pmp,cell).slice(0,30).forEach(function(c){ arr(c.y,26,P); });
+    } else if(h==='hint4'){
+      coldTop(coldness(draws,st.win),15).forEach(function(n){ W[n]=1; });
+      coldTop(pbColdness(draws,st.pbMap),15).forEach(function(n){ P[n]=1; });
+    } else if(h==='hint5'){
+      lockedNums(draws,st.win,ROWS).forEach(function(n){ W[n]=1; });
+      lockedNumsPB(draws,st.pbMap).forEach(function(n){ P[n]=1; });
+    }
+    return { hint:h, w:Object.keys(W).map(Number), p:Object.keys(P).map(Number) };
+  }
+  function doShootSave(){
+    if(st.activeHint==='none'){ alert('Turn on a hint first, then SHOOT+SAVE.'); return; }
+    runShoot();
+    var got=collectShotNumbers();
+    if(got.w.length===0 && got.p.length===0) return;
+    var slot=getSlot();
+    got.w.forEach(function(n){ addHit(slot, got.hint, 'w', n); });
+    got.p.forEach(function(n){ addHit(slot, got.hint, 'p', n); });
+    setSlot(slot);
+  }
+  function slotChip(num,count,kind){
+    var fs=Math.min(22, 12+(Math.min(count,5)-1)*2.5);
+    var bg='#1a1f2e', bc='#3a4468', fc='#cfd8ff';
+    if(kind==='posW'){ if(count>=3){bg='#2ecc71';fc='#06210f';bc='#2ecc71';} else if(count===2){bg='#1f7a44';fc='#dfffe9';bc='#2ecc71';} }
+    else if(kind==='posP'){ if(count>=3){bg='#ffcc00';fc='#3a2b00';bc='#ffcc00';} else if(count===2){bg='#8a6d00';fc='#fff6cc';bc='#ffcc00';} else {bg='#2a2410';fc='#ffe08a';bc='#ffcc0066';} }
+    else { bg='#3a1520'; fc='#ff9aa8'; bc='#e74c3c66'; }
+    return '<span class="chip" style="font-size:'+fs.toFixed(0)+'px;background:'+bg+';color:'+fc+';border-color:'+bc+'">'+num+(count>1?' \u00d7'+count:'')+'</span>';
+  }
+  function renderSlot(){
+    var slot=getSlot();
+    function sec(title,cls,obj,kind){
+      var keys=Object.keys(obj).map(Number).sort(function(a,b){ return (slotCount(obj[b])-slotCount(obj[a]))||a-b; });
+      var chips=keys.length? keys.map(function(n){ return slotChip(n,slotCount(obj[n]),kind); }).join('') : '<span style="color:#667;font-size:12px">None</span>';
+      return '<div class="slotSec"><div class="slotHead '+cls+'">'+title+'</div><div class="chips">'+chips+'</div></div>';
+    }
+    var mw=mergeNumbers(slot,'w'), mp=mergeNumbers(slot,'p');
+    var merged='<div class="slotSec"><div class="slotHead" style="color:#ffd700">Merged (Positive - Excluded)</div>'+
+      '<div style="font-size:13px;color:#9fe6b0;margin-bottom:2px">White: '+(mw.length?mw.map(function(o){return o.num;}).join(', '):'None')+'</div>'+
+      '<div style="font-size:13px;color:#ffd98a">Powerball: '+(mp.length?mp.map(function(o){return o.num;}).join(', '):'None')+'</div></div>';
+    var my=getMyNums();
+    var myHtml='<div class="slotSec"><div class="slotHead" style="color:#c084fc">My Numbers ('+my.length+')</div>'+
+      (my.length? my.slice().reverse().map(function(e){ return '<div class="myFinal"><div class="mfLabel">WHITE</div><div class="mfW">'+((e.w||[]).join(', ')||'-')+'</div><div class="mfLabel" style="margin-top:8px">POWERBALL</div><div class="mfP">'+((e.p||[]).join(', ')||'-')+'</div></div>'; }).join('') : '<span style="color:#667;font-size:12px">None yet</span>')+'</div>';
+    el.slotBody.innerHTML =
+      sec('Positive White (Hint 1-2-3)','pos',slot.posW||{},'posW') +
+      sec('Positive Powerball','pos',slot.posP||{},'posP') +
+      sec('Excluded White (Hint 4-5)','ex',slot.exW||{},'exW') +
+      sec('Excluded Powerball','ex',slot.exP||{},'exP') +
+      merged + myHtml;
+  }
+  function openSlot(){ renderSlot(); el.slotMask.classList.add('is-shown'); }
+  function doMerge(){
+    var slot=getSlot(),
+        mw=mergeNumbers(slot,'w').filter(function(o){return o.count>=2;}).map(function(o){return o.num;}),
+        mp=mergeNumbers(slot,'p').filter(function(o){return o.count>=2;}).map(function(o){return o.num;});
+    if(mw.length===0 && mp.length===0){ alert('No numbers picked by 2+ hints yet. Keep collecting with SHOOT+SAVE.'); return; }
+    var my=getMyNums(); my.push({ w:mw, p:mp, savedAt:Date.now() }); setMyNums(my); renderSlot(); alert('Saved to My Numbers!');
+  }
+  function doSlotReset(){ setSlot(emptySlot()); renderSlot(); }
+
+  function doSave(){
+    if(st.selected.length!==MAX_SELECT || st.selPB==null || st.end==null){ alert('Pick 5 white balls and 1 Powerball.'); return; }
+    var round=st.end+1;
+    if(typeof window!=='undefined' && typeof window.wsubSaveNumbers==='function'){
+      window.wsubSaveNumbers({ game:'powerball-flow', white:st.selected.slice(), powerball:st.selPB, round:round, drawDate:st.nextDateStr });
+    } else {
+      var arr=getSaved();
+      arr.push(makePBEntry(st.selected, st.selPB, round, st.nextDateStr, Date.now(), genId('pbpredict')));   // now/id 주입
+      setSaved(arr);
+    }
+    st.selected=[]; st.selPB=null; buildGridSvg(); buildPBGrid(); updateSaveBtn(); refreshSavedBtn();
+    alert('Saved!');
+  }
+  function openSaves(){
+    var items=getSaved().filter(function(e){return e.source==='pbpredict';}).sort(function(a,b){return (b.date||0)-(a.date||0);});
+    if(!items.length){ el.savesList.innerHTML='<div class="savesEmpty">No saved predictions yet.</div>'; }
+    else{ el.savesList.innerHTML=items.map(function(e){
+      var nums=(e.white||[]).map(function(n){return '<div class="sn">'+n+'</div>';}).join('');
+      nums+='<div class="sn pb">'+e.pb+'</div>';
+      var label=e.drawDate?('For draw: '+e.drawDate):'Prediction';
+      return '<div class="saveItem"><div class="saveRound">'+label+'</div><div class="saveNums">'+nums+'</div></div>';
+    }).join(''); }
+    el.savesMask.classList.add('is-shown');
+  }
+
+  function bindElements(){
+    el.root=document.getElementById('predict-root');
+    el.loading=document.getElementById('loading');
+    el.main=document.getElementById('main');
+    el.hintRow=document.getElementById('hintRow');
+    el.pbGridSvg=document.getElementById('pbGridSvg');
+    el.dateText=document.getElementById('dateText');
+    el.turnText=document.getElementById('turnText');
+    el.gridScroll=document.getElementById('gridScroll');
+    el.gridSvg=document.getElementById('gridSvg');
+    el.shootFab=document.getElementById('shootFab');
+    el.shootSaveBtn=document.getElementById('shootSaveBtn');
+    el.slotViewBtn=document.getElementById('slotViewBtn');
+    el.slotMask=document.getElementById('slotMask');
+    el.slotBody=document.getElementById('slotBody');
+    el.slotMerge=document.getElementById('slotMerge');
+    el.slotReset=document.getElementById('slotReset');
+    el.slotClose=document.getElementById('slotClose');
+    el.saveBtn=document.getElementById('saveBtn');
+    el.savedViewBtn=document.getElementById('savedViewBtn');
+    el.introMask=document.getElementById('introMask');
+    el.introStart=document.getElementById('introStart');
+    el.savesMask=document.getElementById('savesMask');
+    el.savesList=document.getElementById('savesList');
+    el.savesClose=document.getElementById('savesClose');
+  }
+  function bindEvents(){
+    el.hintRow.addEventListener('click', function(ev){ var b=ev.target.closest?ev.target.closest('.hintBtn'):null; if(b&&b.dataset.hint) setHint(b.dataset.hint); });
+    el.gridSvg.addEventListener('click', function(ev){ var t=ev.target; if(t&&t.classList&&t.classList.contains('ecell')) selectNumber(parseInt(t.getAttribute('data-num'),10)); });
+    el.pbGridSvg.addEventListener('click', function(ev){ var t=ev.target; if(t&&t.classList&&t.classList.contains('pbcell')) selectPB(parseInt(t.getAttribute('data-num'),10)); });
+    el.shootSaveBtn.addEventListener('click', doShootSave);
+    el.slotViewBtn.addEventListener('click', openSlot);
+    el.slotMerge.addEventListener('click', doMerge);
+    el.slotReset.addEventListener('click', doSlotReset);
+    el.slotClose.addEventListener('click', function(){ el.slotMask.classList.remove('is-shown'); });
+    el.slotMask.addEventListener('click', function(ev){ if(ev.target===el.slotMask) el.slotMask.classList.remove('is-shown'); });
+    el.saveBtn.addEventListener('click', doSave);
+    el.savedViewBtn.addEventListener('click', function(){ location.href='/games/mynumbers_powerball.html'; });
+    el.introStart.addEventListener('click', function(){ el.introMask.classList.remove('is-shown'); });
+    el.savesClose.addEventListener('click', function(){ el.savesMask.classList.remove('is-shown'); });
+    el.savesMask.addEventListener('click', function(ev){ if(ev.target===el.savesMask) el.savesMask.classList.remove('is-shown'); });
+    var rT=null; window.addEventListener('resize', function(){ if(rT)clearTimeout(rT); rT=setTimeout(function(){ setupGeometry(); buildGridSvg(); buildPBGrid(); }, 160); });
+  }
+
+  function startPowerballApp(){
+    bindElements(); if(!el.root) return; bindEvents();
+    el.introMask.classList.add('is-shown');
+    loadData().then(function(res){
+      st.start=res.range.start; st.end=res.range.end; st.next=res.range.next; st.win=res.win; st.dateMap=res.dateMap; st.pbMap=res.pbMap;
+      st.nextDateStr=nextDrawDateStr(Date.now());
+      el.loading.style.display='none'; el.main.style.display='';
+      el.dateText.textContent='NEXT POWERBALL DRAW';
+      el.turnText.textContent=st.nextDateStr;
+      setupGeometry(); renderHintButtons(); buildPBGrid(); updateShootBtn(); updateSaveBtn(); refreshSavedBtn(); buildGridSvg();
+    });
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', startPowerballApp);
+  else startPowerballApp();
+  if(typeof window!=='undefined') window.startPowerballApp=startPowerballApp;
+})();
+</script>
+</body>
+</html>

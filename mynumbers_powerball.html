@@ -210,15 +210,15 @@
 </div>
 
 <script>
-/* ===== Firebase init (powerball-prediction) ===== */
+/* ===== Firebase init (ai-lottosolutions 통합) ===== */
 const firebaseConfig = {
-  apiKey: "AIzaSyBme5XW9mHy87Y-dwjQzY0DCuC7k2478aw",
-  authDomain: "powerball-prediction-3a2ab.firebaseapp.com",
-  databaseURL: "https://powerball-prediction-3a2ab-default-rtdb.firebaseio.com",
-  projectId: "powerball-prediction-3a2ab",
-  storageBucket: "powerball-prediction-3a2ab.firebasestorage.app",
-  messagingSenderId: "35475647063",
-  appId: "1:35475647063:web:e3c185b495da1175a25112"
+  apiKey: "AIzaSyAwh55rLOQkY8ZVCzaC4ZF3iaUVU5Vu0GM",
+  authDomain: "ai-lottosolutions.firebaseapp.com",
+  databaseURL: "https://ai-lottosolutions-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ai-lottosolutions",
+  storageBucket: "ai-lottosolutions.firebasestorage.app",
+  messagingSenderId: "616782090306",
+  appId: "1:616782090306:web:688c710998dfce8e4d5ddb"
 };
 firebase.initializeApp(firebaseConfig);
 const wsubAuth = firebase.auth();
@@ -226,6 +226,7 @@ const wsubDb = firebase.database();
 
 /* ===== Game meta (icon + name, display order) ===== */
 const GAME_META = {
+  "powerball-flow": { emoji:"🌊", name:"Flow Predict" },
   montecarlo: { emoji:"🎲", name:"Monte Carlo" },
   iching:     { emoji:"🀄", name:"I Ching" },
   dangsaju:   { emoji:"🎴", name:"Dangsaju Star" },
