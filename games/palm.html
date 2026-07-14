@@ -295,9 +295,6 @@
   <div class="ex-body" id="ex-body"></div>
 </div>
 
-<!-- 앱인토스 하단 배너 광고 (TossAds) -->
-<div id="ad-banner"></div>
-
 <!-- 팝업 -->
 <div id="popup" onclick="if(event.target===this)closePopup()">
   <div class="sheet">
@@ -782,6 +779,7 @@ function densePoints(ps){
 // 위치 t(0~1)와 역할로 불투명도 결정 (담당 구간=진하게)
 function bandAlpha(t, role){
   const C=MERGE_CFG, r=C.ramp, band=C[role];
+  if(role==='full') return C.solid;   // 📏짧아도: 전체 구간 진하게
   if(!band) return C.faint;
   const a=band[0], b=band[1];
   let f;
@@ -817,12 +815,13 @@ function renderMerged(canvas, items){
   const overlays=[];
   items.forEach(it=>{
     const card=it.card; if(!card) return;
-    const role=roleFromQuestion(it.question, card);
-    if(role==='mark'||role==='branch'||role==='overlay'){ overlays.push({card,role}); return; }
+    let role=roleFromQuestion(it.question, card);
+    if(role==='mark'||role==='branch'||role==='overlay'){ overlays.push({card,role,fullDraw:!!it.fullDraw}); return; }
+    if(it.fullDraw) role='full';   // 📏짧아도: 구간 흐림 없이 전체 진하게
     if(card.pts && card.pts.length>=2) strokeProfiled(card.pts, card.color||'#E24B4A', card.lw||5, role, startCfg(card));
   });
-  overlays.forEach(({card,role})=>{
-    const a=(role==='mark')?(card.opacity!=null?card.opacity:1):MERGE_CFG.branchAlpha;
+  overlays.forEach(({card,role,fullDraw})=>{
+    const a=fullDraw?1:((role==='mark')?(card.opacity!=null?card.opacity:1):MERGE_CFG.branchAlpha);
     const shapes=[]; (card.mergedShapes||[]).forEach(s=>{ if(s&&s.type!=='bg') shapes.push(s); });
     if(shapes.length>0){ shapes.forEach(s=>drawShape(s,(s.opacity!=null?s.opacity:1)*a)); }
     else drawShape({pts:card.pts,color:card.color,lw:card.lw,mode:card.mode,opacity:card.opacity,texts:card.texts,text:card.texts&&card.texts[0],sineAmp:card.sineAmp,sineFreq:card.sineFreq,stairH:card.stairH,stairW:card.stairW,stairG:card.stairG}, a);
@@ -855,7 +854,7 @@ function renderMulti(canvas, cards){
 function downloadImage(){
   const canvas=document.createElement('canvas');
   canvas.width=648; canvas.height=900;
-  renderMerged(canvas, picked.map(p=>({card:p.card, question:p.question})));
+  renderMerged(canvas, picked.filter(p=>!p.hideInMerge).map(p=>({card:p.card, question:p.question, fullDraw:p.fullDraw})));
   const link=document.createElement('a');
   link.download='내손금_'+new Date().toISOString().slice(0,10)+'.png';
   link.href=canvas.toDataURL('image/png');
@@ -884,6 +883,8 @@ function saveResult(){
     scores:sumScores(picked.map(p=>p.card)),
     cardIds:picked.map(p=>p.card.id),
     questions:picked.map(p=>p.question),
+    hideMergeIds:picked.filter(p=>p.hideInMerge).map(p=>p.card.id),
+    fullDrawIds:picked.filter(p=>p.fullDraw).map(p=>p.card.id),
   };
   const list=loadSaved();
   list.unshift(entry);
@@ -1343,17 +1344,34 @@ function init(){
 
 function openLine(tree){
   curLine=tree;
-  // col1 트리들 중 이 트리가 몇 번째인지 → 같은 순번의 col2 트리를 짝으로 (이름 매칭 폐기)
+  // 짝 매칭: ① 트리에 pairWith(=1열 트리 id)가 지정돼 있으면 그걸 우선
+  //          ② 미지정 옛 데이터는 같은 순번(단, 그 트리가 다른 짝으로 지정돼 있으면 제외)으로 호환
   const col1List=APP_DATA.trees.filter(t=>t.col===1);
   const col2List=APP_DATA.trees.filter(t=>t.col===2);
+  const col3List=APP_DATA.trees.filter(t=>t.col===3);
   const idx=col1List.findIndex(t=>t.id===tree.id);
-  curCol2=(idx>=0 && col2List[idx])?col2List[idx]:null;
-  // 질문 평탄화: col1 가지들 + col2 가지들
+  const pickPair=(list)=>{
+    const byId=list.find(t=>t.pairWith===tree.id);
+    if(byId) return byId;
+    const byIdx=(idx>=0)?list[idx]:null;
+    return (byIdx && !byIdx.pairWith)?byIdx:null;
+  };
+  curCol2=pickPair(col2List);
+  const curCol3=pickPair(col3List);
+  // 질문 평탄화: col1 → col2 → col3 순. hideInApp(📱앱 체크 해제) 노드는 건너뜀
+  // 모든 열에서 루트 직속 카드도 하나의 질문으로 포함 (1열 미리보기 그림은 별개로 유지)
   questions=[];
-  tree.root.children.forEach(br=>{ if((br.cards||[]).length) questions.push({name:br.name,cardIds:br.cards}); });
-  if(curCol2){
-    curCol2.root.children.forEach(br=>{ if((br.cards||[]).length) questions.push({name:br.name,cardIds:br.cards,col2:true}); });
-  }
+  const pushBranches=(root,flag,includeRoot)=>{
+    if(includeRoot && (root.cards||[]).length && !root.hideInApp){
+      questions.push(Object.assign({name:root.name,cardIds:root.cards,hideInMerge:!!root.hideInMerge,fullDraw:!!root.fullDraw},flag));
+    }
+    (root.children||[]).forEach(br=>{
+      if((br.cards||[]).length && !br.hideInApp) questions.push(Object.assign({name:br.name,cardIds:br.cards,hideInMerge:!!br.hideInMerge,fullDraw:!!br.fullDraw},flag));
+    });
+  };
+  pushBranches(tree.root,{},true);
+  if(curCol2) pushBranches(curCol2.root,{col2:true},true);
+  if(curCol3) pushBranches(curCol3.root,{col3:true},true);
   qIndex=0; picked=[]; selectedThisQ=null;
   updateTray();
   document.getElementById('tray')?.classList.remove('hidden');
@@ -1392,7 +1410,7 @@ function showQuestion(){
   const cards=q.cardIds.map(id=>APP_DATA.cards[id]).filter(Boolean);
 
   body.innerHTML=`
-    <div class="question">${q.name||(q.col2?'갈라지는 지선':'자네 손금 고르기')}</div>
+    <div class="question">${q.name||((q.col2||q.col3)?'갈라지는 지선':'자네 손금 고르기')}</div>
     <div class="q-hint">자네 손금과 닮은 그림이 있거든 골라보렴</div>
     <div class="q-emph">닮은 게 <b>없으면 「다음」</b>을 누르면 된단다 👇</div>
     <div class="nav-row nav-top">
@@ -1425,7 +1443,7 @@ function selectChoice(el,card,q){
   const wasSelected=el.classList.contains('selected');
   grid.querySelectorAll('.choice').forEach(c=>c.classList.remove('selected'));
   if(wasSelected){ selectedThisQ=null; }
-  else { el.classList.add('selected'); selectedThisQ={card,question:q.name}; }
+  else { el.classList.add('selected'); selectedThisQ={card,question:q.name,hideInMerge:!!q.hideInMerge,fullDraw:!!q.fullDraw}; }
 }
 
 function nextQ(){
@@ -1541,7 +1559,7 @@ function showResult(){
       <button class="nav-btn primary" onclick="goMain()">다른 손금 보기</button>
     </div>`;
   const rcv=document.getElementById('result-canvas');
-  if(rcv) requestAnimationFrame(()=>renderMerged(rcv, picked.map(p=>({card:p.card, question:p.question}))));
+  if(rcv) requestAnimationFrame(()=>renderMerged(rcv, picked.filter(p=>!p.hideInMerge).map(p=>({card:p.card, question:p.question, fullDraw:p.fullDraw}))));
   const rl=document.getElementById('result-list');
   picked.forEach((p,pi)=>{
     const div=document.createElement('div');
@@ -1723,10 +1741,12 @@ function showCombined(){
       <button class="nav-btn" onclick="showSaved()">‹ 저장 목록</button>
       <button class="nav-btn primary" onclick="goMain()">처음으로</button>
     </div>`;
-  // 손 그림에 전체 카드 겹쳐 그리기
+  // 손 그림에 전체 카드 겹쳐 그리기 (🧩모아 해제 카드는 제외, 📏짧아도 카드는 전체 진하게)
   const ccv=document.getElementById('combined-canvas');
   const _qmap={}; chosen.forEach(e=>{ (e.cardIds||[]).forEach((id,i)=>{ if(!(id in _qmap)) _qmap[id]=(e.questions||[])[i]||''; }); });
-  if(ccv) requestAnimationFrame(()=>renderMerged(ccv, allCardObjs.map(c=>({card:c, question:_qmap[c.id]||''}))));
+  const _hideSet=new Set(); const _fullSet=new Set();
+  chosen.forEach(e=>{ (e.hideMergeIds||[]).forEach(id=>_hideSet.add(id)); (e.fullDrawIds||[]).forEach(id=>_fullSet.add(id)); });
+  if(ccv) requestAnimationFrame(()=>renderMerged(ccv, allCardObjs.filter(c=>!_hideSet.has(c.id)).map(c=>({card:c, question:_qmap[c.id]||'', fullDraw:_fullSet.has(c.id)}))));
   // 카드별 풀이 (5단)
   const cl=document.getElementById('combined-list');
   allCardObjs.forEach(card=>{
@@ -1787,71 +1807,6 @@ function openPopup(card){
 function closePopup(){ document.getElementById('popup').classList.remove('open'); }
 
 setTimeout(()=>{ if(document.getElementById('loading').style.display!=='none' && (!APP_DATA.trees||!APP_DATA.trees.length)) loadDataThenInit(); },1800);
-</script>
-<!-- 앱인토스 배너 광고 모듈 (Vite가 import를 번들에 포함) -->
-<script type="module">
-  import { TossAds } from '@apps-in-toss/web-framework';
-
-  // ▼▼▼ 광고 ID 설정 ▼▼▼
-  // 개발/테스트(QR·샌드박스)에서는 반드시 테스트 ID를 쓰세요. 실제 ID로 테스트하면 제재 위험.
-  const TEST_AD_ID = 'ait-ad-test-banner-id';
-  const LIVE_AD_ID = 'ait.v2.live.e0010024060a419a';
-  // 출시 빌드: LIVE ID 사용 (검수 제출용)
-  const AD_GROUP_ID = LIVE_AD_ID;
-  // ▲▲▲ 광고 ID 설정 ▲▲▲
-
-  function showBannerArea(){ document.body.classList.add('ad-on'); }
-  function hideBannerArea(){
-    document.body.classList.remove('ad-on');
-    const el = document.getElementById('ad-banner');
-    if (el) el.style.display = 'none';
-  }
-
-  function initBanner(){
-    const container = document.getElementById('ad-banner');
-    if (!container) return;
-
-    // 지원 환경 확인 (토스앱 5.241.0 미만 / 토스앱 밖이면 미지원)
-    if (!TossAds || typeof TossAds.initialize !== 'function' ||
-        !TossAds.initialize.isSupported || !TossAds.initialize.isSupported()) {
-      hideBannerArea();
-      return;
-    }
-
-    TossAds.initialize({
-      callbacks: {
-        onInitialized: () => {
-          try {
-            const attached = TossAds.attachBanner(AD_GROUP_ID, container, {
-              theme: 'auto',
-              tone: 'blackAndWhite',
-              variant: 'expanded',
-              callbacks: {
-                onAdRendered: () => { showBannerArea(); },
-                onAdImpression: () => {},
-                onNoFill: () => { hideBannerArea(); },
-                onAdFailedToRender: () => { hideBannerArea(); },
-              },
-            });
-            window.__songgeumBanner = attached; // 디버그/정리용
-          } catch (e) {
-            console.error('attachBanner 실패:', e);
-            hideBannerArea();
-          }
-        },
-        onInitializationFailed: (err) => {
-          console.error('TossAds 초기화 실패:', err);
-          hideBannerArea();
-        },
-      },
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initBanner);
-  } else {
-    initBanner();
-  }
 </script>
 
 </body>
