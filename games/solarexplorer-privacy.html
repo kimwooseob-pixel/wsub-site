@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
+<title>Solar Explorer 개인정보처리방침 · Privacy Policy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    color-scheme: light;
+    --bg:#f7f9fb;
+    --surface:#ffffff;
+    --line:#dde5ec;
+    --ink:#16212b;
+    --ink-2:#4a5c6b;
+    --ink-3:#74879a;
+    --accent:#0e7fa8;          /* 브랜드 #7fd4ff 를 밝은 바탕에서 읽히게 낮춘 값 */
+    --accent-soft:#e3f4fb;
+    --mono-bg:#eef3f7;
+    --radius:10px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#0a1119;
+      --surface:#101b26;
+      --line:#1f3040;
+      --ink:#e6eef5;
+      --ink-2:#a9bccb;
+      --ink-3:#7b91a3;
+      --accent:#7fd4ff;
+      --accent-soft:#12293a;
+      --mono-bg:#0d1922;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#0a1119;
+    --surface:#101b26;
+    --line:#1f3040;
+    --ink:#e6eef5;
+    --ink-2:#a9bccb;
+    --ink-3:#7b91a3;
+    --accent:#7fd4ff;
+    --accent-soft:#12293a;
+    --mono-bg:#0d1922;
+  }
+
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height:1.75;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{
+    max-width:46rem;
+    margin:0 auto;
+    padding-inline:20px;
+    padding-block:0 72px;
+  }
+
+  /* ── 머리말 ───────────────────────────────── */
+  header{
+    padding-block:44px 28px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:36px;
+  }
+  .eyebrow{
+    font-size:.7rem;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--accent);
+    font-weight:700;
+    margin:0 0 10px;
+  }
+  h1{
+    font-size:clamp(1.55rem, 4.5vw, 2.05rem);
+    line-height:1.28;
+    font-weight:700;
+    margin:0 0 14px;
+    text-wrap:balance;
+    letter-spacing:-.01em;
+  }
+  .meta{
+    margin:0;
+    color:var(--ink-3);
+    font-size:.86rem;
+    font-variant-numeric:tabular-nums;
+  }
+  .meta b{color:var(--ink-2); font-weight:500;}
+
+  /* ── 언어 전환 ────────────────────────────── */
+  .langbar{
+    position:sticky;
+    top:env(safe-area-inset-top, 0px);
+    z-index:5;
+    display:flex;
+    gap:6px;
+    justify-content:flex-end;
+    padding-block:10px;
+    background:linear-gradient(var(--bg) 72%, transparent);
+  }
+  .langbar button{
+    font:inherit;
+    font-size:.82rem;
+    font-weight:500;
+    padding:6px 15px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--ink-2);
+    cursor:pointer;
+  }
+  .langbar button[aria-pressed="true"]{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+    color:var(--accent);
+    font-weight:700;
+  }
+  .langbar button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  /* ── 요약 ─────────────────────────────────── */
+  .summary{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-left:3px solid var(--accent);
+    border-radius:var(--radius);
+    padding:20px 22px;
+    margin-bottom:40px;
+  }
+  .summary p{margin:0 0 10px; color:var(--ink-2);}
+  .summary p:last-child{margin-bottom:0;}
+  .summary strong{color:var(--ink); font-weight:700;}
+
+  /* ── 본문 ─────────────────────────────────── */
+  section{margin-bottom:38px;}
+  h2{
+    font-size:1.06rem;
+    font-weight:700;
+    margin:0 0 12px;
+    padding-top:4px;
+    display:flex;
+    gap:12px;
+    align-items:baseline;
+    text-wrap:balance;
+  }
+  h2 .num{
+    color:var(--accent);
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+    font-size:.82rem;
+    font-weight:500;
+    flex:0 0 auto;
+  }
+  h2 .en{
+    color:var(--ink-3);
+    font-weight:400;
+    font-size:.82rem;
+  }
+  p{margin:0 0 12px; color:var(--ink-2);}
+  section p:last-child{margin-bottom:0;}
+  ul{margin:0 0 12px; padding-left:1.15rem; color:var(--ink-2);}
+  li{margin-bottom:6px;}
+  li:last-child{margin-bottom:0;}
+  strong{color:var(--ink); font-weight:500;}
+  code{
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+    font-size:.86em;
+    background:var(--mono-bg);
+    border-radius:4px;
+    padding:1px 5px;
+  }
+  a{color:var(--accent); text-underline-offset:2px;}
+
+  /* ── 저장 항목 표 ─────────────────────────── */
+  .tablewrap{overflow-x:auto; margin:0 0 12px;}
+  table{
+    border-collapse:collapse;
+    width:100%;
+    min-width:30rem;
+    font-size:.87rem;
+  }
+  th, td{
+    text-align:left;
+    padding:9px 12px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  th{
+    color:var(--ink-3);
+    font-weight:500;
+    font-size:.74rem;
+    letter-spacing:.07em;
+    text-transform:uppercase;
+    white-space:nowrap;
+  }
+  td:first-child{
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+    color:var(--ink);
+    white-space:nowrap;
+  }
+  td{color:var(--ink-2);}
+  tbody tr:last-child td{border-bottom:none;}
+
+  /* ── 문의 ─────────────────────────────────── */
+  .contact{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px 22px;
+  }
+  .mail{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .mail code{
+    font-size:.95rem;
+    padding:6px 12px;
+    user-select:all;
+  }
+  .mail button{
+    font:inherit;
+    font-size:.8rem;
+    padding:6px 13px;
+    border-radius:7px;
+    border:1px solid var(--line);
+    background:transparent;
+    color:var(--ink-2);
+    cursor:pointer;
+  }
+  .mail button:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+  footer{
+    margin-top:44px;
+    padding-top:20px;
+    border-top:1px solid var(--line);
+    color:var(--ink-3);
+    font-size:.8rem;
+  }
+  footer p{color:var(--ink-3); margin:0;}
+
+  .wrap [lang]:not(.on){display:none;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="langbar">
+    <button type="button" id="btn-ko" aria-pressed="true">한국어</button>
+    <button type="button" id="btn-en" aria-pressed="false">English</button>
+  </div>
+
+  <!-- ══════════════ 한국어 ══════════════ -->
+  <div lang="ko" class="on">
+    <header>
+      <p class="eyebrow">Wsub · Solar Explorer</p>
+      <h1>개인정보처리방침</h1>
+      <p class="meta">패키지 <b>com.wsub.solarexplorer</b> · 시행일 <b>2026년 9월 27일</b></p>
+    </header>
+
+    <div class="summary">
+      <p><strong>이 앱은 계정이 없고, 이용자의 데이터를 서버로 보내지 않습니다.</strong> 회원가입, 로그인, 위치, 주소록, 마이크, 카메라, 사진첩을 일절 사용하지 않습니다.</p>
+      <p>앱이 저장하는 것은 <strong>기기 안에만 남는 설정과 진행 상황</strong>뿐입니다. 광고를 위해 Google AdMob이 광고 ID 등을 처리할 수 있으며, 그 내용을 아래에 밝힙니다.</p>
+    </div>
+
+    <section>
+      <h2><span class="num">01</span> 수집하는 정보 <span class="en">Information we collect</span></h2>
+      <p><strong>Wsub은 이 앱을 통해 이용자의 개인정보를 수집하거나 서버로 전송하지 않습니다.</strong> 앱에는 회원 계정이 없으며, 이용자를 식별하는 정보를 만들지도 보관하지도 않습니다.</p>
+      <p>다만 앱에 포함된 광고(Google AdMob)를 통해 다음 정보가 <strong>Google로 전달될 수 있습니다.</strong></p>
+      <ul>
+        <li><strong>광고 ID</strong>(Android 광고 식별자)</li>
+        <li><strong>기기 정보</strong> — 기기 모델, 운영체제 버전, 언어 설정 등</li>
+        <li><strong>대략적인 지역</strong> — IP 주소로 추정되는 국가·도시 수준. 정밀 위치(GPS)는 사용하지 않습니다.</li>
+        <li><strong>광고 상호작용</strong> — 광고 노출 및 클릭 기록</li>
+      </ul>
+      <p>이 정보는 Google이 광고 게재와 측정을 위해 처리하며, Wsub은 이를 따로 수집하거나 보관하지 않습니다. 처리 방식은 <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">Google의 파트너 사이트 정책</a>을 따릅니다.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">02</span> 기기에만 저장되는 정보 <span class="en">Stored only on your device</span></h2>
+      <p>앱은 아래 항목을 기기의 로컬 저장소에 보관합니다. <strong>어느 것도 외부로 전송되지 않으며</strong>, 이용자를 식별할 수 있는 정보를 담고 있지 않습니다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>저장 키</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>sts_lang</td><td>선택한 표시 언어 (한국어 / English)</td></tr>
+            <tr><td>ckpt_unlocked</td><td>조종석 모드 한시 해제의 만료 시각</td></tr>
+            <tr><td>des_unlocked</td><td>파괴 모드 한시 해제의 만료 시각</td></tr>
+            <tr><td>inv_unlocked</td><td>외계선 방어 한시 해제의 만료 시각</td></tr>
+            <tr><td>sts_inv_best</td><td>침공 방어에서 도달한 최고 단계</td></tr>
+            <tr><td>sts_inv_credit</td><td>보유 크레딧 수</td></tr>
+            <tr><td>sts_inv_fleet</td><td>보유한 아군 함선 구성</td></tr>
+            <tr><td>mis_done</td><td>완료한 관측 임무 목록</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>한시 해제 항목은 광고 시청 후 <strong>20분 동안</strong> 기능이 열린다는 사실만 기록하며, 광고를 본 이용자가 누구인지에 대한 정보는 담지 않습니다.</p>
+      <p>이전 버전에 있던 화면 촬영·앨범 기능은 제거되었고, 그때 저장된 이미지 데이터(<code>mis_photos</code>)는 앱 실행 시 자동으로 삭제됩니다.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">03</span> 광고 <span class="en">Advertising</span></h2>
+      <p>앱은 무료이며 <strong>Google AdMob</strong>의 배너 광고와 보상형 광고로 운영됩니다. 보상형 광고는 조종석·파괴·외계선 방어 기능을 20분 동안 여는 데에만 쓰이며, 시청 여부는 이용자의 선택입니다.</p>
+      <p>유럽경제지역(EEA)·영국·스위스 등 동의가 필요한 지역에서는 앱 실행 시 <strong>Google 사용자 메시징 플랫폼(UMP)</strong>의 동의 창이 표시됩니다. 이용자는 여기에서 맞춤 광고 사용 여부를 직접 선택할 수 있으며, 이후에도 설정에서 변경할 수 있습니다.</p>
+      <p>Wsub은 이용자의 데이터를 제3자에게 <strong>판매하지 않습니다.</strong></p>
+    </section>
+
+    <section>
+      <h2><span class="num">04</span> 앱이 요구하는 권한 <span class="en">Permissions</span></h2>
+      <ul>
+        <li><code>INTERNET</code> — 광고를 받아오기 위해 필요합니다. 앱의 천체 데이터와 화면은 모두 앱 안에 들어 있어 인터넷 없이도 동작합니다.</li>
+        <li><code>com.google.android.gms.permission.AD_ID</code> — 광고 ID 사용을 위해 필요합니다.</li>
+        <li><code>VIBRATE</code> — 전투 중 피격·발사 시 진동을 주기 위한 것으로, 어떤 정보도 읽지 않습니다.</li>
+      </ul>
+      <p>카메라, 마이크, 위치, 주소록, 저장소, 알림 권한은 요구하지 않습니다.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">05</span> 정보의 보관과 삭제 <span class="en">Retention and deletion</span></h2>
+      <p>기기에 저장된 항목은 <strong>앱을 삭제하면 함께 지워집니다.</strong> 서버에 보관되는 이용자 정보가 없으므로 별도의 계정 삭제 절차는 존재하지 않습니다.</p>
+      <p>Android 설정의 <em>앱 → 저장공간 → 데이터 삭제</em>로 언제든 진행 상황과 설정을 초기화할 수 있습니다.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">06</span> 이용자의 선택권 <span class="en">Your choices</span></h2>
+      <ul>
+        <li><strong>광고 ID 재설정 또는 삭제</strong> — Android 설정 → 개인정보 보호 → 광고</li>
+        <li><strong>맞춤 광고 사용 안 함</strong> — 같은 화면에서 설정할 수 있습니다</li>
+        <li><strong>동의 변경</strong> — 동의가 필요한 지역에서는 UMP 동의 창에서 다시 선택할 수 있습니다</li>
+        <li><strong>광고 시청 거부</strong> — 보상형 광고를 보지 않아도 행성 관측과 항행 등 기본 기능은 모두 이용할 수 있습니다</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2><span class="num">07</span> 아동의 개인정보 <span class="en">Children</span></h2>
+      <p>이 앱은 <strong>아동을 주 대상으로 만들어지지 않았습니다.</strong> Google Play의 가족 정책상 아동 대상 앱으로 분류되지 않으며, 만 13세 미만 아동으로부터 의도적으로 개인정보를 수집하지 않습니다.</p>
+      <p>보호자께서 자녀의 정보가 처리되었다고 판단되시면 아래 주소로 알려 주시기 바랍니다. 확인 후 조치하겠습니다.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">08</span> 국외 이전 <span class="en">International transfer</span></h2>
+      <p>광고를 제공하는 Google LLC는 미국을 포함한 국외에 서버를 두고 있어, 광고 처리 과정에서 위 01항의 정보가 국외로 이전됩니다.</p>
+      <div class="tablewrap">
+        <table>
+          <tbody>
+            <tr><td>이전받는 자</td><td>Google LLC (Google AdMob)</td></tr>
+            <tr><td>이전 국가</td><td>미국 등 Google이 데이터센터를 운영하는 국가</td></tr>
+            <tr><td>이전 항목</td><td>위 01항의 광고 ID, 기기 정보, 대략적인 지역, 광고 상호작용</td></tr>
+            <tr><td>이전 목적</td><td>광고 게재 및 측정</td></tr>
+            <tr><td>보유 기간</td><td>Google의 데이터 보관 정책에 따름</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>맞춤 광고를 원하지 않으시면 위 06항의 방법으로 광고 ID를 재설정하거나 맞춤설정을 해제할 수 있습니다. Wsub이 별도로 국외에 이전하는 이용자 정보는 없습니다.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">09</span> 방침의 변경 <span class="en">Changes to this policy</span></h2>
+      <p>내용이 바뀌면 이 페이지를 갱신하고 상단의 시행일을 함께 고칩니다. 중요한 변경은 앱 업데이트 설명에도 적습니다.</p>
+    </section>
+
+    <section class="contact">
+      <h2><span class="num">10</span> 문의처 <span class="en">Contact</span></h2>
+      <p>개인정보 처리에 관한 문의는 아래로 보내 주십시오.</p>
+      <div class="mail">
+        <code id="mail-ko">contact@wsub.app</code>
+        <button type="button" class="copy" data-target="mail-ko">주소 복사</button>
+      </div>
+      <p style="margin-top:12px;">Wsub · <a href="https://wsub.app" target="_blank" rel="noopener">wsub.app</a></p>
+    </section>
+
+    <footer>
+      <p>Solar Explorer — 태양계를 실제 비율로 탐사하는 교육용 시뮬레이션. 이 방침은 Android 버전(com.wsub.solarexplorer)에 적용됩니다.</p>
+    </footer>
+  </div>
+
+  <!-- ══════════════ English ══════════════ -->
+  <div lang="en">
+    <header>
+      <p class="eyebrow">Wsub · Solar Explorer</p>
+      <h1>Privacy Policy</h1>
+      <p class="meta">Package <b>com.wsub.solarexplorer</b> · Effective <b>27 September 2026</b></p>
+    </header>
+
+    <div class="summary">
+      <p><strong>This app has no accounts and sends none of your data to a server.</strong> It does not use sign-in, location, contacts, the microphone, the camera, or your photo library.</p>
+      <p>What it stores stays <strong>on your device</strong>: your settings and your progress. Google AdMob may process an advertising identifier to serve ads, and that is set out below.</p>
+    </div>
+
+    <section>
+      <h2><span class="num">01</span> Information we collect</h2>
+      <p><strong>Wsub does not collect personal information through this app or transmit it to any server.</strong> There are no user accounts, and no identifier for you is created or kept.</p>
+      <p>The ads in the app (Google AdMob) may, however, send the following <strong>to Google</strong>:</p>
+      <ul>
+        <li><strong>Advertising ID</strong> (the Android advertising identifier)</li>
+        <li><strong>Device information</strong> — model, OS version, language setting and similar</li>
+        <li><strong>Approximate location</strong> — country or city level, inferred from IP address. Precise (GPS) location is not used.</li>
+        <li><strong>Ad interactions</strong> — impressions and clicks</li>
+      </ul>
+      <p>Google processes this to serve and measure ads. Wsub neither collects nor retains it separately. Handling follows <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">Google's partner-sites policy</a>.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">02</span> Stored only on your device</h2>
+      <p>The app keeps the items below in local storage on your device. <strong>None of it leaves the device</strong>, and none of it identifies you.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Key</th><th>What it holds</th></tr></thead>
+          <tbody>
+            <tr><td>sts_lang</td><td>Chosen display language (Korean / English)</td></tr>
+            <tr><td>ckpt_unlocked</td><td>Expiry time of the temporary cockpit unlock</td></tr>
+            <tr><td>des_unlocked</td><td>Expiry time of the temporary destruction-mode unlock</td></tr>
+            <tr><td>inv_unlocked</td><td>Expiry time of the temporary alien-defense unlock</td></tr>
+            <tr><td>sts_inv_best</td><td>Best stage reached in invasion defense</td></tr>
+            <tr><td>sts_inv_credit</td><td>Credits held</td></tr>
+            <tr><td>sts_inv_fleet</td><td>Allied ships owned</td></tr>
+            <tr><td>mis_done</td><td>Observation missions completed</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The unlock entries record only that a feature is open for <strong>20 minutes</strong> after an ad. They hold nothing about who watched it.</p>
+      <p>The screenshot and album feature present in earlier versions has been removed, and any image data it saved (<code>mis_photos</code>) is deleted automatically when the app runs.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">03</span> Advertising</h2>
+      <p>The app is free and supported by <strong>Google AdMob</strong> banner and rewarded ads. Rewarded ads only open the cockpit, destruction and alien-defense features for 20 minutes, and watching one is always your choice.</p>
+      <p>Where consent is required — the EEA, the UK, Switzerland and similar — the app shows Google's <strong>User Messaging Platform (UMP)</strong> consent form at launch. You choose there whether personalised ads are used, and you can change that later.</p>
+      <p>Wsub does <strong>not sell</strong> your data to third parties.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">04</span> Permissions</h2>
+      <ul>
+        <li><code>INTERNET</code> — needed to fetch ads. The astronomy data and all visuals ship inside the app, so it runs without a connection.</li>
+        <li><code>com.google.android.gms.permission.AD_ID</code> — needed to use the advertising ID.</li>
+        <li><code>VIBRATE</code> — gives haptic feedback when you fire or are hit in combat. It reads nothing.</li>
+      </ul>
+      <p>No camera, microphone, location, contacts, storage or notification permission is requested.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">05</span> Retention and deletion</h2>
+      <p>Everything stored on your device is <strong>removed when you uninstall the app.</strong> Because no user information is held on a server, there is no account-deletion procedure.</p>
+      <p>You can reset your progress and settings at any time through Android <em>Settings → Apps → Storage → Clear data</em>.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">06</span> Your choices</h2>
+      <ul>
+        <li><strong>Reset or delete your advertising ID</strong> — Android Settings → Privacy → Ads</li>
+        <li><strong>Opt out of personalised ads</strong> — from the same screen</li>
+        <li><strong>Change consent</strong> — where consent applies, reopen the UMP form and choose again</li>
+        <li><strong>Skip ads entirely</strong> — planet observation, navigation and the rest of the core app work without watching any rewarded ad</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2><span class="num">07</span> Children</h2>
+      <p>This app is <strong>not directed to children.</strong> It is not classified as a child-directed app under Google Play's Families policy, and we do not knowingly collect personal information from children under 13.</p>
+      <p>If you are a parent or guardian and believe your child's information has been processed, please write to the address below and we will look into it.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">08</span> International transfer</h2>
+      <p>Google LLC operates servers outside Korea, including in the United States, so the information described in section 01 is transferred abroad when ads are served.</p>
+      <div class="tablewrap">
+        <table>
+          <tbody>
+            <tr><td>Recipient</td><td>Google LLC (Google AdMob)</td></tr>
+            <tr><td>Countries</td><td>The United States and other countries where Google operates data centers</td></tr>
+            <tr><td>Items</td><td>Advertising ID, device information, approximate location and ad interactions, as listed in section 01</td></tr>
+            <tr><td>Purpose</td><td>Serving and measuring ads</td></tr>
+            <tr><td>Retention</td><td>Per Google's own data retention policies</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>If you prefer not to have personalised ads, use the methods in section 06. Wsub itself transfers no user information abroad.</p>
+    </section>
+
+    <section>
+      <h2><span class="num">09</span> Changes to this policy</h2>
+      <p>If this policy changes we update this page and the effective date at the top. Significant changes are also noted in the app's release notes.</p>
+    </section>
+
+    <section class="contact">
+      <h2><span class="num">10</span> Contact</h2>
+      <p>For any question about how data is handled, write to:</p>
+      <div class="mail">
+        <code id="mail-en">contact@wsub.app</code>
+        <button type="button" class="copy" data-target="mail-en">Copy address</button>
+      </div>
+      <p style="margin-top:12px;">Wsub · <a href="https://wsub.app" target="_blank" rel="noopener">wsub.app</a></p>
+    </section>
+
+    <footer>
+      <p>Solar Explorer — an educational simulation of the solar system at true scale. This policy applies to the Android release (com.wsub.solarexplorer).</p>
+    </footer>
+  </div>
+</div>
+
+<script>
+  (function () {
+    var panes = { ko: document.querySelector('[lang="ko"]'), en: document.querySelector('[lang="en"]') };
+    var btns  = { ko: document.getElementById('btn-ko'), en: document.getElementById('btn-en') };
+
+    function show(lang) {
+      Object.keys(panes).forEach(function (k) {
+        panes[k].classList.toggle('on', k === lang);
+        btns[k].setAttribute('aria-pressed', String(k === lang));
+      });
+      try { document.documentElement.lang = lang; } catch (e) {}
+      try { localStorage.setItem('wsub_privacy_lang', lang); } catch (e) {}
+    }
+
+    Object.keys(btns).forEach(function (k) {
+      btns[k].addEventListener('click', function () { show(k); });
+    });
+
+    // 저장된 선택이 있으면 그것부터, 없으면 브라우저 언어로
+    var start = null;
+    try { start = localStorage.getItem('wsub_privacy_lang'); } catch (e) {}
+    if (start !== 'ko' && start !== 'en') {
+      start = (navigator.language || '').toLowerCase().indexOf('ko') === 0 ? 'ko' : 'en';
+    }
+    show(start);
+
+    // 주소 복사 — 앱 안 브라우저에서 mailto 가 안 열리는 경우가 많다
+    document.querySelectorAll('.copy').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var el = document.getElementById(b.dataset.target);
+        var txt = el.textContent.trim();
+        var done = function () {
+          var old = b.textContent;
+          b.textContent = document.documentElement.lang === 'en' ? 'Copied' : '복사됨';
+          setTimeout(function () { b.textContent = old; }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(done, function () { select(el); });
+        } else { select(el); }
+      });
+    });
+    function select(el) {
+      try {
+        var r = document.createRange(); r.selectNodeContents(el);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      } catch (e) {}
+    }
+  })();
+</script>
+</body>
+</html>
