@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="index, follow" />
+  <title>개인정보 처리방침 · 써클로또 / Privacy Policy · Circle Lotto</title>
+  <meta name="description" content="써클로또 앱 개인정보 처리방침 / Circle Lotto Privacy Policy" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #f7f4ee;
+      color: #24180f;
+      font: 16px/1.7 "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", -apple-system, system-ui, sans-serif;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 20px 72px; }
+    .toggle { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 20px; }
+    .toggle button {
+      border: 1px solid #c9b89c; background: transparent; color: #6a5a48;
+      padding: 6px 14px; border-radius: 999px; font: inherit; font-size: 0.9rem; cursor: pointer;
+    }
+    .toggle button.on { background: #24180f; color: #f7f4ee; border-color: #24180f; }
+    /* 범위를 main 안으로 한정 — <html lang>에는 적용되지 않음 */
+    main [lang]:not(.on) { display: none; }
+    h1 { font-size: 1.7rem; margin: 0 0 8px; line-height: 1.3; }
+    .meta { color: #6a5a48; font-size: 0.92rem; margin: 0 0 28px; }
+    h2 { font-size: 1.12rem; margin: 28px 0 8px; }
+    p, li, td, th { color: #3a2d22; }
+    ul { padding-left: 1.2em; }
+    a { color: #8a4b12; }
+    .note { background: #efe6d6; border-radius: 10px; padding: 12px 14px; font-size: 0.92rem; }
+    .tbl { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 480px; }
+    th, td { border: 1px solid #d8cbb5; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #efe6d6; width: 28%; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="toggle">
+      <button type="button" data-l="ko">한국어</button>
+      <button type="button" data-l="en">English</button>
+    </div>
+
+    <!-- ===================== 한국어 ===================== -->
+    <section lang="ko">
+      <h1>써클로또 개인정보 처리방침</h1>
+      <p class="meta">시행일: 2026년 11월 20일 · 운영: Wsub</p>
+
+      <p>써클로또(이하 “앱”)는 Wsub가 운영하며, 계정 없이 기기에서 동작하는 오락용 번호 생성기입니다. 공식 복권 판매·당첨 대행이 아니며, 동행복권·복권위원회 및 미국 파워볼 운영기관과 무관합니다.</p>
+
+      <h2>1. 수집하는 정보</h2>
+      <p>앱은 회원가입을 받지 않으며, 이름·전화번호·이메일·위치·연락처·사진 등 개인식별정보를 직접 수집하지 않습니다.</p>
+      <p>기기에만 남는 정보:</p>
+      <ul>
+        <li>사용자가 저장한 번호 조합</li>
+        <li>최근 당첨번호를 불러온 뒤의 임시 저장값</li>
+        <li>하루 무료 이용 횟수·광고 해금 여부</li>
+      </ul>
+      <p>위 정보는 이 기기 저장소(localStorage)에만 있으며, Wsub 서버로 전송하지 않습니다. 앱을 삭제하거나 앱 데이터를 지우면 함께 삭제됩니다.</p>
+
+      <h2>2. 네트워크 사용</h2>
+      <p>최근 당첨 회차와 번호(한국 로또 6/45, 미국 파워볼)를 보여 주기 위해 Google Firebase Realtime Database의 공개 당첨번호 데이터를 <strong>읽기만</strong> 합니다. 앱이 당첨번호를 쓰거나 수정하지 않으며, 이 요청에 계정 정보는 포함되지 않습니다.</p>
+      <p>연결에 실패하면 기기에 마지막으로 받아 둔 값을 보여 주고, 그것도 없으면 번호를 불러오지 못했다는 안내를 표시합니다.</p>
+      <p>Firebase 접속 과정에서 Google이 접속 일시, IP 주소 등 통상적인 서버 로그를 처리할 수 있습니다. 자세한 내용은 <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google 개인정보처리방침</a>을 참고하세요.</p>
+
+      <h2>3. 광고</h2>
+      <p>앱은 상단 배너 광고와, 추가 이용(다트 추가 투척, 룰렛·원판 하루 해금 등)을 위한 보상형 광고를 표시합니다. 광고는 Google AdMob을 통해 제공됩니다.</p>
+      <p>Google AdMob은 광고 제공·부정 방지·성과 측정 목적으로 다음 정보를 처리할 수 있습니다.</p>
+      <ul>
+        <li>광고 ID(또는 이에 준하는 기기 식별값)</li>
+        <li>기기·앱 정보, IP 주소, 대략적 지역</li>
+        <li>광고 노출·클릭·시청 여부</li>
+      </ul>
+      <p>광고 개인화는 기기 설정에서 광고 ID 재설정 또는 삭제, 개인 맞춤 광고 제한으로 조절할 수 있습니다. 광고 시청은 번호의 당첨 확률과 무관합니다.</p>
+      <p>Google의 광고 데이터 처리: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">https://policies.google.com/technologies/ads</a></p>
+
+      <h2>4. 권한</h2>
+      <ul>
+        <li>인터넷: 당첨번호 조회, 광고 표시</li>
+        <li>광고 ID: 광고 표시(Google AdMob)</li>
+        <li>진동: 게임 피드백(기기가 지원하는 경우)</li>
+      </ul>
+      <p>번호 복사 기능은 사용자가 복사 버튼을 누를 때만 클립보드에 씁니다. 카메라, 마이크, 위치, 연락처, 저장소의 개인 파일은 사용하지 않습니다.</p>
+
+      <h2>5. 개인정보 처리위탁 및 제3자 제공</h2>
+      <p>Wsub는 이용자 정보를 판매하거나 제3자에게 제공하지 않습니다. 다만 아래 서비스가 각자의 역할 범위에서 데이터를 처리합니다.</p>
+      <ul>
+        <li>Google Firebase: 공개 당첨번호 조회</li>
+        <li>Google AdMob: 광고 표시</li>
+        <li>Google Play: 앱 배포·오류 보고(스토어 정책에 따름)</li>
+      </ul>
+
+      <h2>6. 개인정보의 국외 이전</h2>
+      <p>위 서비스 이용 과정에서 아래 정보가 국외로 이전·처리될 수 있습니다.</p>
+      <div class="tbl">
+        <table>
+          <tr><th>이전받는 자</th><td>Google LLC (개인정보 관련 연락처: <a href="https://support.google.com/policies/contact/general_privacy_form" target="_blank" rel="noopener">Google 개인정보 문의</a>)</td></tr>
+          <tr><th>이전 국가</th><td>미국 등 Google이 서버를 운영하는 국가</td></tr>
+          <tr><th>이전 일시 및 방법</th><td>앱 이용 시(당첨번호 조회·광고 표시) 네트워크를 통해 전송</td></tr>
+          <tr><th>이전 항목</th><td>광고 ID, 기기·앱 정보, IP 주소, 대략적 지역, 광고 노출·클릭 기록, 접속 일시 등 서버 로그</td></tr>
+          <tr><th>이전 목적</th><td>광고 제공·성과 측정·부정 방지, 당첨번호 데이터 제공</td></tr>
+          <tr><th>보유 및 이용 기간</th><td>Google의 개인정보처리방침에 따른 보유 기간까지</td></tr>
+        </table>
+      </div>
+      <p>국외 이전을 원하지 않으시면 앱 이용을 중단하거나 앱을 삭제할 수 있습니다. 이 경우 당첨번호 조회와 광고 기능을 이용할 수 없습니다.</p>
+
+      <h2>7. 보유 기간</h2>
+      <p>기기에 저장된 번호와 이용 한도는 이용자가 앱 데이터를 지우거나 앱을 삭제할 때까지 기기에 남습니다. Wsub는 별도 서버에 이용자 번호 목록을 보관하지 않습니다.</p>
+
+      <h2>8. 이용자 권리</h2>
+      <p>저장된 번호를 지우려면 앱 데이터를 지우거나 앱을 삭제하면 됩니다. 개인정보 열람·정정·삭제·처리 정지 요청은 아래 이메일로 할 수 있으며, 지체 없이 처리합니다.</p>
+
+      <h2>9. 아동</h2>
+      <p>앱은 만 14세 미만 아동을 대상으로 하지 않으며, 아동의 개인정보를 고의로 수집하지 않습니다.</p>
+
+      <h2>10. 개인정보 보호책임자 및 문의</h2>
+      <p>개인정보 보호책임자: Wsub<br>
+      이메일: <a href="mailto:contact@wsub.app">contact@wsub.app</a></p>
+
+      <h2>11. 방침 변경</h2>
+      <p>내용이 바뀌면 이 페이지의 시행일을 수정하고 앱 또는 이 페이지에 안내합니다.</p>
+    </section>
+
+    <!-- ===================== English ===================== -->
+    <section lang="en">
+      <h1>Circle Lotto Privacy Policy</h1>
+      <p class="meta">Effective date: November 20, 2026 · Operated by Wsub</p>
+
+      <p>Circle Lotto (the “App”) is operated by Wsub. It is an entertainment number generator that works on your device without an account. It does not sell lottery tickets or claim prizes, and it is not affiliated with Dong-hang Lottery, the Korean Lottery Commission, or the operators of the US Powerball.</p>
+
+      <h2>1. Information We Collect</h2>
+      <p>The App does not offer sign-up and does not directly collect personally identifiable information such as your name, phone number, email, location, contacts, or photos.</p>
+      <p>Information stored only on your device:</p>
+      <ul>
+        <li>Number combinations you save</li>
+        <li>A temporary copy of the latest winning numbers after they are loaded</li>
+        <li>Daily free-use counts and ad-unlock status</li>
+      </ul>
+      <p>This information stays in your device storage (localStorage) and is not sent to Wsub servers. It is deleted when you clear the App's data or uninstall the App.</p>
+
+      <h2>2. Network Use</h2>
+      <p>To show the latest draw results (Korea Lotto 6/45 and US Powerball), the App <strong>only reads</strong> public winning-number data from Google Firebase Realtime Database. The App never writes or modifies winning numbers, and these requests contain no account information.</p>
+      <p>If the connection fails, the App shows the last numbers saved on your device, or a message that the numbers could not be loaded.</p>
+      <p>When connecting to Firebase, Google may process standard server logs such as access time and IP address. See the <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google Privacy Policy</a> for details.</p>
+
+      <h2>3. Advertising</h2>
+      <p>The App shows a top banner ad and rewarded ads for extra use (such as extra dart throws or a daily roulette/wheel unlock). Ads are provided by Google AdMob.</p>
+      <p>Google AdMob may process the following for ad delivery, fraud prevention, and measurement:</p>
+      <ul>
+        <li>Advertising ID (or an equivalent device identifier)</li>
+        <li>Device and app information, IP address, approximate region</li>
+        <li>Ad impressions, clicks, and views</li>
+      </ul>
+      <p>You can reset or delete your advertising ID, or limit personalized ads, in your device settings. Watching ads has no effect on the odds of any number winning.</p>
+      <p>How Google uses ad data: <a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener">https://policies.google.com/technologies/ads</a></p>
+
+      <h2>4. Permissions</h2>
+      <ul>
+        <li>Internet: loading winning numbers, showing ads</li>
+        <li>Advertising ID: showing ads (Google AdMob)</li>
+        <li>Vibration: game feedback (on supported devices)</li>
+      </ul>
+      <p>The copy feature writes to the clipboard only when you tap the copy button. The App does not use the camera, microphone, location, contacts, or personal files in storage.</p>
+
+      <h2>5. Service Providers and Third Parties</h2>
+      <p>Wsub does not sell or share your information with third parties. The following services process data within their own roles:</p>
+      <ul>
+        <li>Google Firebase: public winning-number data</li>
+        <li>Google AdMob: advertising</li>
+        <li>Google Play: app distribution and crash reporting (under store policies)</li>
+      </ul>
+
+      <h2>6. International Transfer of Information</h2>
+      <p>While using the services above, the following information may be transferred and processed outside your country.</p>
+      <div class="tbl">
+        <table>
+          <tr><th>Recipient</th><td>Google LLC (privacy contact: <a href="https://support.google.com/policies/contact/general_privacy_form" target="_blank" rel="noopener">Google privacy inquiries</a>)</td></tr>
+          <tr><th>Country</th><td>United States and other countries where Google operates servers</td></tr>
+          <tr><th>When and how</th><td>Sent over the network while using the App (loading numbers, showing ads)</td></tr>
+          <tr><th>Items</th><td>Advertising ID, device and app information, IP address, approximate region, ad impression/click records, server logs such as access time</td></tr>
+          <tr><th>Purpose</th><td>Ad delivery, measurement and fraud prevention; providing winning-number data</td></tr>
+          <tr><th>Retention</th><td>As set out in Google's Privacy Policy</td></tr>
+        </table>
+      </div>
+      <p>If you do not want this transfer, you may stop using or uninstall the App. Number loading and ad features will then be unavailable.</p>
+
+      <h2>7. Retention</h2>
+      <p>Saved numbers and usage limits remain on your device until you clear the App's data or uninstall it. Wsub does not keep any list of user numbers on its servers.</p>
+
+      <h2>8. Your Rights</h2>
+      <p>To delete saved numbers, clear the App's data or uninstall the App. You may request access, correction, deletion, or suspension of processing of personal information by email below, and we will respond without delay.</p>
+
+      <h2>9. Children</h2>
+      <p>The App is not directed to children under 14 and does not knowingly collect children's personal information.</p>
+
+      <h2>10. Privacy Officer and Contact</h2>
+      <p>Privacy officer: Wsub<br>
+      Email: <a href="mailto:contact@wsub.app">contact@wsub.app</a></p>
+
+      <h2>11. Changes to This Policy</h2>
+      <p>If this policy changes, we will update the effective date on this page and notify you in the App or on this page.</p>
+    </section>
+  </main>
+
+<script>
+(function () {
+  var btns = document.querySelectorAll(".toggle button");
+  function setLang(l) {
+    document.querySelectorAll("main section[lang]").forEach(function (s) {
+      s.classList.toggle("on", s.getAttribute("lang") === l);
+    });
+    btns.forEach(function (b) { b.classList.toggle("on", b.getAttribute("data-l") === l); });
+    document.documentElement.lang = l;
+  }
+  btns.forEach(function (b) { b.addEventListener("click", function () { setLang(b.getAttribute("data-l")); }); });
+  var q = (location.search.match(/[?&]lang=(ko|en)/) || [])[1];
+  var nav = (navigator.language || "").toLowerCase().indexOf("ko") === 0 ? "ko" : "en";
+  setLang(q || nav);
+})();
+</script>
+</body>
+</html>
